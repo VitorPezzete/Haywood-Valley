@@ -1,0 +1,22 @@
+{
+	"version": 1,
+	"flameworkVersion": "1.3.2",
+	"identifiers": {
+		"haywood-valley:out/client/controllers/CameraController@CameraController": "client/controllers/CameraController@CameraController",
+		"haywood-valley:out/client/world/occlusion@Occlusion": "client/world/occlusion@Occlusion",
+		"haywood-valley:out/client/world/wind@Wind": "client/world/wind@Wind",
+		"haywood-valley:out/client/controllers/SceneController@SceneController": "client/controllers/SceneController@SceneController",
+		"haywood-valley:out/client/controllers/CharacterController@CharacterController": "client/controllers/CharacterController@CharacterController",
+		"haywood-valley:out/client/controllers/MovementController@MovementController": "client/controllers/MovementController@MovementController",
+		"haywood-valley:out/client/controllers/DialogueController@DialogueController": "client/controllers/DialogueController@DialogueController",
+		"haywood-valley:out/client/controllers/StartController@StartController": "client/controllers/StartController@StartController",
+		"haywood-valley:out/server/services/AppearanceService@AppearanceService": "server/services/AppearanceService@AppearanceService",
+		"haywood-valley:out/server/services/CharacterService@CharacterService": "server/services/CharacterService@CharacterService",
+		"haywood-valley:out/server/services/WorldService@WorldService": "server/services/WorldService@WorldService",
+		"haywood-valley:out/shared/network@GlobalEvents": "shared/network@GlobalEvents",
+		"haywood-valley:out/server/services/ReactionService@ReactionService": "server/services/ReactionService@ReactionService",
+		"haywood-valley:out/client/controllers/ReactionController@ReactionController": "client/controllers/ReactionController@ReactionController",
+		"haywood-valley:out/client/controllers/MoodController@MoodController": "client/controllers/MoodController@MoodController"
+	},
+	"metadata": {}
+}
