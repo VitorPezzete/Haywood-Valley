@@ -15,6 +15,7 @@
 
 import http from "node:http";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
@@ -711,6 +712,7 @@ async function status() {
 		plugin: estadoPacote(),
 		studios: canais.sessoesVivas(),
 		aseprite: canais.estadoAseprite(),
+		estilo: { script: path.relative(RAIZ, SCRIPT_ESTILO), python: comandoPython(), temporaria: PASTA_TEMPORARIA },
 	};
 }
 
@@ -735,9 +737,158 @@ function lerDoc(nome) {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
+// Estilo Aeko: tools/estilo_aeko_arte.py (docs/arte/ESTILO_AEKO_ARTE.md)
+//
+// `POST /estilo/aeko { entrada, saida, opcoes }` e o pedido `estilo_aeko` do Aseprite (WebSocket) rodam a ferramenta
+// que passa qualquer arte para o estilo aeko, equipe ou aeko+equipe. Só PNG, só dentro do repositório ou da pasta
+// temporária da ponte (`<temp>/diorama-ponte`, onde a extensão do Aseprite grava o sprite), sem link no caminho; uma
+// saída dentro do repositório não pode cair por cima de arquivo que já existe (na pasta temporária pode). As opções
+// são uma lista fechada, traduzidas para os argumentos da linha de comando: nada do pedido vira argumento sem ser
+// conferido. O Python roda com `-I`, sem shell, um de cada vez, e com tempo máximo.
+
+/** A pasta temporária da ponte (a extensão do Aseprite pergunta por ela com o pedido `temporaria`). */
+export const PASTA_TEMPORARIA = path.join(os.tmpdir(), "diorama-ponte");
+/** O script mora ao lado da ponte (não em DIORAMA_RAIZ: os testes sobem a ponte numa cópia mínima). */
+const SCRIPT_ESTILO = path.join(path.dirname(fileURLToPath(import.meta.url)), "estilo_aeko_arte.py");
+const TEMPO_ESTILO = 180_000;
+const OPCOES_ESTILO = {
+	estilo: (v) => ["aeko", "equipe", "aeko+equipe"].includes(v) && ["--estilo", v],
+	mistura: (v) => typeof v === "number" && v >= 0 && v <= 1 && ["--mistura", String(v)],
+	fundo: (v) => typeof v === "string" && /^(auto|nenhum|#[0-9A-Fa-f]{6})$/.test(v) && ["--fundo", v],
+	paleta: (v) => ["auto", "estilo", "livre", "aeko", "equipe"].includes(v) && ["--paleta", v],
+	tons: (v) => Number.isInteger(v) && v >= 1 && v <= 16 && ["--tons", String(v)],
+	contorno: (v) => ["externo", "todos", "nao"].includes(v) && ["--contorno", v],
+	cor_contorno: (v) => ["auto", "preto", "escuro"].includes(v) && ["--cor-contorno", v],
+	escala: (v) => (v === "auto" || (Number.isInteger(v) && v >= 1 && v <= 16)) && ["--escala", String(v)],
+	nota_minima: (v) => typeof v === "number" && v >= 0 && v <= 10 && ["--nota-minima", String(v)],
+	previa: (v) => typeof v === "boolean" && (v ? ["--previa"] : []),
+};
+
+/** O Python: DIORAMA_PYTHON, o 3.12 de %LOCALAPPDATA% (o deste PC, fora do PATH) ou o `python` do PATH. */
+function comandoPython() {
+	if (process.env.DIORAMA_PYTHON) return process.env.DIORAMA_PYTHON;
+	const local = process.env.LOCALAPPDATA && path.join(process.env.LOCALAPPDATA, "Programs", "Python", "Python312", "python.exe");
+	if (local && existe(local)) return local;
+	return process.platform === "win32" ? "python.exe" : "python3";
+}
+
+/**
+ * Um caminho de PNG do pedido, conferido: relativo à raiz ou absoluto, dentro da raiz ou da pasta temporária, sem
+ * `..` que escape, sem nome reservado do Windows e sem link. Devolve { absoluto, base, temporario }.
+ */
+function caminhoDeEstilo(valor, oQue) {
+	if (typeof valor !== "string" || valor === "" || valor.includes("\0")) throw new ErroHttp(400, `${oQue} precisa ser um caminho`);
+	if (!/\.png$/i.test(valor)) throw new ErroHttp(400, `${oQue} precisa ser um .png: ${valor}`);
+	const absoluto = path.resolve(RAIZ, valor);
+	const bases = [
+		{ base: path.resolve(PASTA_TEMPORARIA), temporario: true },
+		{ base: path.resolve(RAIZ), temporario: false },
+	];
+	const achada = bases.find(({ base }) => absoluto.startsWith(base + path.sep));
+	if (!achada) throw new ErroHttp(400, `${oQue} fora do repositório e da pasta temporária da ponte: ${valor}`);
+	for (const parte of path.relative(achada.base, absoluto).split(path.sep)) conferirNome(parte, oQue);
+	semLinks(achada.base, absoluto);
+	return { absoluto, ...achada };
+}
+
+let filaEstilo = Promise.resolve();
+
+/** Confere o pedido e roda a ferramenta (um de cada vez). Devolve { ok, codigo, log, resumo?, saida, previa? }. */
+export function aplicarEstilo(pedido) {
+	if (typeof pedido !== "object" || pedido === null || Array.isArray(pedido)) throw new ErroHttp(400, "o pedido precisa ser um objeto");
+	const entrada = caminhoDeEstilo(pedido.entrada, "entrada");
+	const saida = caminhoDeEstilo(pedido.saida, "saida");
+	if (!existe(entrada.absoluto) || !fs.statSync(entrada.absoluto).isFile()) throw new ErroHttp(404, `a entrada não existe: ${pedido.entrada}`);
+	if (entrada.absoluto === saida.absoluto) throw new ErroHttp(400, "a saída não pode ser a própria entrada");
+	if (!saida.temporario && existe(saida.absoluto)) {
+		throw new ErroHttp(409, `a saída já existe no repositório: ${path.relative(RAIZ, saida.absoluto)} (a ponte não grava por cima)`);
+	}
+	const opcoes = pedido.opcoes ?? {};
+	if (typeof opcoes !== "object" || opcoes === null || Array.isArray(opcoes)) throw new ErroHttp(400, "opcoes precisa ser um objeto");
+	const args = [];
+	for (const [chave, valor] of Object.entries(opcoes)) {
+		const traduzir = OPCOES_ESTILO[chave];
+		if (!traduzir) throw new ErroHttp(400, `opção desconhecida: ${chave} (valem ${Object.keys(OPCOES_ESTILO).join(", ")})`);
+		const traduzido = traduzir(valor);
+		if (!traduzido) throw new ErroHttp(400, `valor inválido para ${chave}: ${JSON.stringify(valor)}`);
+		args.push(...traduzido);
+	}
+	fs.mkdirSync(path.dirname(saida.absoluto), { recursive: true });
+	const vez = filaEstilo.then(() => rodarEstilo([entrada.absoluto, saida.absoluto, ...args, "--json"], saida.absoluto));
+	filaEstilo = vez.catch(() => {});
+	return vez;
+}
+
+function rodarEstilo(args, saida) {
+	return new Promise((resolve) => {
+		const python = comandoPython();
+		const inicio = Date.now();
+		let log = "";
+		let processo;
+		try {
+			processo = spawn(python, ["-I", SCRIPT_ESTILO, ...args], {
+				cwd: RAIZ,
+				shell: false,
+				windowsHide: true,
+				env: { ...process.env, PYTHONIOENCODING: "utf-8", OPENBLAS_NUM_THREADS: "1" },
+			});
+		} catch (erro) {
+			resolve({ ok: false, codigo: null, log: `não deu para iniciar o Python (${python}): ${erro.message}\n`, saida });
+			return;
+		}
+		const temporizador = setTimeout(() => {
+			log += `\n(interrompido depois de ${TEMPO_ESTILO / 1000} s)\n`;
+			processo.kill();
+		}, TEMPO_ESTILO);
+		processo.stdout.on("data", (parte) => (log += parte.toString("utf8")));
+		processo.stderr.on("data", (parte) => (log += parte.toString("utf8")));
+		processo.on("error", (erro) => {
+			clearTimeout(temporizador);
+			resolve({ ok: false, codigo: null, log: log + `erro ao rodar o Python (${python}): ${erro.message}\n`, saida });
+		});
+		processo.on("close", (codigo) => {
+			clearTimeout(temporizador);
+			// A última linha que é um objeto JSON é o resumo (--json); o resto é o log legível.
+			let resumo;
+			const linhas = log.trimEnd().split(/\r?\n/);
+			for (let i = linhas.length - 1; i >= 0; i--) {
+				if (!linhas[i].startsWith("{")) continue;
+				try {
+					resumo = JSON.parse(linhas[i]);
+					linhas.splice(i, 1);
+				} catch {
+					resumo = undefined;
+				}
+				break;
+			}
+			const segundos = ((Date.now() - inicio) / 1000).toFixed(1);
+			const resposta = { ok: codigo === 0 && existe(saida), codigo, log: `${linhas.join("\n")}\n(saiu com código ${codigo} em ${segundos} s)\n`, saida };
+			if (resumo) {
+				resposta.resumo = resumo;
+				if (resumo.previa) resposta.previa = resumo.previa;
+			}
+			resolve(resposta);
+		});
+	});
+}
+
+// ---------------------------------------------------------------------------------------------------------------
 // Pacote do plugin e canais (CONEXOES.md)
 
-const canais = criarCanais({ ErroHttp, lerJson: lerObjeto });
+/** Pedidos que o Aseprite faz à ponte pelo WebSocket ({ tipo: "pedido", id, nome, args }). */
+const pedidosAseprite = {
+	temporaria: async () => {
+		fs.mkdirSync(PASTA_TEMPORARIA, { recursive: true });
+		return { pasta: PASTA_TEMPORARIA };
+	},
+	estilo_aeko: async (args) => {
+		const r = await aplicarEstilo(args);
+		canais.emitir("estilo_aplicado", { saida: r.saida, ok: r.ok, nota: r.resumo?.nota, origem: "aseprite" });
+		return r;
+	},
+};
+
+const canais = criarCanais({ ErroHttp, lerJson: lerObjeto, pedidos: pedidosAseprite });
 const PROJETO_PLUGIN = path.join(RAIZ, "plugin", "default.project.json");
 let observador;
 
@@ -910,6 +1061,16 @@ const ROTAS = [
 			if (ruim) throw new ErroHttp(400, `enviadas: o id de "${ruim[0]}" precisa ser um número ou texto`);
 			gravarJson(PASTAS.assets, path.join(PASTAS.assets, "enviadas.json"), enviadas);
 			return { json: await rodarNpm("assets", ["--importar"]) };
+		},
+	],
+
+	[
+		"POST",
+		/^\/estilo\/aeko$/,
+		async (_grupos, req) => {
+			const r = await aplicarEstilo(await lerObjeto(req, "o pedido ({ entrada, saida, opcoes })"));
+			canais.emitir("estilo_aplicado", { saida: r.saida, ok: r.ok, nota: r.resumo?.nota });
+			return { json: r };
 		},
 	],
 

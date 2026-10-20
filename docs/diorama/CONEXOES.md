@@ -81,7 +81,11 @@ ponte → Aseprite   { "tipo": "comando", "id": "a5", "nome": "…", "args": {�
 Aseprite → ponte   { "tipo": "resposta", "id": "a5", "ok": true, "valor": … } | { …, "ok": false, "erro": "…" }
 Aseprite → ponte   { "tipo": "evento", "nome": "folha_salva", "dados": { "folha": "casa" } }
 Aseprite → ponte   { "tipo": "ola", "versao": "0.1.0", "aseprite": "1.3.x" }
+Aseprite → ponte   { "tipo": "pedido", "id": "x1", "nome": "estilo_aeko", "args": { "entrada", "saida", "opcoes" } }
+ponte → Aseprite   { "tipo": "resposta_pedido", "id": "x1", "ok": true, "valor": … } | { …, "ok": false, "erro": "…" }
 ```
+
+Os pedidos (desde 2026-10-20, extensão 0.3.0) vão no sentido contrário dos comandos: a extensão pede e a ponte responde. Há dois: `temporaria` (`{ pasta }`, a pasta temporária da ponte, onde a extensão grava o sprite) e `estilo_aeko` (roda a ferramenta de estilo, o mesmo de `POST /estilo/aeko` em `PONTE.md`). É o que o menu "Arquivo > Diorama > Aplicar estilo Aeko…" usa.
 
 HTTP para quem manda: `GET /aseprite/estado` → `{ conectado, versao, sprite? }`; `POST /aseprite/comandos { nome, args }` → espera a resposta até 30 s e devolve `{ ok, valor|erro }`.
 

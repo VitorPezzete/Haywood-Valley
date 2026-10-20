@@ -2,10 +2,11 @@
 // o do Aseprite (WebSocket em /ws) e os eventos (/eventos, long-poll). Tudo em memória: reiniciar a ponte esquece
 // sessões, comandos e eventos.
 //
-// `criarCanais({ ErroHttp, lerJson })` devolve `{ rotas, emitir, aoAtualizar(servidor, recusar), fechar }`: as rotas
+// `criarCanais({ ErroHttp, lerJson, pedidos })` devolve `{ rotas, emitir, aoAtualizar(servidor, recusar), fechar }`: as rotas
 // no formato de diorama_ponte.mjs, `emitir(tipo, dados)` para a ponte anunciar os próprios eventos, e o
 // `aoAtualizar` que liga o WebSocket ao servidor HTTP (`recusar(req)` diz por que recusar um upgrade). `lerJson(req)`
-// tem de devolver um objeto JSON (ou lançar ErroHttp 400).
+// tem de devolver um objeto JSON (ou lançar ErroHttp 400). `pedidos`: nome → função async(args) para os pedidos que o
+// Aseprite faz à ponte pelo WebSocket (`temporaria`, `estilo_aeko`; a ponte é quem os define).
 
 import { WebSocketServer } from "ws";
 
@@ -34,7 +35,7 @@ function esperaDaBusca(busca, padrao) {
 	return Math.min(n, ESPERA_MAXIMA_S);
 }
 
-export function criarCanais({ ErroHttp, lerJson, log = console.log }) {
+export function criarCanais({ ErroHttp, lerJson, log = console.log, pedidos = {} }) {
 	// ----------------------------------------------------------------------------------------------------------
 	// Eventos
 
@@ -369,6 +370,29 @@ export function criarCanais({ ErroHttp, lerJson, log = console.log }) {
 			const resposta = msg.ok === true ? { ok: true, valor: msg.valor ?? null } : { ok: false, erro: String(msg.erro ?? "erro sem mensagem") };
 			if (resposta.ok && p.nome === "sprite_atual") aseprite.sprite = resposta.valor;
 			p.resolve(resposta);
+			return;
+		}
+		if (msg.tipo === "pedido") {
+			// O Aseprite pedindo algo à ponte (o contrário de um comando): { tipo: "pedido", id, nome, args }. A resposta
+			// volta pela mesma conexão como { tipo: "resposta_pedido", id, ok, valor | erro }.
+			const id = msg.id;
+			const nome = textoOuNada(msg.nome);
+			const responderPedido = (resposta) => {
+				if (ws.readyState === 1) ws.send(JSON.stringify({ tipo: "resposta_pedido", id, ...resposta }));
+			};
+			const tratar = nome !== undefined && Object.hasOwn(pedidos, nome) ? pedidos[nome] : undefined;
+			if (!tratar) {
+				responderPedido({ ok: false, erro: `pedido desconhecido: ${nome}` });
+				return;
+			}
+			const args = msg.args && typeof msg.args === "object" && !Array.isArray(msg.args) ? msg.args : {};
+			Promise.resolve()
+				.then(() => tratar(args))
+				.then(
+					(valor) => responderPedido({ ok: true, valor: valor ?? null }),
+					(erro) => responderPedido({ ok: false, erro: erro?.message ?? String(erro) }),
+				);
+			log(`[aseprite] pedido ${nome}`);
 			return;
 		}
 		if (msg.tipo === "evento") {

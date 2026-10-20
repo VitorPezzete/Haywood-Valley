@@ -29,6 +29,7 @@ Menu **Arquivo > Diorama**:
 | Conectar/desconectar da ponte | Liga e desliga o WebSocket. Fica marcado enquanto conectado. A escolha vale para a próxima vez que o Aseprite abrir. |
 | Abrir região da folha… | Escolhe a folha (as de `diorama/folhas`, sem as metades `_0`/`_1`) e a área em tiles de 16 px (coluna, linha, largura, altura). Abre um sprite novo `folha@coluna,linha`, com a grade de 16 px ligada e a paleta com as cores da região. |
 | Salvar região na folha | Grava o sprite atual (camadas visíveis do quadro atual, achatadas) de volta na região de onde veio, regrava `diorama/folhas/<folha>.png` e as metades `<folha>_0.png`/`_1.png`, e avisa a ponte (`folha_salva`), que manda o Studio recarregar a prévia. |
+| Aplicar estilo Aeko… | (0.3.0) Passa o sprite atual pela ferramenta de estilo (`tools/estilo_aeko_arte.py`, `docs/arte/ESTILO_AEKO_ARTE.md`) e **abre o resultado como sprite novo**; o atual não muda. Diálogo: estilo (`aeko`, `equipe`, `aeko+equipe`), mistura (0 = só equipe, 100 = só Aeko; só no aeko+equipe), fundo (`auto`, `nenhum` ou uma cor), paleta, tons por rampa (0 = os do estilo), contorno, cor do contorno, nota mínima (0 = a padrão, 8) e prévia (abre também a folha antes \| depois). A última escolha fica guardada. Ao terminar, mostra a nota; abaixo da mínima, um aviso com o que faltou. |
 | Raiz do repositório… | A pasta do repositório (padrão `C:\Users\Szortek\Documents\Haywood-Valley`) e o endereço da ponte (padrão `ws://127.0.0.1:34873/ws?cliente=aseprite`). Mudar o endereço reconecta. |
 
 Ao abrir, a extensão conecta sozinha e, se a ponte não estiver no ar, tenta de novo a cada 3 s. Ao conectar, manda `{ "tipo": "ola", "versao": "0.2.0", "aseprite": "1.3.18.6", "sprite"?: {…} }` (o sprite aberto, se houver).
@@ -38,6 +39,16 @@ Reconexão: o WebSocket do Aseprite 1.3.18 não percebe quando a ponte cai (nenh
 Desde a 0.2.0 (2026-10-20): há um relógio só, criado na primeira conexão; o menu para e religa o mesmo relógio, e desligar e ligar pelo menu reaproveita o mesmo objeto WebSocket (antes cada religada criava um objeto novo e pedia a permissão de novo). Só uma troca de endereço (Raiz do repositório…) cria outro objeto, e as mensagens do velho são ignoradas. Uma resposta que o `json` não consegue codificar volta como `ok: false` em vez de derrubar o estado da conexão (antes o erro de codificação era tomado por socket morto e a ponte esperava 30 s).
 
 O sprite aberto por "Abrir região" lembra a folha e a área (propriedade `diorama` do sprite e o próprio nome). "Salvar região" lê dali; o tamanho do sprite tem de continuar igual ao da área. O Ctrl+S do Aseprite **não** grava na folha: ele pergunta onde salvar um `.aseprite`, como qualquer sprite novo. Para gravar na folha é o item do menu (ou o comando `salvar_regiao`).
+
+### Como o "Aplicar estilo Aeko…" funciona
+
+1. Achata o sprite atual (camadas visíveis do quadro atual) numa imagem RGBA.
+2. Com a ponte conectada: pede a pasta temporária dela (pedido `temporaria`, `%TEMP%\diorama-ponte`), grava ali `<nome>_<hora>.png` e pede `estilo_aeko { entrada, saida, opcoes }` (`CONEXOES.md`, seção 3). A ponte confere caminhos e opções e roda o Python (`PONTE.md`, "Estilo Aeko"); a resposta chega pelo WebSocket e a extensão abre `<nome>_<hora>.<estilo>.png` (e a prévia, se pedida) com `OpenFile` (sem sequência).
+3. Sem a ponte: pergunta se pode rodar o Python direto (`io.popen`, o que faz o Aseprite pedir a permissão de executar programas), na pasta `%TEMP%\diorama-ponte`, com o mesmo script e as mesmas opções.
+
+O arquivo aberto mora na pasta temporária: para guardar, "Salvar como…" para onde quiser. Enquanto a ferramenta roda (2 a 20 s, conforme o tamanho), o Aseprite continua livre; o resultado abre quando a resposta chega.
+
+Conferido em 2026-10-20, em lote (`-b`, com `dofile` da extensão): a tradução das opções para a linha de comando e o caminho sem a ponte de ponta a ponta (um sprite de 16×16 com degradê saiu com 12 cores, nota 8,62 no estilo equipe). O caminho com a ponte foi conferido pelos testes da ponte (um cliente WebSocket fazendo os mesmos pedidos), não com o Aseprite aberto: o menu e o diálogo não foram clicados.
 
 ## Comandos
 

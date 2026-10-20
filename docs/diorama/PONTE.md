@@ -214,6 +214,38 @@ POST /gerar/teste_d_destino
 
 A ponte chama o `npm-cli.js` que vem junto do Node em uso, então funciona mesmo quando o `npm` não está no PATH do Studio.
 
+## Estilo Aeko
+
+### `POST /estilo/aeko`
+
+Roda `tools/estilo_aeko_arte.py` (a ferramenta de arte nova nos estilos aeko, equipe e aeko+equipe; uso e opções em `docs/arte/ESTILO_AEKO_ARTE.md`) e devolve o log e o resumo. A extensão do Aseprite usa a mesma função pelo WebSocket (pedido `estilo_aeko`, `CONEXOES.md` seção 3).
+
+```
+POST /estilo/aeko
+X-Diorama: 1
+{ "entrada": "estudo/estilo_arte/fora/bau_chapado.png", "saida": "estudo/meu_bau.aeko.png",
+  "opcoes": { "estilo": "aeko", "previa": true } }
+
+200
+{
+	"ok": true, "codigo": 0,
+	"log": "…\n  nota 10.00 (mínima 8) em 2 tentativa(s): …\n(saiu com código 0 em 2.1 s)\n",
+	"saida": "C:\\…\\estudo\\meu_bau.aeko.png",
+	"previa": "C:\\…\\estudo\\meu_bau.aeko.previa.png",
+	"resumo": { "estilo": "aeko", "nota": 10.0, "nota_minima": 8.0, "chegou": true, "partes": {…}, "tentativas": […], … }
+}
+```
+
+Regras (o pedido vira argumentos de um programa, então tudo é conferido antes):
+
+- `entrada` e `saida`: `.png`, relativos à raiz ou absolutos, e só **dentro do repositório** ou da **pasta temporária da ponte** (`%TEMP%\diorama-ponte`, que `GET /status` mostra em `estilo.temporaria`); sem segmento com nome reservado do Windows e sem link no caminho (`400`). A entrada tem de existir (`404`) e não pode ser a saída (`400`). Uma saída dentro do repositório **não grava por cima** de arquivo que já existe (`409`); na pasta temporária, grava.
+- `opcoes`: só estas chaves (outra dá `400`): `estilo` (`aeko`, `equipe`, `aeko+equipe`), `mistura` (0 a 1), `fundo` (`auto`, `nenhum`, `#RRGGBB`), `paleta` (`auto`, `estilo`, `livre`, `aeko`, `equipe`; um PNG como paleta só pela linha de comando), `tons` (1 a 16), `contorno` (`externo`, `todos`, `nao`), `cor_contorno` (`auto`, `preto`, `escuro`), `escala` (`auto` ou 1 a 16), `nota_minima` (0 a 10), `previa` (booleano).
+- O Python roda com `-I`, sem shell, com `OPENBLAS_NUM_THREADS=1`, um pedido de cada vez, no máximo 180 s. Ele é `DIORAMA_PYTHON`, ou o `%LOCALAPPDATA%\Programs\Python\Python312\python.exe`, ou o `python` do PATH. O script é o que está ao lado da ponte (não o de `DIORAMA_RAIZ`).
+- O status é `200` quando a ferramenta rodou, mesmo que ela tenha falhado: `ok` diz se saiu com código 0 e a saída existe. `resumo` é a última linha JSON do log (`--json`), com a nota, as partes, as tentativas e, se a nota mínima não foi alcançada, `chegou: false` e `faltou`.
+- Solta o evento `estilo_aplicado { saida, ok, nota }` (com `origem: "aseprite"` quando veio do WebSocket).
+
+Testado em `tools/testes/ponte.test.mjs` (caminhos e opções recusados; uma rodada de verdade com prévia, alfa binário e o `409` na segunda vez; os pedidos `temporaria` e `estilo_aeko` pelo WebSocket). Os testes que rodam o Python pulam se não houver Python com numpy, scipy e Pillow.
+
 ## Assets
 
 ### `GET /assets`
@@ -310,7 +342,7 @@ curl -s "http://127.0.0.1:34873/studio/respostas/c3?espera=50"
 
 ### `/ws?cliente=aseprite` (WebSocket)
 
-A extensão do Aseprite se conecta aqui (protocolo em `CONEXOES.md`, seção 3). Uma conexão nova do Aseprite derruba a anterior (código 4000), e os comandos que esperavam resposta pela velha falham na hora. Mensagens acima de 16 MB derrubam a conexão. Upgrade com `Origin` de página web ou `Host` que não é local: `403`. A ponte manda um ping a cada 20 s e corta quem não responde. O evento `folha_salva` vira `recarregar_folhas { folha }` para cada Studio vivo em modo `edicao` e o evento de mesmo nome em `/eventos`. Qualquer outro `?cliente=` é um observador: recebe cada evento como `{ "tipo": "evento", "nome", "n", "dados", "em" }`.
+A extensão do Aseprite se conecta aqui (protocolo em `CONEXOES.md`, seção 3). Uma conexão nova do Aseprite derruba a anterior (código 4000), e os comandos que esperavam resposta pela velha falham na hora. Mensagens acima de 16 MB derrubam a conexão. Upgrade com `Origin` de página web ou `Host` que não é local: `403`. A ponte manda um ping a cada 20 s e corta quem não responde. O evento `folha_salva` vira `recarregar_folhas { folha }` para cada Studio vivo em modo `edicao` e o evento de mesmo nome em `/eventos`. Qualquer outro `?cliente=` é um observador: recebe cada evento como `{ "tipo": "evento", "nome", "n", "dados", "em" }`. Desde 2026-10-20 a extensão também faz pedidos à ponte (`{ "tipo": "pedido", "id", "nome", "args" }` → `{ "tipo": "resposta_pedido", "id", "ok", "valor" | "erro" }`): `temporaria` (a pasta temporária da ponte) e `estilo_aeko` (o mesmo de `POST /estilo/aeko`); outro nome dá `ok: false, erro: "pedido desconhecido: …"`.
 
 ### `GET /aseprite/estado`
 
@@ -324,4 +356,4 @@ A extensão do Aseprite se conecta aqui (protocolo em `CONEXOES.md`, seção 3).
 
 ### `GET /eventos?desde=<n>&espera=25`
 
-`{ "proximo": n2, "eventos": [{ "n", "tipo", "dados", "em" }] }`, com os eventos de número `>= desde`; sem nenhum, espera até `espera` segundos (máximo 55). Na próxima chamada, `desde=proximo`. Sem `desde`, devolve na hora os guardados (os últimos 500). Tipos: `pacote_novo`, `mapa_gravado`, `gerado`, `studio_entrou`, `studio_saiu`, `aseprite_conectou`, `aseprite_saiu`, `folha_salva` e qualquer outro evento que a extensão do Aseprite mande.
+`{ "proximo": n2, "eventos": [{ "n", "tipo", "dados", "em" }] }`, com os eventos de número `>= desde`; sem nenhum, espera até `espera` segundos (máximo 55). Na próxima chamada, `desde=proximo`. Sem `desde`, devolve na hora os guardados (os últimos 500). Tipos: `pacote_novo`, `mapa_gravado`, `gerado`, `estilo_aplicado`, `studio_entrou`, `studio_saiu`, `aseprite_conectou`, `aseprite_saiu`, `folha_salva` e qualquer outro evento que a extensão do Aseprite mande.

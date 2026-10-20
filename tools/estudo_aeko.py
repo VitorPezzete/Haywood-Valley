@@ -13,8 +13,15 @@ As folhas de tiles recuperadas são exportações com fundo quadriculado (F7F7F7
 os tiles de 16×16 sem pixel do quadriculado. O que a ferramenta perdida fazia está deduzido no documento
 (ver também o cabeçalho de estilo_aeko.py); o resumo das notas vem de estudo/comparacao/notas.json, se existir.
 
+Com `--referencia [<png>]` faz só o estudo dos três estilos da ferramenta de arte nova (aeko, equipe e aeko+equipe,
+seção 6 do documento): mede as folhas do Aeko, as peças do Graal e a arte da equipe com a mesma função, grava os
+alvos em tools/estilos_arte.json e a imagem estudo/estilo_arte/rampas_equipe.png (só cores). A referência padrão é
+Documents/Haywood-Valley-recuperado/aeko/referencia_estilo_equipe.png, fora do repositório. A rodada normal (sem
+`--referencia`) refaz as seções 1 a 5 e mantém a 6 como está.
+
 Uso:
     python -I tools/estudo_aeko.py [--amostra N] [--artes <pasta>] [--saida estudo/aeko] [--doc docs/arte/ESTUDO_AEKO.md]
+    python -I tools/estudo_aeko.py --referencia [<png>]
 """
 
 from __future__ import annotations
@@ -473,6 +480,546 @@ cada grupo.
     caminho.write_text(texto, encoding="utf8")
 
 
+# --- os estilos: Aeko, equipe e a mistura (seção 6) -----------------------------------------------------------
+#
+# Mede com a mesma função (estilo_aeko_arte.medir_objeto) os gabaritos dos dois estilos da ferramenta de arte nova:
+# - aeko: as folhas do Aeko em janelas de 32×32 (o quadriculado é a transparência) e a camada f de frente das peças
+#   do Graal no estilo Aeko (e no original, para comparar);
+# - equipe: os objetos da referência da equipe (componentes sobre o fundo chapado), as árvores da MADX (o "depois"
+#   da captura antes → depois), as árvores em progresso (captura do Aseprite) e as duas folhas de tiles da equipe em
+#   janelas de 32×32.
+# As imagens da equipe ficam em Documents/Haywood-Valley-recuperado (aeko/ e equipe/), fora do repositório. Grava os
+# alvos em tools/estilos_arte.json (números e a paleta da equipe, só cores) e escreve a seção 6 do documento.
+
+RECUPERADO = Path(r"C:\Users\Szortek\Documents\Haywood-Valley-recuperado")
+REFERENCIA_PADRAO = RECUPERADO / "aeko" / "referencia_estilo_equipe.png"
+PASTA_EQUIPE = RECUPERADO / "equipe"
+MADX = PASTA_EQUIPE / "arvores_antes_depois_madx.png"
+EM_PROGRESSO = PASTA_EQUIPE / "arvores_em_progresso.png"
+FOLHAS_EQUIPE = (PASTA_EQUIPE / "folha_tiles_1.png", PASTA_EQUIPE / "folha_tiles_2.png")
+SAIDA_ESTILOS = ea.RAIZ / "estudo" / "estilo_arte"
+JANELA = 32
+CONJUNTOS = {
+    "aeko_folhas": "folhas do Aeko (janelas 32×32)",
+    "graal_aeko": "peças do Graal no estilo Aeko",
+    "graal_original": "peças do Graal no original",
+    "equipe": "objetos da equipe (referência e árvores)",
+    "equipe_folhas": "folhas de tiles da equipe (janelas 32×32)",
+}
+CATEGORIAS = {
+    "terreno": "terrenos", "botao": "botões", "cabeca": "cabeças e cocares", "equipamento": "equipamentos",
+    "arvore": "árvores da referência", "arvore_madx": "árvores da MADX (depois)", "arvore_aseprite": "árvores em progresso",
+}
+
+
+def _sem_objetos_na_moldura(im: np.ndarray, fundo: np.ndarray, minimo: int) -> list:
+    """Os componentes fora do fundo, sem os que encostam na moldura (a interface de uma captura)."""
+    import estilo_aeko_arte as arte
+
+    h, w = fundo.shape
+    saida = []
+    for fatia, m in arte.componentes(~fundo, minimo):
+        if fatia[0].start == 0 or fatia[1].start == 0 or fatia[0].stop == h or fatia[1].stop == w:
+            continue
+        saida.append((fatia, m))
+    return saida
+
+
+def _recortar(im: np.ndarray, fatia, m: np.ndarray) -> np.ndarray:
+    o = im[fatia].copy()
+    o[..., 3] = np.where(m, 255, 0)
+    o[~m, :3] = 0
+    return o
+
+
+def unidades_equipe(caminho: Path) -> list[tuple[str, np.ndarray]]:
+    """Os objetos da referência: (categoria, RGBA). A categoria vem do tamanho e do lugar na folha."""
+    import estilo_aeko_arte as arte
+
+    im = arte.ler_rgba(caminho)
+    im = arte.reduzir(im, arte.detectar_escala(im))
+    rgb = im[..., :3]
+    moldura = np.concatenate([rgb[0], rgb[-1], rgb[:, 0], rgb[:, -1]])
+    cores, cont = np.unique(moldura, axis=0, return_counts=True)
+    fundo = (rgb == cores[cont.argmax()]).all(-1)
+    altura, largura = fundo.shape
+    saida = []
+    for fatia, m in arte.componentes(~fundo, 24):
+        cy = (fatia[0].start + fatia[0].stop) / 2 / altura
+        cx = (fatia[1].start + fatia[1].stop) / 2 / largura
+        grande = m.sum() >= 10_000
+        if cx < 0.41 and grande:
+            cat = "terreno"
+        elif cx < 0.726:
+            cat = "botao" if grande else "cabeca"
+        else:
+            cat = "equipamento" if cy < 0.535 else "arvore"
+        saida.append((cat, _recortar(im, fatia, m)))
+    return saida
+
+
+def arvores_madx(caminho: Path = MADX) -> dict[str, list[np.ndarray]]:
+    """
+    O par antes → depois da MADX: a captura (ampliação de ~5,23×, JPEG) volta a 1 pixel por pixel, o fundo chapado
+    sai e as quatro árvores são separadas: as duas da esquerda são o antes, as duas da direita o depois (de cima para
+    baixo: a rosa e a verde). A seta e a assinatura ficam de fora.
+    """
+    import estilo_aeko_arte as arte
+
+    pequena, _grade = arte.desamostrar_captura(arte.ler_rgba(caminho))
+    rgb = pequena[..., :3]
+    moldura = np.concatenate([rgb[0], rgb[-1], rgb[:, 0], rgb[:, -1]])
+    cores, cont = np.unique(moldura, axis=0, return_counts=True)
+    limpa, _ = arte.tirar_fundo(pequena, "#" + ea.hexa(cores[cont.argmax()]), {"fundo_tolerancia": 8.0})
+    h, w = limpa.shape[:2]
+    saida: dict[str, list] = {"antes": [], "depois": []}
+    for fatia, m in arte.componentes(limpa[..., 3] > 0, 300):
+        cy = (fatia[0].start + fatia[0].stop) / 2 / h
+        cx = (fatia[1].start + fatia[1].stop) / 2 / w
+        if cy > 0.8 or 0.4 <= cx <= 0.55:
+            continue
+        saida["antes" if cx < 0.4 else "depois"].append((cy, _recortar(limpa, fatia, m)))
+    return {k: [o for _cy, o in sorted(v, key=lambda t: t[0])] for k, v in saida.items()}
+
+
+def arvores_aseprite(caminho: Path = EM_PROGRESSO) -> list[np.ndarray]:
+    """
+    As árvores da captura do Aseprite (zoom inteiro de 6×, sem perdas): o fundo são as três cores mais comuns (o
+    quadriculado e o verde chapado atrás de algumas peças), na maior região ligada delas; o que encosta na moldura é
+    interface e sai; as amostras de paleta são pequenas demais.
+    """
+    import estilo_aeko_arte as arte
+    from scipy import ndimage
+
+    pequena, _grade = arte.desamostrar_captura(arte.ler_rgba(caminho))
+    rgb = pequena[..., :3]
+    cores, cont = np.unique(rgb.reshape(-1, 3), axis=0, return_counts=True)
+    parecido = np.zeros(rgb.shape[:2], bool)
+    for c in cores[np.argsort(-cont)[:3]]:
+        parecido |= (rgb == c).all(-1)
+    rotulos, _n = ndimage.label(parecido)
+    fundo = rotulos == np.bincount(rotulos[parecido]).argmax()
+    return [_recortar(pequena, fatia, m) for fatia, m in _sem_objetos_na_moldura(pequena, fundo, 400)]
+
+
+def _janelas(im: np.ndarray, minimo_opaco: float = 0.4) -> list[np.ndarray]:
+    saida = []
+    for y in range(0, im.shape[0], JANELA):
+        for x in range(0, im.shape[1], JANELA):
+            janela = im[y : y + JANELA, x : x + JANELA]
+            opaco = janela[..., 3] > 0
+            if opaco.mean() < minimo_opaco:
+                continue
+            _c, n = np.unique(janela[..., :3][opaco], axis=0, return_counts=True)
+            if np.sort(n)[-2:].sum() >= 0.9 * opaco.sum():  # chapado ou xadrez de duas cores: preenchimento
+                continue
+            saida.append(janela.copy())
+    return saida
+
+
+def unidades_aeko() -> list[np.ndarray]:
+    """As janelas de 32×32 das folhas do Aeko com pelo menos 40 % de pixels fora do quadriculado."""
+    import estilo_aeko_arte as arte
+
+    saida = []
+    for caminho in arte.FOLHAS_AEKO:
+        im = arte.ler_rgba(caminho)
+        quad = np.zeros(im.shape[:2], bool)
+        for q in arte.QUADRICULADO:
+            quad |= (im[..., :3] == q).all(-1)
+        im[quad, 3] = 0
+        im[quad, :3] = 0
+        saida.extend(_janelas(im))
+    return saida
+
+
+def unidades_folhas_equipe() -> list[np.ndarray]:
+    """As janelas de 32×32 das folhas de tiles da equipe (alfa < 128 é transparente; sem preenchimentos)."""
+    import estilo_aeko_arte as arte
+
+    saida = []
+    for caminho in FOLHAS_EQUIPE:
+        if not caminho.exists():
+            continue
+        im = arte.ler_rgba(caminho)
+        transparente = im[..., 3] < 128
+        im[..., 3] = np.where(transparente, 0, 255)
+        im[transparente, :3] = 0
+        saida.extend(_janelas(im))
+    return saida
+
+
+def cor_de_fundo_da_referencia(caminho: Path) -> str:
+    import estilo_aeko_arte as arte
+
+    im = arte.ler_rgba(caminho)
+    rgb = im[..., :3]
+    moldura = np.concatenate([rgb[0], rgb[-1], rgb[:, 0], rgb[:, -1]])
+    cores, cont = np.unique(moldura, axis=0, return_counts=True)
+    return ea.hexa(cores[cont.argmax()])
+
+
+def unidades_graal(n: int, artes: Path, padrao: str) -> dict[str, list[np.ndarray]]:
+    """A célula de frente da camada f de `n` peças sorteadas, nos dois estilos."""
+    pecas = ea.ler_pecas()
+    folhas = ea.Folhas(artes, padrao)
+    rng = np.random.default_rng(1)
+    saida: dict[str, list[np.ndarray]] = {"graal_aeko": [], "graal_original": []}
+    for i in rng.choice(len(pecas), min(n, len(pecas)), replace=False):
+        peca = pecas[int(i)]
+        celula = 8 if peca.corpo else 2  # de frente, parado
+        for estilo, chave in (("aeko", "graal_aeko"), ("original", "graal_original")):
+            f = ea.montar(peca, folhas, estilo).f[celula * ea.CELULA : (celula + 1) * ea.CELULA]
+            if (f[..., 3] > 0).sum() >= 40:
+                saida[chave].append(f.copy())
+    return saida
+
+
+def resumir_conjunto(medidas: list[dict]) -> dict:
+    """Os números de um conjunto: médias por objeto e, para as rampas, os valores de todas as famílias juntos."""
+    import estilo_aeko_arte as arte
+
+    def media(chave, filtro=lambda m: True):
+        v = [m[chave] for m in medidas if filtro(m) and not (isinstance(m[chave], float) and np.isnan(m[chave]))]
+        return float(np.mean(v)) if v else float("nan")
+
+    fam = [f for m in medidas for f in m["familias"] if not f["neutra"]]
+    dls = [b - a for f in fam for a, b in zip(f["L"], f["L"][1:])]
+    razoes = [f["C"][0] / max(f["C"]) for f in fam if f["tons"] >= 3 and max(f["C"]) > 0]
+    giros = [((f["h"][-1] - f["h"][0] + 180) % 360) - 180 for f in fam if f["tons"] >= 3 and f["C"][0] > 8]
+    tons = [arte.resumo_rampas(m).get("tons") for m in medidas]
+    tons = [t for t in tons if t is not None]
+    com_borda = lambda m: m["borda_pixels"] >= 8  # noqa: E731
+    return {
+        "objetos": len(medidas),
+        "pixels_mediana": float(np.median([m["pixels"] for m in medidas])),
+        "cores_mediana": float(np.median([m["cores"] for m in medidas])),
+        "cores_por_100px": float(np.median([100 * m["cores"] / m["pixels"] for m in medidas])),
+        "tons": float(np.mean(tons)) if tons else float("nan"),
+        "degrau": float(np.median(dls)) if dls else float("nan"),
+        "croma_escuro": float(np.mean(razoes)) if razoes else float("nan"),
+        "giro": float(np.median(giros)) if giros else float("nan"),
+        "croma": media("croma"),
+        "borda_preta": media("borda_preta", com_borda),
+        "borda_tinta": media("borda_tinta", com_borda),
+        "borda_escura": media("borda_escura", com_borda),
+        "borda_L": media("borda_L", com_borda),
+        "contorno_duplo": media("contorno_duplo", com_borda),
+        "tinta_interna": media("tinta_interna"),
+        "xadrez": media("xadrez"),
+        "isolados": media("isolados"),
+        "paleta_aeko_exata": media("paleta_exata"),
+        "paleta_aeko_jnd": media("paleta_jnd"),
+        "paleta_aeko_dE": media("paleta_dE"),
+    }
+
+
+def objetos_da_equipe(referencia: Path) -> list[tuple[str, np.ndarray]]:
+    """Os objetos do estilo equipe: os da referência, as árvores da MADX (o depois) e as árvores em progresso."""
+    objetos = unidades_equipe(referencia)
+    if MADX.exists():
+        objetos += [("arvore_madx", o) for o in arvores_madx()["depois"]]
+    if EM_PROGRESSO.exists():
+        objetos += [("arvore_aseprite", o) for o in arvores_aseprite()]
+    return objetos
+
+
+def estudo_estilos(referencia: Path, artes: Path, padrao: str, n_pecas: int = 200) -> dict:
+    import estilo_aeko_arte as arte
+
+    pal_aeko = arte.paleta_aeko()
+    print("estilos: folhas do Aeko...", file=sys.stderr)
+    janelas = unidades_aeko()
+    print(f"  {len(janelas)} janelas; peças do Graal...", file=sys.stderr)
+    graal = unidades_graal(n_pecas, artes, padrao)
+    print("  arte da equipe (referência, árvores, folhas)...", file=sys.stderr)
+    equipe = objetos_da_equipe(referencia)
+    janelas_equipe = unidades_folhas_equipe()
+
+    medidas = {
+        "aeko_folhas": [arte.medir_objeto(j, pal_aeko, beirada_transparente=False) for j in janelas],
+        "graal_aeko": [arte.medir_objeto(o, pal_aeko) for o in graal["graal_aeko"]],
+        "graal_original": [arte.medir_objeto(o, pal_aeko) for o in graal["graal_original"]],
+        "equipe": [arte.medir_objeto(o, pal_aeko) for _c, o in equipe],
+        "equipe_folhas": [arte.medir_objeto(j, pal_aeko, beirada_transparente=False) for j in janelas_equipe],
+    }
+    por_categoria = {}
+    for cat in CATEGORIAS:
+        ms = [m for (c, _o), m in zip(equipe, medidas["equipe"]) if c == cat]
+        if ms:
+            por_categoria[cat] = resumir_conjunto(ms)
+    conjuntos = {k: resumir_conjunto(v) for k, v in medidas.items() if v}
+
+    # O preto da equipe: a cor mais comum entre os pixels de tinta da beirada dos objetos com contorno (sem os
+    # terrenos, que não têm, e sem os botões, que têm muita beirada marrom e puxariam a cor para eles).
+    tinta_borda = []
+    for c, o in equipe:
+        if c in ("terreno", "botao"):
+            continue
+        a = o[..., 3] > 0
+        borda = a & ~arte._vizinhos4(a, False)
+        lab = ea.srgb_para_lab(o[..., :3])
+        tinta_borda.append(o[..., :3][borda & (lab[..., 0] < arte.PARAMETROS["tinta_L"])])
+    tb = np.concatenate(tinta_borda)
+    cores_tb, cont_tb = np.unique(tb, axis=0, return_counts=True)
+    preto_equipe = ea.hexa(cores_tb[cont_tb.argmax()])
+    # A paleta da equipe: as cores com pelo menos 2 pixels dos objetos e das folhas (o fundo fica de fora).
+    todas = np.concatenate([o[..., :3][o[..., 3] > 0] for _c, o in equipe] + [j[..., :3][j[..., 3] > 0] for j in janelas_equipe])
+    cores_e, cont_e = np.unique(todas, axis=0, return_counts=True)
+    paleta_equipe = cores_e[cont_e >= 2]
+
+    # Os alvos. Cada estilo junta as folhas e os objetos em partes iguais nas rampas (os dois são do mesmo autor); o
+    # contorno vem dos objetos (as folhas quase não encostam no transparente), sem os terrenos da equipe.
+    def meio(a, b, chave, casas):
+        va, vb = a[chave], b[chave]
+        if np.isnan(vb):
+            return round(va, casas)
+        return round((va + vb) / 2, casas)
+
+    fa, fg = conjuntos["aeko_folhas"], conjuntos["graal_aeko"]
+    eq, ef = conjuntos["equipe"], conjuntos.get("equipe_folhas", conjuntos["equipe"])
+    sem_terreno = resumir_conjunto([m for (c, _o), m in zip(equipe, medidas["equipe"]) if c != "terreno"])
+    alvos = {
+        "aeko": {
+            "tons": meio(fg, fa, "tons", 2), "degrau": meio(fg, fa, "degrau", 2),
+            "croma_escuro": meio(fg, fa, "croma_escuro", 3), "giro": meio(fg, fa, "giro", 1),
+            "borda": round(fg["borda_preta"], 3), "cor_contorno": "010000",
+        },
+        "equipe": {
+            "tons": meio(eq, ef, "tons", 2), "degrau": meio(eq, ef, "degrau", 2),
+            "croma_escuro": meio(eq, ef, "croma_escuro", 3), "giro": meio(eq, ef, "giro", 1),
+            "borda": round(sem_terreno["borda_escura"], 3), "cor_contorno": preto_equipe,
+        },
+    }
+    tolerancias = {"tons": [1.0, 3.0], "degrau": [2.0, 5.0], "croma_escuro": [0.15, 0.4]}
+
+    # A nota de cada gabarito contra o próprio estilo e contra o outro (a nota tem de separar os dois).
+    dados_temp = {"estilos": alvos, "tolerancias": tolerancias, "paletas": {"equipe": [ea.hexa(c) for c in paleta_equipe]}}
+    arte._cache.clear()
+    arte._cache["estilos"] = dados_temp
+    notas = {}
+    amostras = {
+        "aeko_folhas": [(j, False) for j in janelas[::4]],
+        "graal_aeko": [(o, True) for o in graal["graal_aeko"]],
+        "graal_original": [(o, True) for o in graal["graal_original"]],
+        "equipe": [(o, c != "terreno") for c, o in equipe],
+        "equipe_folhas": [(j, False) for j in janelas_equipe[::4]],
+    }
+    for estilo in arte.ESTILOS:
+        a = arte.alvo(estilo, 0.5)
+        notas[estilo] = {k: round(float(np.mean([arte.nota_estilo(o, a, cc)[0] for o, cc in v])), 2) for k, v in amostras.items() if v}
+    arte._cache.clear()
+
+    return {
+        "alvos": alvos, "tolerancias": tolerancias, "conjuntos": conjuntos, "equipe_por_categoria": por_categoria,
+        "notas_proprias": notas, "paleta_equipe": [ea.hexa(c) for c in paleta_equipe], "preto_equipe": preto_equipe,
+        "fundo_referencia": cor_de_fundo_da_referencia(referencia), "escala_referencia": int(arte.detectar_escala(arte.ler_rgba(referencia))),
+        "exemplos_rampas": [(c, [f for f in m["familias"] if not f["neutra"]][:2]) for (c, _o), m in zip(equipe, medidas["equipe"])],
+    }
+
+
+def gravar_estilos(estudo: dict, referencia: Path) -> Path:
+    import estilo_aeko_arte as arte
+
+    dados = {
+        "nota": "gerado por tools/estudo_aeko.py --referencia; números em docs/arte/ESTUDO_AEKO.md, seção 6",
+        "gerado_em": "2026-10-20",
+        "referencia": referencia.name,
+        "estilos": estudo["alvos"],
+        "tolerancias": estudo["tolerancias"],
+        "notas_proprias": estudo["notas_proprias"],
+        "conjuntos": {k: {kk: (round(vv, 4) if isinstance(vv, float) else vv) for kk, vv in v.items()} for k, v in estudo["conjuntos"].items()},
+        "paletas": {"equipe": "__PALETA__"},
+    }
+    texto = json.dumps(dados, ensure_ascii=False, indent="\t")
+    # a paleta (uma cor por linha seriam mais de mil linhas) vai numa linha só
+    texto = texto.replace('"__PALETA__"', json.dumps(estudo["paleta_equipe"]))
+    arte.ARQUIVO_ESTILOS.write_text(texto + "\n", encoding="utf8")
+    return arte.ARQUIVO_ESTILOS
+
+
+def desenhar_rampas_equipe(estudo: dict, caminho: Path) -> None:
+    """Só cores: as rampas (até 2 famílias) de alguns objetos da equipe por categoria, e os alvos lado a lado."""
+    lado = 30
+    fonte = _fonte(11)
+    linhas = []
+    vistos: dict[str, int] = defaultdict(int)
+    for cat, fams in estudo["exemplos_rampas"]:
+        if vistos[cat] >= 3 or not fams:
+            continue
+        vistos[cat] += 1
+        for f in fams:
+            linhas.append((f"{CATEGORIAS[cat]} {vistos[cat]}", f))
+    altura = 40 + len(linhas) * (lado + 8)
+    largura = 200 + 12 * (lado + 3)
+    im = Image.new("RGB", (largura, altura), (255, 255, 255))
+    d = ImageDraw.Draw(im)
+    d.text((10, 10), "Rampas da arte da equipe (tons com ≥ 3 % da família, em ordem de L)", fill=TEXTO, font=_fonte(14))
+    y = 40
+    for rotulo, f in linhas:
+        dl = np.diff(f["L"])
+        d.text((10, y + 8), f"{rotulo} · {f['tons']} tons · ΔL {np.median(dl) if len(dl) else 0:.1f}", fill=TEXTO, font=fonte)
+        x = 200
+        for h in f["rgb"][:12]:
+            d.rectangle([x, y, x + lado - 1, y + lado - 1], fill=tuple(int(h[i : i + 2], 16) for i in (0, 2, 4)))
+            x += lado + 3
+        y += lado + 8
+    im.save(caminho)
+
+
+def secao_estilos(estudo: dict, referencia_nome: str) -> str:
+    c = estudo["conjuntos"]
+    al = estudo["alvos"]
+    nomes = list(CONJUNTOS)
+
+    def f(v, casas=1, pc=False):
+        if isinstance(v, float) and np.isnan(v):
+            return "—"
+        return pct(v) if pc else f"{v:.{casas}f}"
+
+    linhas = [
+        "| medida | " + " | ".join(CONJUNTOS[k] for k in nomes) + " |",
+        "|---" * (len(nomes) + 1) + "|",
+    ]
+    medidas = [
+        ("objetos medidos", "objetos", 0, False), ("cores por objeto (mediana)", "cores_mediana", 0, False),
+        ("cores por 100 pixels (mediana)", "cores_por_100px", 1, False), ("tons por família com matiz", "tons", 1, False),
+        ("ΔL entre tons vizinhos (mediana)", "degrau", 1, False), ("croma do tom mais escuro ÷ o maior", "croma_escuro", 2, False),
+        ("giro do matiz, escuro → claro (graus)", "giro", 0, False), ("croma médio (sem a tinta)", "croma", 0, False),
+        ("beirada preta (canal ≤ 4)", "borda_preta", 0, True), ("beirada de tinta (L < 14)", "borda_tinta", 0, True),
+        ("beirada escura (L < 30)", "borda_escura", 0, True), ("L médio da beirada", "borda_L", 0, False),
+        ("contorno de 2 px (tinta da beirada com tinta por dentro)", "contorno_duplo", 0, True),
+        ("tinta por dentro (linhas escuras)", "tinta_interna", 1, True), ("xadrez (janelas 2×2 em xadrez)", "xadrez", 1, True),
+        ("pixels isolados (sem vizinho da mesma cor)", "isolados", 0, True),
+        ("pixels com a cor exata da paleta do Aeko", "paleta_aeko_exata", 0, True),
+        ("pixels a um JND da paleta do Aeko", "paleta_aeko_jnd", 0, True), ("ΔE médio à cor mais perto da paleta do Aeko", "paleta_aeko_dE", 1, False),
+    ]
+    for rotulo, chave, casas, pc in medidas:
+        linhas.append(f"| {rotulo} | " + " | ".join(f(c[k][chave], casas, pc) for k in nomes) + " |")
+
+    cat = estudo["equipe_por_categoria"]
+    cat_linhas = ["| categoria | objetos | cores (mediana) | tons | ΔL | beirada escura | beirada preta | L da beirada | pixels na paleta do Aeko (JND) |", "|---|---|---|---|---|---|---|---|---|"]
+    for k, v in cat.items():
+        cat_linhas.append(
+            f"| {CATEGORIAS[k]} | {v['objetos']} | {v['cores_mediana']:.0f} | {f(v['tons'])} | {f(v['degrau'])} | {pct(v['borda_escura'])} | "
+            f"{pct(v['borda_preta'])} | {f(v['borda_L'], 0)} | {pct(v['paleta_aeko_jnd'])} |"
+        )
+    alvo_linhas = ["| alvo | tons | degrau de L | croma da sombra | giro | contorno (fração da beirada) | cor do contorno | paleta |", "|---|---|---|---|---|---|---|---|"]
+    alvo_linhas.append(f"| aeko | {al['aeko']['tons']:.2f} | {al['aeko']['degrau']:.2f} | {al['aeko']['croma_escuro']:.2f} | {al['aeko']['giro']:+.0f}° | {pct(al['aeko']['borda'])} preta | `{al['aeko']['cor_contorno']}` | as {len(__import__('estilo_aeko_arte').paleta_aeko())} cores das folhas com 4 pixels ou mais |")
+    alvo_linhas.append(f"| equipe | {al['equipe']['tons']:.2f} | {al['equipe']['degrau']:.2f} | {al['equipe']['croma_escuro']:.2f} | {al['equipe']['giro']:+.0f}° | {pct(al['equipe']['borda'])} escura | `{al['equipe']['cor_contorno']}` | as {len(estudo['paleta_equipe'])} cores da equipe (≥ 2 px) |")
+    alvo_linhas.append("| aeko+equipe (m) | m·aeko + (1−m)·equipe | idem | idem | idem | idem, por pixel | a do aeko se m ≥ 0,5 | as duas, a do outro lado afastada |")
+    notas = estudo["notas_proprias"]
+    nota_linhas = ["| gabarito | " + " | ".join(arte_nome for arte_nome in notas) + " |", "|---" * (len(notas) + 1) + "|"]
+    for k in nomes:
+        nota_linhas.append(f"| {CONJUNTOS[k]} | " + " | ".join(f"{notas[e][k]:.2f}" for e in notas) + " |")
+
+    tol = estudo["tolerancias"]
+    return f"""## 6. Estilo equipe, e o Aeko + equipe
+
+Gerado por `tools/estudo_aeko.py --referencia` em 2026-10-20. A ferramenta perdida de arte nova tinha três estilos:
+**aeko** (o do Aeko: gabarito nas folhas `casa`/`castelo` e nas peças do Graal no estilo Aeko), **equipe** (a arte que a
+equipe fez sem a mão do Aeko) e **aeko+equipe** (a mistura dos dois). Atenção: na seção 5, "Aeko + equipe" é o nome
+antigo do ranking das peças dos contribuidores recoloridas; aqui é o terceiro estilo.
+
+O gabarito do estilo equipe fica em `Documents\\Haywood-Valley-recuperado\\` (fora do repositório; aqui entram só os
+números e a paleta, em `tools/estilos_arte.json`):
+
+- `aeko\\{referencia_nome}`: {sum(v['objetos'] for k, v in cat.items() if not k.startswith('arvore_'))} objetos (terrenos, botões, cabeças e cocares, equipamentos, árvores) sobre
+  um fundo chapado `#{estudo['fundo_referencia']}`, ampliados {estudo['escala_referencia']}× (cada pixel de arte é um bloco {estudo['escala_referencia']}×{estudo['escala_referencia']}; o estudo reduz antes de
+  medir). Os objetos são os componentes 8-conexos fora do fundo, com 24 pixels ou mais; a categoria sai do tamanho e
+  do lugar na folha.
+- `equipe\\arvores_antes_depois_madx.png`: captura com ampliação fracionária (~5,23×) e ruído de JPEG. A ferramenta
+  acha a grade pela energia das bordas (Fourier), toma a mediana do miolo de cada pixel e junta as cores a menos de
+  ΔE 5 (`desamostrar_captura`). As duas árvores da direita (o "depois") entram aqui; o par antes → depois serve à
+  validação (ESTILO_AEKO_ARTE.md).
+- `equipe\\arvores_em_progresso.png`: captura do Aseprite em zoom 6× sem perdas (`grade_inteira`); o quadriculado e o
+  verde chapado de fundo saem, a interface encosta na moldura e sai.
+- `equipe\\folha_tiles_1.png` e `folha_tiles_2.png` (2048×512, nativas), em janelas de 32×32 como as do Aeko; janelas de
+  uma ou duas cores (preenchimento) ficam de fora. O detalhe e os recortes da mesma pasta são pedaços ampliados dessas
+  folhas e não entram de novo.
+
+Todos os conjuntos são medidos pela mesma função (`medir_objeto` em `tools/estilo_aeko_arte.py`). Nas janelas das
+folhas, o quadriculado (Aeko) ou o alfa (equipe) é a transparência e a beirada da janela não conta como borda; as peças
+do Graal entram pela célula de frente da camada f ({c['graal_aeko']['objetos']} sorteadas). Tons: os de uma família de matiz
+com ≥ 3 % dela, nas famílias com ≥ 8 % do objeto.
+
+{chr(10).join(linhas)}
+
+Por categoria dos objetos da equipe:
+
+{chr(10).join(cat_linhas)}
+
+![rampas da equipe](../../estudo/estilo_arte/rampas_equipe.png)
+
+### O que muda do Aeko para a equipe
+
+- **Contorno.** No Aeko o contorno é o preto `010000`, sempre o mesmo, em volta de tudo que encosta no transparente
+  ({pct(c['graal_aeko']['borda_preta'])} da beirada das peças). Na equipe o contorno é escuro mas raramente o mesmo preto
+  ({pct(c['equipe']['borda_preta'])} da beirada é preto puro; {pct(sem_borda_escura(estudo))} é escura, L < 30, sem os terrenos): pretos que variam de
+  objeto para objeto (`000000`, `080808`, `121212`, `1B1B1B`; o mais comum é `{estudo['preto_equipe']}`), um marrom escuro nos
+  botões e **contorno da própria cor** nas árvores, no capim e no cristal da coroa (verde-petróleo, roxo escuro; L da
+  beirada {f(cat.get('arvore', {}).get('borda_L', float('nan')), 0)} nas árvores da referência, {f(cat.get('arvore_madx', {}).get('borda_L', float('nan')), 0)} nas da MADX). Os terrenos não têm contorno.
+- **Cores e tons.** Os objetos da equipe têm mais cores ({c['equipe']['cores_mediana']:.0f} na mediana, contra
+  {c['graal_aeko']['cores_mediana']:.0f} nas peças no estilo Aeko) e mais tons por rampa ({f(c['equipe']['tons'])} contra {f(c['graal_aeko']['tons'])} nas peças), com degraus
+  de L parecidos ({f(c['equipe']['degrau'])} contra {f(c['graal_aeko']['degrau'])}); algumas cabeças têm centenas de cores (degradê liso no cabelo), o
+  que o Aeko nunca faz. Já as folhas de tiles da equipe são mais econômicas que as do Aeko: {f(c['equipe_folhas']['cores_mediana'], 0)} cores por
+  janela (Aeko: {f(c['aeko_folhas']['cores_mediana'], 0)}), {f(c['equipe_folhas']['tons'])} tons e degraus de {f(c['equipe_folhas']['degrau'])} (Aeko: {f(c['aeko_folhas']['tons'])} e {f(c['aeko_folhas']['degrau'])}).
+- **Paleta.** Só {pct(c['equipe']['paleta_aeko_jnd'])} dos pixels dos objetos da equipe e {pct(c['equipe_folhas']['paleta_aeko_jnd'])} das folhas dela ficam a um JND
+  da paleta do Aeko, contra {pct(c['aeko_folhas']['paleta_aeko_jnd'])} nas folhas do Aeko: a equipe não prende as cores à paleta dele.
+- **Sombra e matiz.** Os dois descem ao escuro perdendo croma (o tom mais escuro com {f(c['equipe']['croma_escuro'], 2)} do croma do mais
+  saturado nos objetos da equipe, {f(c['equipe_folhas']['croma_escuro'], 2)} nas folhas dela; {f(c['aeko_folhas']['croma_escuro'], 2)} nas folhas do Aeko, {f(c['graal_aeko']['croma_escuro'], 2)} nas peças). O
+  matiz gira pouco do escuro ao claro nos dois ({f(c['equipe']['giro'], 0)}° e {f(c['equipe_folhas']['giro'], 0)}° na equipe; {f(c['aeko_folhas']['giro'], 0)}° e {f(c['graal_aeko']['giro'], 0)}° no Aeko).
+- **Textura.** Os objetos da equipe têm mais pixels isolados ({pct(c['equipe']['isolados'])}, contra {pct(c['aeko_folhas']['isolados'])} nas folhas do Aeko):
+  folhagem e cabelo ruidosos (a MADX passa a árvore lisa para folhagem picada). Xadrez (dithering) é raro em todos.
+
+### Os alvos da ferramenta (`tools/estilos_arte.json`)
+
+{chr(10).join(alvo_linhas)}
+
+Cada alvo junta, nas rampas (tons, degrau, sombra, giro), as folhas e os objetos do mesmo autor em partes iguais:
+folhas do Aeko e peças no estilo Aeko; folhas da equipe e objetos da equipe. O contorno vem dos objetos (as folhas
+quase não encostam no transparente), sem os terrenos da equipe. A paleta da equipe são as cores com 2 pixels ou mais
+dos objetos e das folhas dela.
+
+**A mistura aeko+equipe (palpite)**: cada número é a média ponderada `m·aeko + (1−m)·equipe`, com `m = --mistura`
+(padrão 0,5); um pixel da beirada conta como contorno `m` vezes "é preto (canal ≤ 4)" mais `1−m` vezes "é escuro
+(L < 30)"; a paleta é a união das duas, e ao prender um tom a distância a uma cor do Aeko é multiplicada por
+`1 + 0,5·(1−m)` e a uma da equipe por `1 + 0,5·m` (com m = 0,5 as duas pesam igual). A cor do contorno é a do aeko
+com m ≥ 0,5 e a da equipe abaixo.
+
+### A nota de aderência ao estilo
+
+`nota_estilo` (em `tools/estilo_aeko_arte.py`) dá 0–10: 35 % paleta (pixels a um JND da paleta do alvo), 25 % contorno
+(fração da beirada que é contorno do alvo ÷ a fração do gabarito, até 1), 15 % tons, 15 % degrau e 10 % croma da
+sombra. Os três últimos são limites de um lado só, porque é isso que o estilo pede: no máximo alvo + {tol['tons'][0]:g} tons por
+família (zera {tol['tons'][1]:g} tons acima disso), degrau de L de pelo menos alvo − {tol['degrau'][0]:g} (zera {tol['degrau'][1]:g} abaixo), sombra com no máximo
+alvo + {tol['croma_escuro'][0]:g} de razão de croma (zera {tol['croma_escuro'][1]:g} acima). Menos tons, degraus maiores ou sombra mais neutra não tiram
+nota. Uma versão com tolerância dos dois lados deu uns 0,5 nessas três partes em todos os conjuntos (a variação de
+objeto para objeto engolia a diferença entre os estilos) e foi trocada. Pesos e limites são escolha desta
+reconstrução. A nota média de cada gabarito contra cada alvo (as janelas das folhas e os terrenos sem o contorno):
+
+{chr(10).join(nota_linhas)}
+
+A nota separa os estilos sobretudo pela paleta e pelo contorno: as folhas do Aeko tiram {notas['aeko']['aeko_folhas']:.2f} no aeko e
+{notas['equipe']['aeko_folhas']:.2f} no equipe; as folhas da equipe, {notas['equipe']['equipe_folhas']:.2f} no equipe e {notas['aeko']['equipe_folhas']:.2f} no aeko; os objetos da equipe,
+{notas['equipe']['equipe']:.2f} no equipe e {notas['aeko']['equipe']:.2f} no aeko. As peças do Graal no estilo Aeko ficam no meio ({notas['aeko']['graal_aeko']:.2f} no aeko e
+{notas['equipe']['graal_aeko']:.2f} no equipe): a ferramenta das peças pôs o contorno e reduziu os tons, mas não prendia as cores à paleta das
+folhas (seção 3), e o alvo aeko é essa paleta fechada. As peças originais dos contribuidores caem mais no aeko
+({notas['aeko']['graal_original']:.2f}), pelo contorno da própria cor e pelos tons demais.
+"""
+
+
+def sem_borda_escura(estudo: dict) -> float:
+    return estudo["alvos"]["equipe"]["borda"]
+
+
+def atualizar_secao_6(doc: Path, secao: str) -> None:
+    texto = doc.read_text(encoding="utf8") if doc.exists() else ""
+    i = texto.find("## 6. ")
+    texto = (texto[:i] if i >= 0 else texto.rstrip() + "\n\n") + secao
+    doc.write_text(texto, encoding="utf8")
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="Estudo da paleta do Aeko.")
     ap.add_argument("--amostra", type=int, default=0, help="quantas peças medir (0 = todas)")
@@ -480,7 +1027,19 @@ def main() -> int:
     ap.add_argument("--padrao", default="graal.{estilo}.{n}.png")
     ap.add_argument("--saida", type=Path, default=SAIDA_PADRAO)
     ap.add_argument("--doc", type=Path, default=DOC_PADRAO)
+    ap.add_argument("--referencia", type=Path, nargs="?", const=REFERENCIA_PADRAO,
+                    help="só o estudo dos estilos (seção 6) a partir da referência da equipe; grava tools/estilos_arte.json")
     args = ap.parse_args()
+    if args.referencia is not None:
+        if not args.referencia.exists():
+            ap.error(f"a referência não existe: {args.referencia}")
+        SAIDA_ESTILOS.mkdir(parents=True, exist_ok=True)
+        estudo = estudo_estilos(args.referencia, args.artes, args.padrao)
+        print(gravar_estilos(estudo, args.referencia))
+        desenhar_rampas_equipe(estudo, SAIDA_ESTILOS / "rampas_equipe.png")
+        atualizar_secao_6(args.doc, secao_estilos(estudo, args.referencia.name))
+        print(args.doc)
+        return 0
     args.saida.mkdir(parents=True, exist_ok=True)
 
     print("tiles...", file=sys.stderr)
@@ -504,7 +1063,14 @@ def main() -> int:
     notas = ea.RAIZ / "estudo" / "comparacao" / "notas.json"
     if notas.exists():
         comparacao = json.loads(notas.read_text(encoding="utf8"))
+    secao_6 = ""
+    if args.doc.exists():
+        antigo = args.doc.read_text(encoding="utf8")
+        if "## 6. " in antigo:
+            secao_6 = antigo[antigo.find("## 6. ") :]  # a seção 6 só muda com --referencia
     escrever_documento(tiles, estudo, len(escolhidas), args.doc, comparacao)
+    if secao_6:
+        atualizar_secao_6(args.doc, secao_6)
     print(f"{args.doc}")
     return 0
 

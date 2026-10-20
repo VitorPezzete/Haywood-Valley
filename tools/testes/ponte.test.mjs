@@ -636,3 +636,130 @@ test("gerador: bloco sem nascimento usa a primeira célula livre, com aviso", as
 	bloco.nascimento = [1];
 	assert.ok(gerarInterior(bloco).avisos.some((a) => /nascimento inválido/.test(a)));
 });
+
+// ---------------------------------------------------------------------------------------------------------------
+// Estilo Aeko: POST /estilo/aeko e o pedido estilo_aeko do Aseprite (tools/estilo_aeko_arte.py)
+
+/** Um PNG pequeno de teste: um quadrado com degradê sobre fundo transparente. */
+async function pngDeTeste(caminho) {
+	const { PNG } = await import("pngjs");
+	const png = new PNG({ width: 16, height: 16 });
+	for (let y = 0; y < 16; y++) {
+		for (let x = 0; x < 16; x++) {
+			const i = (y * 16 + x) * 4;
+			const dentro = x >= 3 && x < 13 && y >= 3 && y < 13;
+			png.data[i] = 40 + 12 * x;
+			png.data[i + 1] = 160 - 6 * y;
+			png.data[i + 2] = 60;
+			png.data[i + 3] = dentro ? 255 : 0;
+		}
+	}
+	fs.mkdirSync(path.dirname(caminho), { recursive: true });
+	fs.writeFileSync(caminho, PNG.sync.write(png));
+}
+
+/** Se há Python com numpy, scipy e Pillow para a ferramenta (senão os testes que rodam a ferramenta pulam). */
+function temPython() {
+	const { spawnSync } = process.getBuiltinModule("node:child_process");
+	const local = process.env.LOCALAPPDATA && path.join(process.env.LOCALAPPDATA, "Programs", "Python", "Python312", "python.exe");
+	const python = process.env.DIORAMA_PYTHON ?? (local && fs.existsSync(local) ? local : "python");
+	const r = spawnSync(python, ["-I", "-c", "import numpy, scipy, PIL"], { windowsHide: true });
+	return r.status === 0;
+}
+
+/** Um PNG fora do repositório e da pasta temporária da ponte (na pasta temporária do sistema). */
+function pngDeFora() {
+	const caminho = path.join(os.tmpdir(), `ponte-teste-fora-${process.pid}.png`);
+	fs.copyFileSync(PNG_PEQUENO, caminho);
+	return caminho;
+}
+
+test("estilo: caminhos e opções conferidos antes de rodar", async () => {
+	await pngDeTeste(path.join(raiz, "estudo", "entrada.png"));
+	const deFora = pngDeFora();
+	const base = { entrada: "estudo/entrada.png", saida: "estudo/saida_recusada.png" };
+	// sem o cabeçalho
+	assert.equal((await pedir("POST", "/estilo/aeko", { corpo: base, semX: true })).status, 403);
+	// caminhos
+	for (const [corpo, status] of [
+		[{ ...base, entrada: "../fora.png" }, 400],
+		[{ ...base, entrada: deFora }, 400],
+		[{ ...base, saida: path.join(os.tmpdir(), `ponte-teste-saida-${process.pid}.png`) }, 400],
+		[{ ...base, saida: "../../saida.png" }, 400],
+		[{ ...base, saida: "estudo/saida.txt" }, 400],
+		[{ ...base, entrada: "estudo/nul.png" }, 400],
+		[{ ...base, entrada: "assets/link/segredo.png" }, 400],
+		[{ ...base, entrada: "estudo/naoexiste.png" }, 404],
+		[{ ...base, saida: "estudo/entrada.png" }, 400],
+		[{ ...base, saida: "assets/ui/x.png" }, 409],
+		[{ ...base, opcoes: { comando: "rm" } }, 400],
+		[{ ...base, opcoes: { estilo: "outro" } }, 400],
+		[{ ...base, opcoes: { tons: 99 } }, 400],
+		[{ ...base, opcoes: { fundo: "#12345" } }, 400],
+		[{ ...base, opcoes: { paleta: "C:/Windows/x.png" } }, 400],
+		[{ ...base, opcoes: [] }, 400],
+	]) {
+		const r = await pedir("POST", "/estilo/aeko", { corpo });
+		assert.equal(r.status, status, `${JSON.stringify(corpo)} → ${r.status} ${r.texto}`);
+	}
+	assert.ok(!fs.existsSync(path.join(raiz, "estudo", "saida_recusada.png")));
+	fs.rmSync(deFora, { force: true });
+});
+
+test("estilo: roda a ferramenta e devolve o resumo com a nota", { timeout: 120_000 }, async (t) => {
+	if (!temPython()) return t.skip("sem Python com numpy, scipy e Pillow");
+	await pngDeTeste(path.join(raiz, "estudo", "entrada.png"));
+	const r = await pedir("POST", "/estilo/aeko", {
+		corpo: { entrada: "estudo/entrada.png", saida: "estudo/saida_aeko.png", opcoes: { estilo: "aeko", previa: true, contorno: "externo" } },
+	});
+	assert.equal(r.status, 200, r.texto);
+	assert.equal(r.json.ok, true, r.json.log);
+	assert.equal(typeof r.json.resumo.nota, "number");
+	assert.equal(r.json.resumo.estilo, "aeko");
+	assert.ok(fs.existsSync(path.join(raiz, "estudo", "saida_aeko.png")));
+	assert.ok(fs.existsSync(path.join(raiz, "estudo", "saida_aeko.previa.png")));
+	const { PNG } = await import("pngjs");
+	const saida = PNG.sync.read(fs.readFileSync(path.join(raiz, "estudo", "saida_aeko.png")));
+	for (let i = 3; i < saida.data.length; i += 4) assert.ok(saida.data[i] === 0 || saida.data[i] === 255, "alfa binário");
+	// a segunda vez a saída já existe no repositório: recusa
+	const de_novo = await pedir("POST", "/estilo/aeko", { corpo: { entrada: "estudo/entrada.png", saida: "estudo/saida_aeko.png" } });
+	assert.equal(de_novo.status, 409);
+});
+
+test("estilo: o Aseprite pede a pasta temporária e o estilo pelo WebSocket", { timeout: 120_000 }, async (t) => {
+	const ws = await abrirWs("/ws?cliente=aseprite");
+	const pedirWs = (id, nome, args) => {
+		const resposta = proximaMensagem(ws, (m) => m.tipo === "resposta_pedido" && m.id === id);
+		ws.send(JSON.stringify({ tipo: "pedido", id, nome, args }));
+		return resposta;
+	};
+	try {
+		const desconhecido = await pedirWs("p0", "apagar_tudo", {});
+		assert.equal(desconhecido.ok, false);
+		assert.match(desconhecido.erro, /pedido desconhecido/);
+		const tmp = await pedirWs("p1", "temporaria", {});
+		assert.equal(tmp.ok, true);
+		const deFora = pngDeFora();
+		const foraDaPonte = await pedirWs("p2", "estilo_aeko", { entrada: deFora, saida: path.join(tmp.valor.pasta, "x.png") });
+		fs.rmSync(deFora, { force: true });
+		assert.equal(foraDaPonte.ok, false);
+		assert.match(foraDaPonte.erro, /fora do repositório/);
+		if (!temPython()) return t.skip("sem Python com numpy, scipy e Pillow");
+		const nome = `teste_${process.pid}_${Date.now()}`;
+		const entrada = path.join(tmp.valor.pasta, `${nome}.png`);
+		const saida = path.join(tmp.valor.pasta, `${nome}.equipe.png`);
+		await pngDeTeste(entrada);
+		try {
+			const r = await pedirWs("p3", "estilo_aeko", { entrada, saida, opcoes: { estilo: "equipe" } });
+			assert.equal(r.ok, true, r.erro);
+			assert.equal(r.valor.ok, true, r.valor.log);
+			assert.equal(r.valor.resumo.estilo, "equipe");
+			assert.ok(fs.existsSync(saida));
+		} finally {
+			fs.rmSync(entrada, { force: true });
+			fs.rmSync(saida, { force: true });
+		}
+	} finally {
+		ws.close();
+	}
+});

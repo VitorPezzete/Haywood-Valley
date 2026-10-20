@@ -2,7 +2,8 @@
 --
 -- Abre um WebSocket em ws://127.0.0.1:34873/ws?cliente=aseprite (reconecta sozinho a cada 3 s), se apresenta com
 -- `ola` e responde aos comandos da ponte: ping, sprite_atual, abrir, abrir_regiao, salvar_regiao, exportar, paleta
--- e pixel. O contrato está em docs/diorama/CONEXOES.md (seção 3); o uso, em docs/diorama/ASEPRITE.md.
+-- e pixel. O contrato está em docs/diorama/CONEXOES.md (seção 3); o uso, em docs/diorama/ASEPRITE.md. Desde a 0.3.0
+-- também pede coisas à ponte (pedidos `temporaria` e `estilo_aeko`) para o "Aplicar estilo Aeko…" (docs/arte/ESTILO_AEKO_ARTE.md).
 --
 -- Tudo fica neste arquivo de propósito: o Aseprite pede permissão (WebSocket, gravar arquivo) por arquivo de script,
 -- então um arquivo só significa um aviso só ("Dar confiança total a este script").
@@ -10,7 +11,7 @@
 -- Também roda fora da interface (aseprite -b --script): `dofile` deste arquivo devolve a tabela M, com os comandos
 -- prontos para chamar. É assim que os testes em lote conferem a lógica sem a ponte.
 
-local VERSAO = "0.2.0"
+local VERSAO = "0.3.0"
 local RAIZ_PADRAO = [[C:\Users\Szortek\Documents\Haywood-Valley]]
 local URL_PADRAO = "ws://127.0.0.1:34873/ws?cliente=aseprite"
 local TILE = 16
@@ -584,6 +585,26 @@ local function avisarFolhaSalva(valor)
 	enviar({ tipo = "evento", nome = "folha_salva", dados = { folha = valor.folha, area = valor.area, pixels = valor.pixels } })
 end
 
+-- Pedidos da extensão à ponte (o contrário de um comando): { tipo = "pedido", id, nome, args }; a resposta volta como
+-- { tipo = "resposta_pedido", id, ok, valor | erro } e chama a função guardada aqui.
+local pedidosPendentes = {}
+local proximoPedido = 1
+
+--- Manda um pedido à ponte; `aoResponder(msg)` roda quando a resposta chegar. Devolve false se não está conectado.
+local function pedirPonte(nome, args, aoResponder)
+	if not conectado then
+		return false
+	end
+	local id = "x" .. proximoPedido
+	proximoPedido = proximoPedido + 1
+	pedidosPendentes[id] = aoResponder
+	if not enviar({ tipo = "pedido", id = id, nome = nome, args = args }) then
+		pedidosPendentes[id] = nil
+		return false
+	end
+	return true
+end
+
 local function receber(tipo, dados)
 	if tipo == WebSocketMessageType.OPEN then
 		conectado = true
@@ -598,6 +619,14 @@ local function receber(tipo, dados)
 		conectado = false
 	elseif tipo == WebSocketMessageType.TEXT then
 		local ok, msg = pcall(json.decode, dados)
+		if ok and msg ~= nil and msg.tipo == "resposta_pedido" then
+			local aoResponder = pedidosPendentes[msg.id]
+			pedidosPendentes[msg.id] = nil
+			if aoResponder then
+				aoResponder(msg)
+			end
+			return
+		end
 		if not ok or msg == nil or msg.tipo ~= "comando" then
 			return
 		end
@@ -814,6 +843,231 @@ local function dialogoRaiz()
 	end
 end
 
+-- ---------------------------------------------------------------------------------------------------------------
+-- Aplicar estilo Aeko (tools/estilo_aeko_arte.py; docs/arte/ESTILO_AEKO_ARTE.md)
+--
+-- Grava o sprite atual (camadas visíveis do quadro atual, achatadas) num PNG na pasta temporária da ponte, pede à
+-- ponte para rodar a ferramenta (pedido `estilo_aeko`) e abre o resultado como um sprite novo: o original nunca é
+-- sobrescrito. Sem a ponte, oferece rodar o Python direto (o Aseprite pede a permissão de executar programas).
+
+local ESTILOS = { "aeko", "equipe", "aeko+equipe" }
+local PALETAS = { "auto", "estilo", "livre", "aeko", "equipe" }
+local CONTORNOS = { "externo", "todos", "nao" }
+local CORES_CONTORNO = { "auto", "preto", "escuro" }
+
+--- As opções do diálogo no formato da ponte (as mesmas chaves de OPCOES_ESTILO em diorama_ponte.mjs).
+local function opcoesDoDialogo(d)
+	local o = { estilo = d.estilo, paleta = d.paleta, contorno = d.contorno, cor_contorno = d.cor_contorno, previa = d.previa }
+	if d.estilo == "aeko+equipe" then
+		o.mistura = d.mistura / 100
+	end
+	if d.fundo == "cor" then
+		o.fundo = string.format("#%02X%02X%02X", d.cor_fundo.red, d.cor_fundo.green, d.cor_fundo.blue)
+	else
+		o.fundo = d.fundo
+	end
+	local tons = math.floor(tonumber(d.tons) or 0)
+	if tons >= 1 and tons <= 16 then
+		o.tons = tons
+	end
+	local nota = tonumber(d.nota_minima) or 0
+	if nota > 0 and nota <= 10 then
+		o.nota_minima = nota
+	end
+	return o
+end
+
+--- Os argumentos da linha de comando para as mesmas opções (o caminho sem a ponte).
+local function argumentosDeOpcoes(o)
+	local args = {}
+	for _, chave in ipairs({ "estilo", "mistura", "fundo", "paleta", "tons", "contorno", "cor_contorno", "nota_minima" }) do
+		if o[chave] ~= nil then
+			args[#args + 1] = "--" .. chave:gsub("_", "-")
+			args[#args + 1] = tostring(o[chave])
+		end
+	end
+	if o.previa then
+		args[#args + 1] = "--previa"
+	end
+	return args
+end
+
+local function nomeSeguro(texto)
+	local t = (texto or ""):gsub("[^%w_%-]", "_")
+	if t == "" then
+		t = "sprite"
+	end
+	return t
+end
+
+local function abrirResultado(saida, resumo)
+	app.command.OpenFile{ filename = saida, sequence = "skip", ui = false }
+	if type(resumo) == "table" and resumo.nota then
+		local texto = string.format("Estilo %s: nota %.2f (mínima %g)", tostring(resumo.estilo), resumo.nota, resumo.nota_minima or 0)
+		if resumo.chegou == false then
+			local faltou = {}
+			for _, f in ipairs(resumo.faltou or {}) do
+				faltou[#faltou + 1] = tostring(f)
+			end
+			app.alert{ title = "Diorama: estilo", text = { texto .. " — não chegou à mínima.", "Faltou: " .. (#faltou > 0 and table.concat(faltou, ", ") or "um pouco de tudo"),
+				"Tente paleta \"estilo\", menos tons ou contorno externo." } }
+		else
+			avisar(texto)
+		end
+	end
+end
+
+--- O fim do log (as últimas linhas), para o aviso de erro.
+local function fimDoLog(log)
+	local linhas = {}
+	for linha in tostring(log or ""):gmatch("[^\r\n]+") do
+		linhas[#linhas + 1] = linha
+	end
+	local saida = {}
+	for i = math.max(1, #linhas - 5), #linhas do
+		saida[#saida + 1] = linhas[i]
+	end
+	return saida
+end
+
+--- Sem a ponte: roda o Python direto e lê a última linha JSON (o resumo).
+local function estiloSemPonte(entrada, saida, opcoes)
+	local python = "python"
+	local ok, local_ = pcall(os.getenv, "LOCALAPPDATA")
+	if ok and local_ then
+		local candidato = app.fs.joinPath(local_, "Programs", "Python", "Python312", "python.exe")
+		if app.fs.isFile(candidato) then
+			python = candidato
+		end
+	end
+	local partes = { '"' .. python .. '"', "-I", '"' .. app.fs.joinPath(raiz(), "tools", "estilo_aeko_arte.py") .. '"', '"' .. entrada .. '"', '"' .. saida .. '"' }
+	for _, a in ipairs(argumentosDeOpcoes(opcoes)) do
+		partes[#partes + 1] = '"' .. a .. '"'
+	end
+	partes[#partes + 1] = "--json"
+	-- O cmd.exe tira a primeira e a última aspas quando há mais de duas: a linha inteira vai entre aspas.
+	local f = io.popen('"' .. table.concat(partes, " ") .. ' 2>&1"')
+	if not f then
+		error("não deu para rodar o Python", 0)
+	end
+	local log = f:read("a")
+	f:close()
+	local resumo = nil
+	for linha in log:gmatch("[^\r\n]+") do
+		if linha:sub(1, 1) == "{" then
+			local okj, v = pcall(json.decode, linha)
+			if okj then
+				resumo = v
+			end
+		end
+	end
+	return resumo, log
+end
+
+-- Para os testes em lote (aseprite -b): o caminho sem a ponte e a tradução das opções.
+M.estilo = { argumentosDeOpcoes = argumentosDeOpcoes, semPonte = estiloSemPonte }
+
+local function dialogoEstilo()
+	local spr = app.sprite
+	if spr == nil then
+		app.alert{ title = "Diorama", text = "Abra um sprite antes." }
+		return
+	end
+	local u = type(prefs.estilo) == "table" and prefs.estilo or {}
+	local dlg = Dialog("Aplicar estilo Aeko")
+	dlg:combobox{ id = "estilo", label = "Estilo", option = u.estilo or "aeko", options = ESTILOS,
+		onchange = function()
+			dlg:modify{ id = "mistura", enabled = dlg.data.estilo == "aeko+equipe" }
+		end }
+	dlg:slider{ id = "mistura", label = "Mistura (0 equipe, 100 Aeko)", min = 0, max = 100, value = u.mistura or 50, enabled = (u.estilo or "aeko") == "aeko+equipe" }
+	dlg:separator{}
+	dlg:combobox{ id = "fundo", label = "Fundo", option = u.fundo or "auto", options = { "auto", "nenhum", "cor" },
+		onchange = function()
+			dlg:modify{ id = "cor_fundo", enabled = dlg.data.fundo == "cor" }
+		end }
+	dlg:color{ id = "cor_fundo", label = "Cor do fundo", color = Color{ r = 255, g = 255, b = 255 }, enabled = u.fundo == "cor" }
+	dlg:combobox{ id = "paleta", label = "Paleta", option = u.paleta or "auto", options = PALETAS }
+	dlg:number{ id = "tons", label = "Tons por rampa (0 = do estilo)", text = tostring(u.tons or 0), decimals = 0 }
+	dlg:combobox{ id = "contorno", label = "Contorno", option = u.contorno or "externo", options = CONTORNOS }
+	dlg:combobox{ id = "cor_contorno", label = "Cor do contorno", option = u.cor_contorno or "auto", options = CORES_CONTORNO }
+	dlg:number{ id = "nota_minima", label = "Nota mínima (0 = padrão, 8)", text = tostring(u.nota_minima or 0), decimals = 1 }
+	dlg:check{ id = "previa", label = "Prévia", text = "abrir também antes | depois", selected = u.previa or false }
+	dlg:label{ text = "O resultado abre como sprite novo; o atual não muda." }
+	dlg:button{ id = "ok", text = "Aplicar", focus = true }
+	dlg:button{ id = "cancelar", text = "Cancelar" }
+	dlg:show()
+	local d = dlg.data
+	if not d.ok then
+		return
+	end
+	prefs.estilo = { estilo = d.estilo, mistura = d.mistura, fundo = d.fundo, paleta = d.paleta, tons = d.tons, contorno = d.contorno,
+		cor_contorno = d.cor_contorno, nota_minima = d.nota_minima, previa = d.previa }
+	local opcoes = opcoesDoDialogo(d)
+	local imagem = achatar(conferirSprite(spr))
+	local base = nomeSeguro(app.fs.fileTitle(spr.filename or "")) .. "_" .. os.time()
+	local sufixo = (d.estilo:gsub("%+", "_"))
+
+	local function terminar(resumo, log, saida, ok)
+		if not ok or not app.fs.isFile(saida) then
+			app.alert{ title = "Diorama: estilo", text = { "A ferramenta não terminou.", table.unpack(fimDoLog(log)) } }
+			return
+		end
+		abrirResultado(saida, resumo)
+		if opcoes.previa and type(resumo) == "table" and type(resumo.previa) == "string" and app.fs.isFile(resumo.previa) then
+			app.command.OpenFile{ filename = resumo.previa, sequence = "skip", ui = false }
+		end
+	end
+
+	local pediu = pedirPonte("temporaria", {}, function(r)
+		if not r.ok then
+			app.alert{ title = "Diorama", text = "A ponte não deu a pasta temporária: " .. tostring(r.erro) }
+			return
+		end
+		local pasta = r.valor.pasta
+		local entrada = app.fs.joinPath(pasta, base .. ".png")
+		local saida = app.fs.joinPath(pasta, base .. "." .. sufixo .. ".png")
+		local okGravar, erro = pcall(function()
+			imagem:saveAs(entrada)
+		end)
+		if not okGravar then
+			app.alert{ title = "Diorama", text = "Não deu para gravar " .. entrada .. ": " .. limparErro(erro) }
+			return
+		end
+		avisar("Aplicando o estilo " .. d.estilo .. "…")
+		local enviado = pedirPonte("estilo_aeko", { entrada = entrada, saida = saida, opcoes = opcoes }, function(e)
+			if not e.ok then
+				app.alert{ title = "Diorama: estilo", text = "A ponte recusou: " .. tostring(e.erro) }
+				return
+			end
+			terminar(e.valor.resumo, e.valor.log, e.valor.saida or saida, e.valor.ok)
+		end)
+		if not enviado then
+			app.alert{ title = "Diorama", text = "A conexão com a ponte caiu antes do pedido." }
+		end
+	end)
+	if pediu then
+		return
+	end
+
+	-- Sem a ponte: o Python direto, numa pasta temporária do sistema.
+	if app.alert{ title = "Diorama: estilo", text = { "A ponte não está conectada.", "Rodar a ferramenta direto pelo Python? (o Aseprite vai pedir permissão para executar programas)" },
+		buttons = { "Rodar", "Cancelar" } } ~= 1 then
+		return
+	end
+	local okTmp, tmp = pcall(os.getenv, "TEMP")
+	local pasta = app.fs.joinPath((okTmp and tmp) or raiz(), "diorama-ponte")
+	app.fs.makeAllDirectories(pasta)
+	local entrada = app.fs.joinPath(pasta, base .. ".png")
+	local saida = app.fs.joinPath(pasta, base .. "." .. sufixo .. ".png")
+	imagem:saveAs(entrada)
+	local okRodar, resumo, log = pcall(estiloSemPonte, entrada, saida, opcoes)
+	if not okRodar then
+		app.alert{ title = "Diorama: estilo", text = limparErro(resumo) }
+		return
+	end
+	terminar(resumo, log, saida, resumo ~= nil)
+end
+
 function init(plugin)
 	prefs = plugin.preferences
 
@@ -849,6 +1103,20 @@ function init(plugin)
 			return app.sprite ~= nil
 		end,
 		onclick = menuSalvarRegiao,
+	}
+	plugin:newCommand{
+		id = "DioramaEstiloAeko",
+		title = "Aplicar estilo Aeko…",
+		group = "diorama_menu",
+		onenabled = function()
+			return app.sprite ~= nil
+		end,
+		onclick = function()
+			local ok, erro = pcall(dialogoEstilo)
+			if not ok then
+				app.alert{ title = "Diorama", text = limparErro(erro) }
+			end
+		end,
 	}
 	plugin:newMenuSeparator{ group = "diorama_menu" }
 	plugin:newCommand{

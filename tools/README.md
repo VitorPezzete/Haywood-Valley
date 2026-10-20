@@ -85,6 +85,17 @@ python -I tools/comparar_estilos.py --peca jen34    # uma peça, com o bloco int
 python -I tools/comparar_estilos.py --parametros '{"degrau": {"h": 6}}' --sem-folhas   # experimentar parâmetros
 ```
 
+**Arte nova nos estilos do jogo: `estilo_aeko_arte.py`** (2026-10-20; uso em `docs/arte/ESTILO_AEKO_ARTE.md`): passa
+qualquer arte para o estilo `aeko`, `equipe` ou `aeko+equipe`, mede a nota de aderência ao estilo e ajusta até a nota
+mínima (8). Os alvos vêm de `tools/estilos_arte.json`, gravado por `estudo_aeko.py --referencia`; a validação é
+`validar_estilo_arte.py`. No Aseprite: Arquivo > Diorama > Aplicar estilo Aeko… (pela ponte, `POST /estilo/aeko`).
+
+```
+python -I tools/estilo_aeko_arte.py <entrada.png> <saida.png> [--estilo aeko|equipe|aeko+equipe] [--previa]
+python -I tools/estudo_aeko.py --referencia          # mede os gabaritos → tools/estilos_arte.json + seção 6 do estudo
+python -I tools/validar_estilo_arte.py [--amostra N] # estragados, imagens de fora e o par da MADX → estudo/estilo_arte/validacao.md
+```
+
 `estilo_aeko.py` também é o módulo que os outros dois importam (leitura dos `.ts`, folhas, Lab, partes). Para
 mexer na recolorização: mudar `PARAMETROS` ou `recolorir()`, rodar o `comparar_estilos.py --sem-folhas` (20 s) e
 olhar a nota média; depois o `estudo_aeko.py` de novo, que copia o resumo das notas para o documento. Em
