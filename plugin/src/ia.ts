@@ -1,12 +1,13 @@
 // "Pedir ao Claude" (decisão do usuário, 2026-10-20): pedir coisas à IA de dentro do Diorama. A IA explica e, quando
 // o pedido muda algo, manda uma proposta (o resumo e a lista das mudanças) que só vale depois do OK do autor.
-// Contrato com a ponte em docs/diorama/CONEXOES.md, seção 7; o back-end vem depois (outro agente). Enquanto a ponte
-// não tem as rotas, o pedido volta com "Ainda não disponível: atualize a ponte".
+// Contrato com a ponte em docs/diorama/CONEXOES.md, seção 7; o back-end é a ponte (tools/diorama_lib/ia.mjs), que roda
+// o Claude Code do PC. Com uma ponte antiga, sem as rotas, o pedido volta com "Ainda não disponível: atualize a ponte".
 //
 //   POST /ia/pedidos { texto, contexto: { mapa, secao, selecao, problemas }, modo: "agir" } → { id }
 //   GET  /ia/pedidos/<id>?espera=30 → { estado: "pensando" | "proposta" | "feito" | "erro", resposta, proposta? }
 //        (202 enquanto pensa)
 //   POST /ia/pedidos/<id>/confirmar { aceitar } → o mesmo formato do GET
+//   POST /ia/pedidos/<id>/cancelar → para o pedido que está pensando (a ponte mata o processo do Claude)
 //
 // A conversa fica no módulo: dura a sessão do Studio (some numa recarga do pacote, como o resto do estado).
 import { HttpService } from "@rbxts/services";
@@ -42,6 +43,8 @@ export const conversa = source<Mensagem[]>([]);
 export const pensando = source(false);
 /** O pedido com proposta esperando Aplicar ou Cancelar. */
 export const propostaPendente = source<Mensagem | undefined>(undefined);
+/** O pedido que está pensando (para o "Parar"). */
+let pedidoAtual: string | undefined;
 
 const MAXIMO = 40;
 let contador = 0;
@@ -63,6 +66,8 @@ interface RespostaIa {
 	id?: string;
 	estado?: "pensando" | "proposta" | "feito" | "erro";
 	resposta?: string;
+	/** O autor parou o pedido ou cancelou a proposta. */
+	cancelado?: boolean;
 	proposta?: { resumo?: string; mudancas?: unknown[] };
 }
 
@@ -106,6 +111,10 @@ function receber(id: string, r: Lido) {
 		return;
 	}
 	const v = r.valor;
+	if (v.cancelado === true) {
+		anotar({ quem: "sistema", texto: v.resposta ?? "Pedido parado; nada mudou." });
+		return;
+	}
 	if (v.estado === "erro") {
 		anotar({ quem: "sistema", texto: `O Claude não conseguiu: ${v.resposta ?? "erro sem mensagem"}` });
 		return;
@@ -138,9 +147,18 @@ export function enviarPedido(texto: string, contexto: ContextoPedido) {
 		anotar({ quem: "sistema", texto: "A ponte não devolveu o id do pedido." });
 		return;
 	}
+	pedidoAtual = id;
 	const resposta = esperar(id);
+	pedidoAtual = undefined;
 	pensando(false);
 	receber(id, resposta);
+}
+
+/** Para o pedido que está pensando (o botão "Parar"): a ponte mata o processo; a espera volta com "cancelado". */
+export function pararPedido() {
+	const id = pedidoAtual;
+	if (id === undefined || !pensando()) return;
+	task.spawn(() => chamar("POST", `/ia/pedidos/${HttpService.UrlEncode(id)}/cancelar`, {}));
 }
 
 function cancelarSemEsperar(m: Mensagem) {
@@ -163,13 +181,16 @@ export function decidir(aceitar: boolean) {
 	pensando(true);
 	const r = chamar("POST", `/ia/pedidos/${HttpService.UrlEncode(m.pedido)}/confirmar`, { aceitar: true });
 	let final = r;
+	pedidoAtual = m.pedido;
 	if (r.ok && (r.status === 202 || r.valor.estado === "pensando")) final = esperar(m.pedido);
+	pedidoAtual = undefined;
 	pensando(false);
 	if (!final.ok) {
 		anotar({ quem: "sistema", texto: final.erro });
 		return;
 	}
-	if (final.valor.estado === "erro") anotar({ quem: "sistema", texto: `Não aplicou: ${final.valor.resposta ?? "erro sem mensagem"}` });
+	if (final.valor.cancelado === true) anotar({ quem: "sistema", texto: final.valor.resposta ?? "Aplicação parada." });
+	else if (final.valor.estado === "erro") anotar({ quem: "sistema", texto: `Não aplicou: ${final.valor.resposta ?? "erro sem mensagem"}` });
 	else anotar({ quem: "claude", texto: final.valor.resposta ?? "Feito." });
 }
 

@@ -29,7 +29,7 @@ O QUE É A PONTE
 Um programa pequeno (tools/diorama_ponte.mjs) que roda no seu computador e deixa o Studio ler e gravar os arquivos do jogo (mapas, peças, imagens). O Studio sozinho não mexe em arquivos. Sem a ponte, o Diorama abre mas não carrega nem salva nada.
 
 PEDIR AO CLAUDE
-O botão "Pedir ao Claude" (Ctrl+K) abre uma conversa. O Claude explica e, quando o pedido muda algo, mostra a lista das mudanças: nada muda sem você clicar em Aplicar. Vão junto o mapa aberto, a seção, a célula e os problemas do último Verificar.
+O botão "Pedir ao Claude" (Ctrl+K) abre uma conversa. O Claude explica e, quando o pedido muda algo, mostra a lista das mudanças: nada muda sem você clicar em Aplicar. Enquanto ele pensa, Parar interrompe. Vão junto o mapa aberto, a seção, a célula e os problemas do último Verificar.
 
 OPÇÕES AVANÇADAS
 Ids, coordenadas, JSON e as abas de depuração ficam escondidos. Clique em "▸ Avançado" em qualquer seção (ou ligue em Configurações) para ver; a escolha fica guardada.

@@ -1,9 +1,9 @@
 // A caixa "Pedir ao Claude" (ia.ts; contrato em CONEXOES.md, seção 7): a conversa da sessão, o campo e "Enviar",
-// "pensando…" enquanto espera e, quando a resposta traz uma proposta, a lista das mudanças com Aplicar / Cancelar.
-// Nada muda sem o Aplicar.
+// "pensando…" enquanto espera (o "Enviar" vira "Parar", que mata o processo do Claude na ponte) e, quando a resposta
+// traz uma proposta, a lista das mudanças com Aplicar / Cancelar. Nada muda sem o Aplicar.
 import Vide, { For, source } from "@rbxts/vide";
 import { avancado } from "../config";
-import { ContextoPedido, conversa, decidir, enviarPedido, limparConversa, Mensagem, pensando, propostaPendente } from "../ia";
+import { ContextoPedido, conversa, decidir, enviarPedido, limparConversa, Mensagem, pararPedido, pensando, propostaPendente } from "../ia";
 import { ICONE_CLAUDE } from "../secoes";
 import { Botao, Campo, cor, Fileira, Preenche, Rotulo, Titulo } from "./kit";
 import { Icone } from "./simples";
@@ -126,7 +126,13 @@ export function PainelClaude(props: { contexto: () => ContextoPedido; aoFechar: 
 			</frame>
 			<Fileira ordem={4}>
 				<Campo valor={texto} dica="O que você quer? (Enter envia)" aoConfirmar={enviar} aoVivo={true} largura={new UDim(1, -76)} ordem={0} />
-				<Botao texto={() => (pensando() ? "…" : "Enviar")} principal={true} desligado={pensando} aoClicar={enviar} largura={new UDim(0, 68)} ordem={1} />
+				<Botao
+					texto={() => (pensando() ? "Parar" : "Enviar")}
+					principal={true}
+					aoClicar={() => (pensando() ? pararPedido() : enviar())}
+					largura={new UDim(0, 68)}
+					ordem={1}
+				/>
 			</Fileira>
 			<Fileira ordem={5}>
 				<Botao texto="Limpar conversa" aoClicar={limparConversa} ordem={0} />

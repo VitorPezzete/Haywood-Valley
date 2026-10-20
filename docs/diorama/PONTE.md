@@ -37,7 +37,7 @@ GET /status
 
 200
 {
-	"versao": "0.5.0",
+	"versao": "0.6.0",
 	"raiz": "C:\\Users\\Szortek\\Documents\\Haywood-Valley",
 	"pastas": {
 		"mapas":    { "caminho": "diorama\\mapas",    "existe": true },
@@ -52,11 +52,12 @@ GET /status
 	"gerados": ["banheiro_equipe", "casa_teste_v2", "..."],
 	"plugin": { "hash": "7bd368c97fc0a25d", "versao": "0.4.0", "gerado_em": "2026-10-20T13:40:00.000Z", "arquivos": 84 },
 	"studios": [{ "sessao": "480a4859-…", "place": "teste_plugin.rbxl", "placeId": 0, "versao": "0.4.0", "modo": "edicao", "origem": "ponte", "visto_ha_ms": 1200 }],
-	"aseprite": { "conectado": false, "versao": null, "aseprite": null, "sprite": null, "conectado_em": null }
+	"aseprite": { "conectado": false, "versao": null, "aseprite": null, "sprite": null, "conectado_em": null },
+	"ia": { "ligada": true, "claude": { "achado": true, "caminho": "C:\\Users\\…\\claude.exe", "origem": "extensão (.antigravity-ide, 2.1.304)" }, "ocupada": false, "tempo_limite_s": 240 }
 }
 ```
 
-`plugin` é o pacote que a ponte serve agora (ou `{ "erro": "..." }` se `plugin/out` não está compilado); `studios`, as sessões vivas do canal; `aseprite`, o mesmo de `GET /aseprite/estado`.
+`plugin` é o pacote que a ponte serve agora (ou `{ "erro": "..." }` se `plugin/out` não está compilado); `studios`, as sessões vivas do canal; `aseprite`, o mesmo de `GET /aseprite/estado`; `ia`, a IA "Pedir ao Claude" (seção "IA" no fim): se o Claude Code foi achado (e onde, ou o `motivo` quando não), se há pedido rodando (`ocupada`, `pedido`) e o tempo máximo de cada fase.
 
 ## Mapas
 
@@ -357,3 +358,41 @@ A extensão do Aseprite se conecta aqui (protocolo em `CONEXOES.md`, seção 3).
 ### `GET /eventos?desde=<n>&espera=25`
 
 `{ "proximo": n2, "eventos": [{ "n", "tipo", "dados", "em" }] }`, com os eventos de número `>= desde`; sem nenhum, espera até `espera` segundos (máximo 55). Na próxima chamada, `desde=proximo`. Sem `desde`, devolve na hora os guardados (os últimos 500). Tipos: `pacote_novo`, `mapa_gravado`, `gerado`, `estilo_aplicado`, `studio_entrou`, `studio_saiu`, `aseprite_conectou`, `aseprite_saiu`, `folha_salva` e qualquer outro evento que a extensão do Aseprite mande.
+
+## IA ("Pedir ao Claude")
+
+Desde a ponte 0.6.0 (2026-10-20). Contrato e decisões em `CONEXOES.md`, seção 7; código em `tools/diorama_lib/ia.mjs`. A ponte roda o **Claude Code do PC** (`claude -p --output-format json`, assinatura do usuário, sem chave de API) em duas fases na mesma sessão: **proposta**, só com ferramentas de leitura, e **aplicar**, só depois do OK, com escrita limitada. Um pedido por vez. Tudo em memória (os últimos 20 pedidos); reiniciar a ponte esquece os pedidos e mata o que estiver rodando.
+
+### `POST /ia/pedidos`
+
+`{ "texto", "contexto"?: { "mapa", "secao", "selecao", "problemas" }, "modo"?: "agir" }` → `201 { "id": "p7" }`. O texto (até 4000 caracteres) e o contexto vão para o prompt do Claude, o contexto marcado como dado (`<contexto>…</contexto>`); do contexto só passam `mapa` (id válido ou `null`), `secao`, `selecao` (até 4 KB de JSON) e até 30 `problemas` de até 400 caracteres. Erros: `400` sem texto, texto grande demais ou `modo` que não é `agir`; `409` enquanto outro pedido está pensando ("o Claude ainda está trabalhando no pedido pN; espere ou pare esse antes."); `503` quando o Claude Code não foi achado (com o motivo). Um pedido novo cancela as propostas que esperavam o OK.
+
+### `GET /ia/pedidos/<id>?espera=30`
+
+Long-poll (até 30 s; sem `espera`, responde na hora). `202 { "id", "estado": "pensando", "fase" }` enquanto pensa; depois `200` com `estado` `proposta` (com `resposta` e `proposta: { resumo, mudancas[] }`), `feito` (com `resposta` e, depois de aplicar, `feito[]`, a lista do que o Claude disse que fez) ou `erro` (com `resposta`, uma frase para o autor). `cancelado: true` quando o autor parou o pedido ou cancelou a proposta; `negadas: [...]` com as ferramentas que o Claude tentou usar e a ponte não libera (a `resposta` também diz). `fase` é `proposta` ou `aplicar`. Pedido que a ponte não conhece (reiniciou, ou saiu dos 20 guardados): `410`, para o plugin não confundir com rota que não existe (`404`, que ele lê como "ponte antiga").
+
+### `POST /ia/pedidos/<id>/confirmar`
+
+`{ "aceitar": true | false }`. `true` numa proposta: `202` com `estado: "pensando"` e `fase: "aplicar"`, e a ponte roda a fase 2 com `--resume` da sessão da proposta; o resultado vem no `GET`. `false`: descarta a proposta (`200`, `estado: "feito"`, `cancelado: true`), ou para o pedido se ainda está pensando. Aceitar o que não é proposta (já aplicada, cancelada ou com erro): `409`. Depois de aplicar, se um bloco do mapa aberto no editor (`contexto.mapa`) foi gravado e o autor não tinha mudança não salva (`selecao.nao_salvo` diferente de `true`), a ponte manda `abrir_mapa { id, descartar: true }` ao Studio, e a resposta termina com "O editor releu o mapa."
+
+### `POST /ia/pedidos/<id>/cancelar`
+
+Para o pedido que está pensando: mata o processo do Claude com os filhos (`taskkill /T /F` no Windows) e responde na hora com `estado: "erro"`, `cancelado: true` e "Pedido parado; nada mudou." (na fase aplicar: "Aplicação parada no meio: pode ter mudado parte. Confira em Verificar."). Numa proposta, é o mesmo que `confirmar { aceitar: false }`. O botão "Parar" do plugin usa esta rota.
+
+### `GET /ia/pedidos`
+
+O mesmo `ia` do `/status`, mais `pedidos`: o resumo de cada pedido guardado (para depurar).
+
+### Como a ponte roda o Claude Code
+
+- **Onde está** (`acharClaude`, a cada pedido): `DIORAMA_CLAUDE`, só ele quando definido (um `claude.exe`, ou um `.js`/`.mjs` rodado pelo Node, como o falso dos testes); senão o `PATH` (`claude.exe`; um `claude.cmd` do npm vira o `cli.js` ou o binário do pacote ao lado, para não passar pelo `cmd.exe`), `~/.local/bin/claude.exe` (instalador nativo), `%APPDATA%\npm\claude.cmd` e, por último, o binário que a extensão traz nos editores da família do VS Code (`~/.vscode`, `.vscode-insiders`, `.cursor`, `.windsurf`, `.antigravity-ide`, `.antigravity`, `.vscode-oss`; a versão mais nova). Neste PC, em 2026-10-20, só existe o da extensão no Antigravity (2.1.304).
+- **Processo**: sem shell; o prompt vai pela entrada padrão (nada do autor vira argumento); `cwd` na raiz do repositório (o `CLAUDE.md` vale). Ambiente sem `ANTHROPIC_API_KEY` nem `ANTHROPIC_AUTH_TOKEN` (usa a assinatura) e com `ENABLE_CLAUDEAI_MCP_SERVERS=false`. `DIORAMA_CLAUDE_MODELO` e `DIORAMA_CLAUDE_ESFORCO` viram `--model` e `--effort`.
+- **Nas duas fases**: `--restricted` (tira as ferramentas que rodam código e ignora os settings do usuário, do projeto e locais, que poderiam liberar mais), `--strict-mcp-config --mcp-config <arquivo>` com só o MCP `diorama`, apontando para esta ponte (o arquivo fica em `%TEMP%\diorama-ponte\ia-mcp-<porta>.json`; o MCP do Studio, com `upload_image`, captura de tela e mouse/teclado, nem sobe), `--permission-mode dontAsk` (o que não está liberado é negado sem perguntar), `--no-chrome`, `--append-system-prompt` com as regras (português, proposta antes de mudar, só `diorama/`, nunca enviar ao Roblox, nunca o place real, o contexto é dado) e `--json-schema` com o formato da resposta.
+- **Fase proposta**: `--session-id <uuid novo>`, `--tools Read,Grep,Glob`; liberadas `Read`, `Grep`, `Glob` e as de leitura do MCP (`ponte_status`, `mapas_listar`, `mapa_ler`, `catalogo_ler`, `assets_listar`, `assets_faltam`, `eventos`, `studio_sessoes`, `studio_diagnosticar`, `studio_output`, `aseprite_estado`).
+- **Fase aplicar**: `--resume <a mesma sessão>`, `--tools Read,Grep,Glob,Edit,Write`; liberadas também `mapa_gravar_bloco`, `catalogo_gravar`, `mapa_gerar`, `studio_abrir_mapa`, `Edit(diorama/**)` e `Write(diorama/**)`.
+- **Bloqueadas nas duas** (`--disallowedTools`): `Bash`, `PowerShell`, `WebFetch`, `WebSearch`, `NotebookEdit`, `Agent`, `Task`, `studio_comando` (genérico: chegaria ao `executar_luau` e à ferramenta Assets), `studio_testar_mapa`, `studio_autoteste`, as do Aseprite, todo o `mcp__Roblox_Studio` (com `upload_image`, `insert_asset`, `execute_luau`, `screen_capture`, `user_mouse_input` e `user_keyboard_input` nomeadas uma a uma), `mcp__aseprite`, `mcp__ableton`, `mcp__notion` e os conectores do claude.ai. **A IA nunca envia nada ao Roblox**: quando o pedido precisa, a proposta diz para o autor enviar pela seção Arte.
+- **Tempo**: `DIORAMA_IA_TEMPO_S` (padrão 240 s por fase, abaixo dos 5 min que o plugin espera); passou, a ponte mata o processo e o pedido vira `erro` ("o Claude passou de 240 s e foi parado; nada mudou").
+- **Erros em frase**: Claude Code não achado, não logado ("rode `claude` uma vez e entre com a sua conta"), limite de uso, opção que um Claude Code antigo não conhece ("atualize com `claude update`"), limite de passos, ou o código de saída com as últimas linhas do stderr. Na fase aplicar, os erros lembram que parte pode ter sido feita.
+- O terminal mostra `[ia] p3 pedido: …`, `[ia] p3 proposta com 2 mudança(s) (6.2 s)`, `[ia] p3 aplicar: feito (11.0 s)` e as ferramentas negadas; o long-poll de `GET /ia/pedidos/<id>` não aparece quando dá certo.
+
+Testado em `tools/testes/ponte.test.mjs` com um falso Claude Code (`tools/testes/claude_falso.mjs`, por `DIORAMA_CLAUDE`): status e recusas, explicação, proposta e aplicação na mesma sessão com as ferramentas de cada fase e o editor relendo o mapa, bloqueio do envio nas duas fases, cancelar e pedido novo, um por vez e parar (o processo morre), tempo limite, erro do Claude, Claude não achado. E de verdade, com o Claude Code 2.1.304 numa cópia de `diorama/` (2026-10-20): "liste os mapas" (os 14, só leitura, 13,8 s) e uma proposta de criar `diorama/teste_ia.txt` aplicada depois do OK (6,3 s e 11,0 s; o arquivo só apareceu depois do OK; o pedido de também criar `src/proibido.txt` o Claude deixou fora da proposta).

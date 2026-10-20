@@ -20,6 +20,7 @@ import WebSocket from "ws";
 const RAIZ_REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const PONTE = path.join(RAIZ_REPO, "tools", "diorama_ponte.mjs");
 const PNG_PEQUENO = path.join(RAIZ_REPO, "diorama", "folhas", "forma_equipe_32.png");
+const CLAUDE_FALSO = path.join(RAIZ_REPO, "tools", "testes", "claude_falso.mjs");
 
 let raiz;
 let fora;
@@ -30,8 +31,8 @@ let logPonte = "";
 // ---------------------------------------------------------------------------------------------------------------
 // Ajudantes
 
-/** Um pedido HTTP cru (cabeçalhos sob controle: Host, Origin...). Devolve { status, cabecalhos, json, texto }. */
-function pedir(metodo, caminho, { corpo, cabecalhos = {}, semX = false } = {}) {
+/** Um pedido HTTP cru (cabeçalhos sob controle: Host, Origin...). Devolve { status, cabecalhos, json, texto }. `portaPedido`: outra ponte. */
+function pedir(metodo, caminho, { corpo, cabecalhos = {}, semX = false, portaPedido } = {}) {
 	return new Promise((resolve, reject) => {
 		const dados = corpo === undefined ? undefined : typeof corpo === "string" ? corpo : JSON.stringify(corpo);
 		const headers = {
@@ -39,7 +40,7 @@ function pedir(metodo, caminho, { corpo, cabecalhos = {}, semX = false } = {}) {
 			...(dados !== undefined ? { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(dados) } : {}),
 			...cabecalhos,
 		};
-		const req = http.request({ host: "127.0.0.1", port: porta, method: metodo, path: caminho, headers, agent: false }, (res) => {
+		const req = http.request({ host: "127.0.0.1", port: portaPedido ?? porta, method: metodo, path: caminho, headers, agent: false }, (res) => {
 			const partes = [];
 			res.on("data", (p) => partes.push(p));
 			res.on("end", () => {
@@ -131,33 +132,67 @@ before(async () => {
 	fs.mkdirSync(path.join(raiz, "diorama", "mapas", "quebrado"));
 	fs.writeFileSync(path.join(raiz, "diorama", "mapas", "quebrado", "mapa.json"), "{ quebrado");
 
-	ponte = spawn(process.execPath, [PONTE, "--porta", "0", "--exigir-cabecalho"], {
-		cwd: raiz,
-		env: { ...process.env, DIORAMA_RAIZ: raiz, DIORAMA_SESSAO_EXPIRA_MS: "1500" },
+	// A IA usa o falso Claude Code (claude_falso.mjs), com tempo máximo curto; a chave de API no ambiente tem de
+	// sumir antes de chegar ao processo filho.
+	const subida = await subirPonte(raiz, {
+		DIORAMA_SESSAO_EXPIRA_MS: "1500",
+		DIORAMA_CLAUDE: CLAUDE_FALSO,
+		DIORAMA_IA_TEMPO_S: "3",
+		DIORAMA_FALSO_LOG: path.join(raiz, "_fora", "claude_falso.log"),
+		ANTHROPIC_API_KEY: "chave-que-nao-pode-passar",
+	});
+	ponte = subida.processo;
+	porta = subida.porta;
+	subida.aoLog((d) => (logPonte += d));
+	logPonte = subida.log();
+});
+
+/** Sobe uma ponte numa porta livre sobre `raizPonte`. Devolve { processo, porta, log(), aoLog(fn), parar() }. */
+async function subirPonte(raizPonte, envExtra = {}) {
+	let log = "";
+	const ouvintes = [];
+	const processo = spawn(process.execPath, [PONTE, "--porta", "0", "--exigir-cabecalho"], {
+		cwd: raizPonte,
+		env: { ...process.env, DIORAMA_RAIZ: raizPonte, ...envExtra },
 		stdio: ["ignore", "pipe", "pipe"],
 		windowsHide: true,
 	});
-	ponte.stderr.on("data", (d) => (logPonte += d));
-	porta = await new Promise((resolve, reject) => {
-		const t = setTimeout(() => reject(new Error(`a ponte não subiu:\n${logPonte}`)), 15_000);
-		ponte.stdout.on("data", (d) => {
-			logPonte += d;
-			const m = /em http:\/\/127\.0\.0\.1:(\d+)/.exec(logPonte);
+	const anotar = (d) => {
+		log += d;
+		for (const f of ouvintes) f(String(d));
+	};
+	processo.stderr.on("data", anotar);
+	const portaSubida = await new Promise((resolve, reject) => {
+		const t = setTimeout(() => reject(new Error(`a ponte não subiu:\n${log}`)), 15_000);
+		processo.stdout.on("data", (d) => {
+			anotar(d);
+			const m = /em http:\/\/127\.0\.0\.1:(\d+)/.exec(log);
 			if (m) {
 				clearTimeout(t);
 				resolve(Number(m[1]));
 			}
 		});
-		ponte.once("exit", (codigo) => reject(new Error(`a ponte saiu (${codigo}):\n${logPonte}`)));
+		processo.once("exit", (codigo) => reject(new Error(`a ponte saiu (${codigo}):\n${log}`)));
 	});
-});
+	return {
+		processo,
+		porta: portaSubida,
+		log: () => log,
+		aoLog: (f) => ouvintes.push(f),
+		parar: () => pararPonte(processo),
+	};
+}
 
-after(async () => {
-	if (ponte && ponte.exitCode === null) {
-		const saiu = new Promise((resolve) => ponte.once("exit", resolve));
-		ponte.kill();
+async function pararPonte(processo) {
+	if (processo && processo.exitCode === null) {
+		const saiu = new Promise((resolve) => processo.once("exit", resolve));
+		processo.kill();
 		await saiu; // no Windows a pasta não sai enquanto o processo (com cwd nela) vive
 	}
+}
+
+after(async () => {
+	await pararPonte(ponte);
 	if (!raiz) return;
 	// Tira os links antes (o rm recursivo não deve passar por eles).
 	for (const link of [
@@ -761,5 +796,232 @@ test("estilo: o Aseprite pede a pasta temporária e o estilo pelo WebSocket", { 
 		}
 	} finally {
 		ws.close();
+	}
+});
+
+// ---------------------------------------------------------------------------------------------------------------
+// IA "Pedir ao Claude" (CONEXOES.md, seção 7), com o falso Claude Code (claude_falso.mjs)
+
+/** As chamadas que o falso Claude anotou, da mais velha para a mais nova. */
+function chamadasFalso() {
+	const arquivo = path.join(raiz, "_fora", "claude_falso.log");
+	if (!fs.existsSync(arquivo)) return [];
+	return fs
+		.readFileSync(arquivo, "utf8")
+		.trim()
+		.split("\n")
+		.filter(Boolean)
+		.map((l) => JSON.parse(l));
+}
+
+/** O valor de uma opção nos argumentos (`--tools X` → "X"). */
+function opcao(args, nome) {
+	const i = args.indexOf(nome);
+	return i >= 0 ? args[i + 1] : undefined;
+}
+
+async function pedidoIa(texto, contexto = { mapa: null, secao: "mapa", selecao: {}, problemas: [] }) {
+	const r = await pedir("POST", "/ia/pedidos", { corpo: { texto, contexto, modo: "agir" } });
+	assert.equal(r.status, 201, r.texto);
+	return r.json.id;
+}
+
+/** Espera o pedido sair de "pensando" (long-poll). */
+async function respostaIa(id, espera = 10) {
+	for (let i = 0; i < 5; i++) {
+		const r = await pedir("GET", `/ia/pedidos/${id}?espera=${espera}`);
+		if (r.status !== 202) return r;
+	}
+	throw new Error(`o pedido ${id} não saiu de pensando`);
+}
+
+function vivo(pid) {
+	try {
+		process.kill(pid, 0);
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+test("IA: /status anuncia a IA; rotas exigem X-Diorama; pedido desconhecido dá 410", async () => {
+	const s = await pedir("GET", "/status");
+	assert.equal(s.json.ia.ligada, true);
+	assert.equal(s.json.ia.claude.achado, true);
+	assert.equal(s.json.ia.claude.origem, "DIORAMA_CLAUDE");
+	assert.equal(s.json.ia.tempo_limite_s, 3);
+	assert.equal((await pedir("POST", "/ia/pedidos", { corpo: { texto: "oi" }, semX: true })).status, 403);
+	assert.equal((await pedir("POST", "/ia/pedidos", { corpo: { texto: "oi" }, cabecalhos: { Origin: "https://exemplo.com" } })).status, 403);
+	assert.equal((await pedir("POST", "/ia/pedidos", { corpo: { texto: "  " } })).status, 400);
+	assert.equal((await pedir("POST", "/ia/pedidos", { corpo: { texto: "oi", modo: "outro" } })).status, 400);
+	const velho = await pedir("GET", "/ia/pedidos/p999");
+	assert.equal(velho.status, 410);
+	assert.match(velho.json.erro, /não conhece o pedido/);
+});
+
+test("IA: explicação sem mudança volta como feito", { timeout: 20_000 }, async () => {
+	const id = await pedidoIa("#explicar o que há de errado?");
+	const r = await respostaIa(id);
+	assert.equal(r.status, 200);
+	assert.equal(r.json.estado, "feito");
+	assert.equal(r.json.resposta, "O mapa está certo.");
+	assert.equal(r.json.proposta, undefined);
+});
+
+test("IA: proposta, confirmação na mesma sessão, ferramentas de cada fase, editor relê o mapa", { timeout: 30_000 }, async () => {
+	const antes = chamadasFalso().length;
+	const contexto = { mapa: "ia_mapa", secao: "mapa", selecao: { celula: [3, 4], nao_salvo: false }, problemas: ["[erro] mapa ia_mapa: teste"] };
+	const id = await pedidoIa("#proposta põe uma zona Cozinha", contexto);
+	const r = await respostaIa(id);
+	assert.equal(r.json.estado, "proposta");
+	assert.equal(r.json.resposta, "Achei o lugar.");
+	assert.deepEqual(r.json.proposta, { resumo: "Criar a zona Cozinha", mudancas: ["gravar bloco ia_mapa", "musica=sala"] });
+
+	// Aplicar: o falso grava o bloco pela ponte; com um Studio conectado, a ponte manda o editor reler o mapa.
+	await presenca("s_ia");
+	const c = await pedir("POST", `/ia/pedidos/${id}/confirmar`, { corpo: { aceitar: true } });
+	assert.equal(c.status, 202);
+	assert.equal(c.json.estado, "pensando");
+	await presenca("s_ia");
+	const final = await respostaIa(id);
+	assert.equal(final.json.estado, "feito", JSON.stringify(final.json));
+	assert.match(final.json.resposta, /Apliquei a proposta\. O editor releu o mapa\./);
+	assert.deepEqual(final.json.feito, ["bloco gravado"]);
+	assert.ok(fs.existsSync(path.join(raiz, "diorama", "mapas", "ia_mapa", "blocos", "0_0.json")));
+	const cmd = await pedir("GET", "/studio/proximo?sessao=s_ia&espera=2");
+	assert.equal(cmd.status, 200);
+	assert.equal(cmd.json.tipo, "abrir_mapa");
+	assert.deepEqual(cmd.json.args, { id: "ia_mapa", descartar: true });
+	await pedir("POST", `/studio/respostas/${cmd.json.id}`, { corpo: { ok: true, valor: null } });
+	// Confirmar de novo não aplica outra vez.
+	assert.equal((await pedir("POST", `/ia/pedidos/${id}/confirmar`, { corpo: { aceitar: true } })).status, 409);
+
+	const [proposta, aplicar] = chamadasFalso().slice(antes);
+	// Fase 1: só leitura; o contexto vai como dado; a chave de API não passa.
+	assert.equal(proposta.fase, "proposta");
+	assert.equal(proposta.chave, false);
+	assert.match(proposta.entrada, /<pedido>\n#proposta põe uma zona Cozinha\n<\/pedido>/);
+	assert.match(proposta.entrada, /<contexto>[\s\S]*"celula"[\s\S]*<\/contexto>/);
+	for (const flag of ["-p", "--restricted", "--strict-mcp-config", "--no-chrome"]) assert.ok(proposta.args.includes(flag), flag);
+	assert.equal(opcao(proposta.args, "--output-format"), "json");
+	assert.equal(opcao(proposta.args, "--permission-mode"), "dontAsk");
+	assert.equal(opcao(proposta.args, "--tools"), "Read,Grep,Glob");
+	const sessao = opcao(proposta.args, "--session-id");
+	assert.match(sessao, /^[0-9a-f-]{36}$/);
+	const permitidas1 = opcao(proposta.args, "--allowedTools").split(",");
+	assert.ok(permitidas1.includes("mcp__diorama__mapa_ler"));
+	for (const n of ["Edit", "Write", "Bash", "mcp__diorama__mapa_gravar_bloco", "mcp__diorama__catalogo_gravar", "mcp__diorama__studio_comando"]) {
+		assert.ok(!permitidas1.some((p) => p === n || p.startsWith(`${n}(`)), `fase 1 libera ${n}`);
+	}
+	const mcp = JSON.parse(fs.readFileSync(opcao(proposta.args, "--mcp-config"), "utf8"));
+	assert.deepEqual(Object.keys(mcp.mcpServers), ["diorama"]);
+	assert.equal(mcp.mcpServers.diorama.env.DIORAMA_PONTE, `http://127.0.0.1:${porta}`);
+	// Fase 2: a mesma sessão, escrita só no necessário.
+	assert.equal(aplicar.fase, "aplicar");
+	assert.equal(opcao(aplicar.args, "--resume"), sessao);
+	assert.equal(opcao(aplicar.args, "--tools"), "Read,Grep,Glob,Edit,Write");
+	const permitidas2 = opcao(aplicar.args, "--allowedTools").split(",");
+	for (const n of ["mcp__diorama__mapa_gravar_bloco", "mcp__diorama__catalogo_gravar", "Edit(diorama/**)", "Write(diorama/**)"]) assert.ok(permitidas2.includes(n), n);
+	assert.ok(!permitidas2.includes("Edit") && !permitidas2.includes("Write"), "Edit/Write sem limite de pasta");
+	assert.match(aplicar.entrada, /Aplicar[\s\S]*- gravar bloco ia_mapa\n- musica=sala/);
+});
+
+test("IA: ferramentas de envio ao Roblox ficam bloqueadas nas duas fases", { timeout: 20_000 }, async () => {
+	const chamadas = chamadasFalso();
+	assert.ok(chamadas.some((c) => c.fase === "proposta") && chamadas.some((c) => c.fase === "aplicar"));
+	for (const chamada of chamadas) {
+		const bloqueadas = opcao(chamada.args, "--disallowedTools").split(",");
+		const permitidas = opcao(chamada.args, "--allowedTools").split(",");
+		for (const n of [
+			"mcp__Roblox_Studio",
+			"mcp__Roblox_Studio__upload_image",
+			"mcp__Roblox_Studio__insert_asset",
+			"mcp__Roblox_Studio__screen_capture",
+			"mcp__Roblox_Studio__user_mouse_input",
+			"mcp__diorama__studio_comando",
+			"mcp__diorama__aseprite_comando",
+			"Bash",
+			"PowerShell",
+			"WebFetch",
+		]) {
+			assert.ok(bloqueadas.includes(n), `${chamada.fase}: ${n} não está bloqueada`);
+		}
+		assert.ok(!permitidas.some((p) => /Roblox_Studio|upload|insert_asset|studio_comando|Bash/.test(p)), `${chamada.fase}: libera envio`);
+		assert.ok(!opcao(chamada.args, "--tools").includes("Bash"));
+	}
+	// Se o Claude tenta mesmo assim, a negação aparece para o autor.
+	const id = await pedidoIa("#enviar manda a folha nova ao Roblox");
+	const r = await respostaIa(id);
+	assert.equal(r.json.estado, "proposta");
+	assert.deepEqual(r.json.negadas, ["mcp__Roblox_Studio__upload_image"]);
+	assert.match(r.json.resposta, /bloqueado: o Claude tentou usar mcp__Roblox_Studio__upload_image/);
+	await pedir("POST", `/ia/pedidos/${id}/confirmar`, { corpo: { aceitar: false } });
+});
+
+test("IA: cancelar a proposta, e pedido novo deixa a anterior para trás", { timeout: 20_000 }, async () => {
+	const a = await pedidoIa("#proposta a");
+	assert.equal((await respostaIa(a)).json.estado, "proposta");
+	const cancelada = await pedir("POST", `/ia/pedidos/${a}/confirmar`, { corpo: { aceitar: false } });
+	assert.equal(cancelada.json.estado, "feito");
+	assert.equal(cancelada.json.cancelado, true);
+	assert.match((await pedir("POST", `/ia/pedidos/${a}/confirmar`, { corpo: { aceitar: true } })).json.erro, /foi cancelada/);
+
+	const b = await pedidoIa("#proposta b");
+	assert.equal((await respostaIa(b)).json.estado, "proposta");
+	const c = await pedidoIa("#explicar c");
+	const deB = await pedir("GET", `/ia/pedidos/${b}`);
+	assert.equal(deB.json.estado, "feito");
+	assert.equal(deB.json.cancelado, true);
+	assert.equal((await respostaIa(c)).json.estado, "feito");
+	assert.equal((await pedir("POST", `/ia/pedidos/${b}/confirmar`, { corpo: { aceitar: true } })).status, 409);
+});
+
+test("IA: um pedido por vez; parar mata o processo", { timeout: 20_000 }, async () => {
+	const id = await pedidoIa("#dormir pensa bastante");
+	assert.equal((await pedir("GET", `/ia/pedidos/${id}?espera=0`)).status, 202);
+	await esperar(800); // o falso anota o pid
+	const outro = await pedir("POST", "/ia/pedidos", { corpo: { texto: "#explicar outro" } });
+	assert.equal(outro.status, 409);
+	assert.match(outro.json.erro, /ainda está trabalhando/);
+	const { pid, entrada } = chamadasFalso().at(-1);
+	assert.match(entrada, /#dormir pensa bastante/);
+	assert.ok(vivo(pid));
+	const parado = await pedir("POST", `/ia/pedidos/${id}/cancelar`);
+	assert.equal(parado.json.estado, "erro");
+	assert.equal(parado.json.cancelado, true);
+	assert.match(parado.json.resposta, /nada mudou/);
+	for (let i = 0; i < 40 && vivo(pid); i++) await esperar(100);
+	assert.ok(!vivo(pid), "o processo do Claude continuou vivo");
+	// Livre de novo.
+	assert.equal((await respostaIa(await pedidoIa("#explicar de novo"))).json.estado, "feito");
+});
+
+test("IA: tempo limite para o processo com frase clara", { timeout: 20_000 }, async () => {
+	const id = await pedidoIa("#dormir demais");
+	const r = await respostaIa(id, 10);
+	assert.equal(r.json.estado, "erro");
+	assert.match(r.json.resposta, /passou de 3 s e foi parado; nada mudou/);
+	const { pid } = chamadasFalso().at(-1);
+	for (let i = 0; i < 40 && vivo(pid); i++) await esperar(100);
+	assert.ok(!vivo(pid));
+});
+
+test("IA: erro do Claude Code vira frase clara", { timeout: 20_000 }, async () => {
+	const r = await respostaIa(await pedidoIa("#quebrar"));
+	assert.equal(r.json.estado, "erro");
+	assert.match(r.json.resposta, /não está logado/);
+});
+
+test("IA: Claude Code não achado", { timeout: 30_000 }, async () => {
+	const outra = await subirPonte(raiz, { DIORAMA_CLAUDE: path.join(raiz, "_fora", "nao_existe.exe") });
+	try {
+		const s = await pedir("GET", "/status", { portaPedido: outra.porta });
+		assert.equal(s.json.ia.claude.achado, false);
+		assert.match(s.json.ia.claude.motivo, /não existe/);
+		const r = await pedir("POST", "/ia/pedidos", { corpo: { texto: "liste os mapas" }, portaPedido: outra.porta });
+		assert.equal(r.status, 503);
+		assert.match(r.json.erro, /Pedir ao Claude não funciona: DIORAMA_CLAUDE aponta para .*nao_existe\.exe, que não existe/);
+	} finally {
+		await outra.parar();
 	}
 });

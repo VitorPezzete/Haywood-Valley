@@ -12,6 +12,8 @@
 // Além do disco, a ponte é o centro das conexões (docs/diorama/CONEXOES.md): serve o pacote do plugin para a
 // recarga a quente (/plugin/*, diorama_lib/pacote.mjs), leva comandos ao Studio (/studio/*), fala com o Aseprite
 // por WebSocket (/ws, /aseprite/*) e anuncia eventos (/eventos); os canais moram em diorama_lib/canais.mjs.
+// A IA "Pedir ao Claude" (/ia/*, CONEXOES.md seção 7) roda o Claude Code do PC em modo headless, com confirmação,
+// e mora em diorama_lib/ia.mjs.
 
 import http from "node:http";
 import fs from "node:fs";
@@ -22,8 +24,9 @@ import { fileURLToPath } from "node:url";
 import { PNG } from "pngjs";
 import { criarCanais } from "./diorama_lib/canais.mjs";
 import { observarPacote } from "./diorama_lib/pacote.mjs";
+import { criarIa } from "./diorama_lib/ia.mjs";
 
-export const VERSAO = "0.5.0";
+export const VERSAO = "0.6.0";
 const HOST = "127.0.0.1";
 const PORTA_PADRAO = 34873;
 const PORTA_ROJO = 34872;
@@ -713,6 +716,7 @@ async function status() {
 		studios: canais.sessoesVivas(),
 		aseprite: canais.estadoAseprite(),
 		estilo: { script: path.relative(RAIZ, SCRIPT_ESTILO), python: comandoPython(), temporaria: PASTA_TEMPORARIA },
+		ia: ia.estado(),
 	};
 }
 
@@ -883,12 +887,29 @@ const pedidosAseprite = {
 	},
 	estilo_aeko: async (args) => {
 		const r = await aplicarEstilo(args);
-		canais.emitir("estilo_aplicado", { saida: r.saida, ok: r.ok, nota: r.resumo?.nota, origem: "aseprite" });
+		emitir("estilo_aplicado", { saida: r.saida, ok: r.ok, nota: r.resumo?.nota, origem: "aseprite" });
 		return r;
 	},
 };
 
 const canais = criarCanais({ ErroHttp, lerJson: lerObjeto, pedidos: pedidosAseprite });
+/** O servidor que está escutando (a porta vai para o MCP que o Claude Code da IA sobe). */
+let servidorAtual;
+/** A IA "Pedir ao Claude" (CONEXOES.md, seção 7; diorama_lib/ia.mjs). */
+const ia = criarIa({
+	ErroHttp,
+	lerObjeto,
+	raiz: RAIZ,
+	portaPonte: () => servidorAtual?.address()?.port ?? PORTA_PADRAO,
+	enfileirarStudio: (tipo, args) => canais.enfileirar(tipo, args),
+});
+
+/** Anuncia um evento da ponte (a IA anota os mapas gravados enquanto aplica uma proposta). */
+function emitir(tipo, dados) {
+	ia.aoEvento(tipo, dados);
+	return canais.emitir(tipo, dados);
+}
+
 const PROJETO_PLUGIN = path.join(RAIZ, "plugin", "default.project.json");
 let observador;
 
@@ -900,7 +921,7 @@ function pacotes() {
 			pastas: [path.join(RAIZ, "plugin", "out"), path.join(RAIZ, "plugin", "include")],
 			aoMudar: (p) => {
 				console.log(`[plugin] pacote ${p.versao} ${p.hash} (${p.arquivos.length} arquivos)`);
-				canais.emitir("pacote_novo", { hash: p.hash, versao: p.versao });
+				emitir("pacote_novo", { hash: p.hash, versao: p.versao });
 			},
 		});
 	}
@@ -948,6 +969,7 @@ const ROTAS = [
 		},
 	],
 	...canais.rotas,
+	...ia.rotas,
 
 	["GET", /^\/mapas$/, () => ({ json: listarMapas() })],
 	["GET", /^\/mapas\/([^/]+)$/, ([id]) => ({ json: lerMapa(id) })],
@@ -958,7 +980,7 @@ const ROTAS = [
 			const coordenadas = lerCoordenadas(bloco);
 			pastaMapa(id); // confere o id antes de ler o corpo
 			const r = gravarBloco(id, coordenadas, await lerObjeto(req, "o bloco"));
-			canais.emitir("mapa_gravado", { mapa: id, bloco, arquivo: r.arquivo });
+			emitir("mapa_gravado", { mapa: id, bloco, arquivo: r.arquivo });
 			if (r.avisos) console.log(`[mapas] ${id}/${bloco}: ${r.avisos.join("; ")}`);
 			return { json: r };
 		},
@@ -968,7 +990,7 @@ const ROTAS = [
 		/^\/mapas\/([^/]+)\/blocos\/([^/]+)$/,
 		([id, bloco]) => {
 			const r = apagarBloco(id, lerCoordenadas(bloco));
-			canais.emitir("mapa_gravado", { mapa: id, bloco, apagado: true });
+			emitir("mapa_gravado", { mapa: id, bloco, apagado: true });
 			return { json: r };
 		},
 	],
@@ -977,7 +999,7 @@ const ROTAS = [
 		/^\/mapas\/([^/]+)$/,
 		([id]) => {
 			const r = apagarMapa(id);
-			canais.emitir("mapa_gravado", { mapa: id, apagado: true });
+			emitir("mapa_gravado", { mapa: id, apagado: true });
 			return { json: r };
 		},
 	],
@@ -1027,7 +1049,7 @@ const ROTAS = [
 		/^\/gerar\/decorar$/,
 		async () => {
 			const r = await rodarNpm("diorama:jogo", ["--decorar"]);
-			canais.emitir("gerado", { alvo: "decorar", ok: r.ok });
+			emitir("gerado", { alvo: "decorar", ok: r.ok });
 			return { json: r };
 		},
 	],
@@ -1037,7 +1059,7 @@ const ROTAS = [
 		async ([id]) => {
 			pastaMapa(id); // só valida o id
 			const r = await rodarNpm("diorama:jogo", [id]);
-			canais.emitir("gerado", { alvo: id, ok: r.ok });
+			emitir("gerado", { alvo: id, ok: r.ok });
 			return { json: r };
 		},
 	],
@@ -1069,7 +1091,7 @@ const ROTAS = [
 		/^\/estilo\/aeko$/,
 		async (_grupos, req) => {
 			const r = await aplicarEstilo(await lerObjeto(req, "o pedido ({ entrada, saida, opcoes })"));
-			canais.emitir("estilo_aplicado", { saida: r.saida, ok: r.ok, nota: r.resumo?.nota });
+			emitir("estilo_aplicado", { saida: r.saida, ok: r.ok, nota: r.resumo?.nota });
 			return { json: r };
 		},
 	],
@@ -1147,7 +1169,7 @@ async function atender(req, res) {
 			if (metodo !== req.method) continue;
 			const resposta = await acao(m.slice(1), req, url.searchParams, res);
 			statusFinal = resposta.status ?? 200;
-			silenciosa = statusFinal < 400 && canais.silenciosas.some((r) => r.test(caminho));
+			silenciosa = statusFinal < 400 && [...canais.silenciosas, ...ia.silenciosas].some((r) => r.test(caminho));
 			if (res.destroyed) return;
 			if (resposta.vazio) {
 				res.writeHead(statusFinal);
@@ -1199,6 +1221,7 @@ export function criarServidor({ exigirCabecalho = EXIGIR_CABECALHO_PADRAO } = {}
 	servidor.keepAliveTimeout = 65_000;
 	servidor.headersTimeout = 66_000;
 	canais.aoAtualizar(servidor, (req) => motivoRecusa(req));
+	servidorAtual = servidor;
 	return servidor;
 }
 
@@ -1265,6 +1288,7 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
 	const encerrar = () => {
 		console.log("\nEncerrando a ponte.");
 		rbxtsc?.kill();
+		ia.fechar();
 		canais.fechar();
 		observador?.fechar();
 		servidor.close(() => process.exit(0));
