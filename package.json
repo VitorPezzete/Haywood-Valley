@@ -6,7 +6,12 @@
   "scripts": {
     "build": "rbxtsc",
     "watch": "rbxtsc -w",
-    "serve": "rojo serve"
+    "serve": "rojo serve",
+    "assets": "node tools/assets.mjs",
+    "plugin:compile": "rbxtsc -p plugin/tsconfig.json --rojo plugin/default.project.json",
+    "plugin:build": "rbxtsc -p plugin/tsconfig.json --rojo plugin/default.project.json && rojo build plugin/default.project.json -o \"%LOCALAPPDATA%\\Roblox\\Plugins\\Diorama.rbxm\"",
+    "plugin:watch": "rbxtsc -w -p plugin/tsconfig.json --rojo plugin/default.project.json",
+    "diorama:ponte": "node tools/diorama_ponte.mjs"
   },
   "keywords": [],
   "author": "",
@@ -21,6 +26,7 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.6",
     "eslint-plugin-roblox-ts": "^1.4.1",
+    "pngjs": "^7.0.0",
     "prettier": "^3.9.9",
     "rbxts-transformer-flamework": "^1.3.2",
     "roblox-ts": "^3.0.0",

@@ -1,0 +1,22 @@
+{
+	"name": "Diorama",
+	"globIgnorePaths": ["**/package.json", "**/tsconfig.json", "**/*.md", "**/LICENSE*", "**/*.tsbuildinfo"],
+	"tree": {
+		"$path": "out",
+		"rbxts_include": {
+			"$path": "include",
+			"node_modules": {
+				"$className": "Folder",
+				"@rbxts": {
+					"$className": "Folder",
+					"vide": {
+						"$path": "../node_modules/@rbxts/vide"
+					},
+					"services": {
+						"$path": "../node_modules/@rbxts/services"
+					}
+				}
+			}
+		}
+	}
+}

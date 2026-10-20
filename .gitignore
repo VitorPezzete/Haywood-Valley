@@ -2,3 +2,9 @@
 /out
 /include
 *.tsbuildinfo
+
+# Peças e folhas dos contribuidores do Graal: fora do git até a licença ser resolvida (assets/LICENCAS.md)
+/contribuidores/
+/plugin/out
+/plugin/include
+__pycache__/
