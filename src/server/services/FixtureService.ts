@@ -22,7 +22,9 @@ const SLEEP_CHECK = 1;
  * As interações que não mudam peça de lugar (etapa E do roteiro do Diorama, item 17):
  *
  * - **Baú**: abre e fecha (o fixo do mapa, pelo id `chest@x,y`, e a peça móvel que é baú, pelo id dela), trocando
- *   os tiles pela versão aberta da mesma folha (`shared/fixtures.ts`). O que tem dentro espera o inventário.
+ *   os tiles pela versão aberta da mesma folha (`shared/fixtures.ts`). O que tem dentro espera o inventário. O
+ *   baú grande do castelo confere a distância pelo retângulo dele fechado (4 × 4, o que bloqueia): a tampa aberta,
+ *   nas duas linhas de cima, é só desenho do cliente e não bloqueia.
  * - **Fogão**: acende e apaga a boca e o forno. Aceso por `COOK_SECONDS`, chama o gancho de cozinhar (`cook`), que
  *   hoje só avisa no Output (receitas e ingredientes esperam o inventário).
  * - **Dormir**: deitado numa cama (a do mapa ou a posta no Decorar), a tecla de ação pede para dormir. Quando todos

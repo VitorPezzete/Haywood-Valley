@@ -1,5 +1,6 @@
 import { chestOfPiece, findFixtures } from "shared/fixtures";
 import { PieceBoard } from "shared/pieces";
+import { createCard } from "./card";
 import { GroundLayer } from "./ground";
 import { INTERIOR_TILE, Interior, sheetRect } from "./interior";
 
@@ -7,9 +8,13 @@ type Fixture = ReturnType<typeof findFixtures>[number];
 type FixtureCell = Fixture["cells"][number];
 type Tile = FixtureCell["on"];
 
-/** O que aparece de um baú ou fogão mexido: as imagens por cima dos tiles e as células acesas (para as luzes). */
+/**
+ * O que aparece de um baú ou fogão mexido: as imagens por cima dos tiles, o cartão da tampa em pé (o baú grande
+ * aberto) e as células acesas (para as luzes).
+ */
 interface Shown {
 	labels: ImageLabel[];
+	card?: Part;
 	cells: [number, number, Tile][];
 }
 
@@ -17,6 +22,10 @@ interface Shown {
  * Desenha os baús e fogões do mapa (`shared/fixtures.ts`) no estado da sessão: o mapa fica como está (o canvas
  * grande não muda) e, por cima, na camada viva, os tiles da versão de agora (o baú aberto, a boca acesa) só nas
  * células que mudaram. A peça móvel que é baú abre no lugar; mudou de lugar, fecha.
+ *
+ * O baú grande aberto tem a tampa em pé nas duas linhas acima dele: ela vai num cartão de frente para a câmera com
+ * a base na borda de cima do baú (como a coberta da cama, `ActionController.coverCard`), e quem passa atrás do baú
+ * fica atrás da tampa. As células dessas linhas no mapa não mudam: fechar tira o cartão e elas voltam a aparecer.
  */
 export class FixtureView {
 	private byId = new Map<string, Fixture>();
@@ -32,7 +41,13 @@ export class FixtureView {
 		private interior: Interior,
 	) {
 		this.fixtures = findFixtures(board.map);
-		for (const fixture of this.fixtures) this.byId.set(fixture.id, fixture);
+		for (const fixture of this.fixtures) {
+			this.byId.set(fixture.id, fixture);
+			// O baú grande pintado aberto: a tampa do mapa fica deitada; em pé, só no cartão.
+			if (fixture.startsOn && fixture.cells.some((cell) => cell.upright)) {
+				this.draw(fixture.id, fixture.x, fixture.y, fixture.cells, true, true);
+			}
+		}
 	}
 
 	fixture(id: string) {
@@ -109,6 +124,7 @@ export class FixtureView {
 		const shown = this.shown.get(id);
 		if (!shown) return;
 		for (const label of shown.labels) label.Destroy();
+		shown.card?.Destroy();
 		this.shown.delete(id);
 	}
 
@@ -116,10 +132,18 @@ export class FixtureView {
 		this.clear(id);
 		const shown: Shown = { labels: [], cells: [] };
 		const origin = this.interior.canvasOf(0, 0);
+		const lid = new Array<[number, number, Tile]>();
 		for (const cell of cells) {
 			const cx = x + cell.dx;
 			const cy = y + cell.dy;
 			const tile = on ? cell.on : cell.off;
+			// Sem tile desligado, a célula mostra o mapa como está.
+			if (!tile) continue;
+			if (on && cell.upright) {
+				// A tampa em pé vai sempre para o cartão, mesmo pintada aberta no mapa (lá ela fica deitada).
+				lid.push([cx, cy, tile]);
+				continue;
+			}
 			const under = this.board.map.ground(cx, cy);
 			if (skipSame && under && under[0] === tile[0] && under[1] === tile[1] && under[2] === tile[2]) continue;
 			shown.cells.push([cx, cy, tile]);
@@ -139,6 +163,50 @@ export class FixtureView {
 			label.Parent = this.interior.live.gui;
 			shown.labels.push(label);
 		}
+		if (lid.size() > 0) {
+			shown.card = this.lidCard(id, lid);
+			for (const cell of lid) shown.cells.push(cell);
+		}
 		this.shown.set(id, shown);
+	}
+
+	/**
+	 * A tampa em pé: um cartão do tamanho das células, com a base na borda de baixo delas (a de cima do baú). Os
+	 * tiles ficam nos mesmos pixels da tela em que estariam no chão; o cartão só muda a ordem com os bonecos.
+	 */
+	private lidCard(id: string, cells: [number, number, Tile][]) {
+		let x0 = math.huge;
+		let y0 = math.huge;
+		let x1 = -math.huge;
+		let y1 = -math.huge;
+		for (const [x, y] of cells) {
+			x0 = math.min(x0, x);
+			y0 = math.min(y0, y);
+			x1 = math.max(x1, x);
+			y1 = math.max(y1, y);
+		}
+		const size = new Vector2(x1 - x0 + 1, y1 - y0 + 1).mul(INTERIOR_TILE);
+		const card = createCard(
+			this.interior.folder,
+			`FixtureLid_${id}`,
+			{ image: "", size, anchor: new Vector2(0, size.Y), frames: [Vector2.zero] },
+			this.interior.cellCorner(x0, y1 + 1),
+		);
+		card.image.Visible = false;
+		const gui = card.image.Parent;
+		for (const [x, y, tile] of cells) {
+			const rect = sheetRect(tile);
+			const label = new Instance("ImageLabel");
+			label.Name = `Fixture_${id}`;
+			label.BackgroundTransparency = 1;
+			label.Image = rect.image;
+			label.ImageRectOffset = rect.offset;
+			label.ImageRectSize = rect.size;
+			label.ResampleMode = Enum.ResamplerMode.Pixelated;
+			label.Position = UDim2.fromOffset((x - x0) * INTERIOR_TILE, (y - y0) * INTERIOR_TILE);
+			label.Size = UDim2.fromOffset(INTERIOR_TILE, INTERIOR_TILE);
+			label.Parent = gui;
+		}
+		return card.part;
 	}
 }

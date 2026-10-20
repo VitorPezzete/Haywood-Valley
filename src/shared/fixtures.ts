@@ -1,21 +1,31 @@
 // O que se usa com a tecla de ação sem sair do lugar (etapa E do roteiro do Diorama, item 17): o baú, que abre e
 // fecha, e o fogão, que acende para cozinhar. Só tiles das folhas do Aeko, trocados célula a célula pela versão
-// da mesma folha (o baú aberto, a boca e o forno acesos), sem mudar pixel. O estado vale só para a sessão, como a
-// torneira. Vale no cliente (desenho, dica) e no servidor (que confere e manda a todos).
+// da mesma folha (o baú aberto, a boca e o forno acesos), sem mudar pixel. O baú grande do castelo aberto é mais
+// alto que fechado: a tampa aberta ocupa duas linhas acima dele, que só aparecem enquanto ele está aberto. O
+// estado vale só para a sessão, como a torneira. Vale no cliente (desenho, dica) e no servidor (que confere e
+// manda a todos).
 
 import type { InteriorMap } from "./interiorMap";
 import type { InteriorTile } from "./interiors/types";
 import type { PieceDef } from "./pieceDefs";
 
-/** Uma célula do que se usa: o tile desligado (baú fechado, fogão apagado) e o ligado. */
+/**
+ * Uma célula do que se usa: o tile desligado (baú fechado, fogão apagado) e o ligado. Sem `off`, desligado mostra
+ * o que o mapa tem na célula (as linhas acima do baú grande fechado). `upright` é a tampa aberta do baú grande: em
+ * pé, desenhada na frente de quem passa atrás do baú.
+ */
 export interface FixtureCell {
 	dx: number;
 	dy: number;
-	off: InteriorTile;
+	off?: InteriorTile;
 	on: InteriorTile;
+	upright?: boolean;
 }
 
-/** Um baú ou um fogão do mapa: fica onde o mapa o pôs. */
+/**
+ * Um baú ou um fogão do mapa: fica onde o mapa o pôs. O retângulo (x, y, w, h) é o do baú fechado (o que se usa e
+ * o que bloqueia); a tampa aberta do baú grande fica acima dele, nas células de `dy` negativo.
+ */
 export interface Fixture {
 	id: string;
 	kind: "chest" | "stove";
@@ -30,7 +40,7 @@ export interface Fixture {
 /**
  * Os baús pequenos das folhas, 2 × 2, fechado e aberto célula a célula, do `mapa_folhas.json` do guia: o
  * vermelho aberto é a tampa aberta [47-48,22] (a mesma do azul) sobre a frente [45-46,24]. Os baús grandes do
- * castelo (4 × 4 fechados, 4 × 6 abertos) não trocam no lugar e ficam de fora (a confirmar).
+ * castelo, 4 × 4 fechados e 4 × 6 abertos, ficam em `BIG_CHESTS`.
  */
 const CHESTS: { sheet: string; closed: [number, number][]; open: [number, number][] }[] = [
 	{
@@ -102,6 +112,47 @@ const CHEST_CELLS: [number, number][] = [
 ];
 
 /**
+ * Os baús grandes do castelo (decidido pelo usuário em 2026-10-20: abrem no lugar como os pequenos). Fechados,
+ * 4 × 4: o azul [68-71,16-19] e o vermelho [72-75,16-19]. Aberto, o vermelho é [68-71,20-25], 4 × 6: a tampa em pé
+ * (linhas 20-21, a borda vermelha em cima), a caixa aberta (22-24) e o pé com a faixa vermelha (25). O azul aberto
+ * usa o mesmo desenho com as duas linhas de cor trocadas pelas azuis de [72-75,20-21]: a borda da tampa [72-75,20]
+ * e o pé [72-75,21]; as linhas 21-24 do vermelho não têm vermelho. Conferido pixel a pixel na folha em 2026-10-20:
+ * as linhas de cor diferem do vermelho só na troca das cores do fechado vermelho pelas do azul, e o pé do aberto
+ * tem os mesmos 11 pixels de baixo (pés e barra) que o pé do fechado, na mesma coluna. A base fica no lugar e a
+ * tampa sobe 2 tiles: a linha 0 do fechado é a linha 2 do aberto. Cada linha do aberto é dada pelo tile da esquerda.
+ */
+const BIG_CHESTS: { sheet: string; closed: [number, number]; open: [number, number][] }[] = [
+	{
+		sheet: "castelo",
+		closed: [72, 16],
+		open: [
+			[68, 20],
+			[68, 21],
+			[68, 22],
+			[68, 23],
+			[68, 24],
+			[68, 25],
+		],
+	},
+	{
+		sheet: "castelo",
+		closed: [68, 16],
+		open: [
+			[72, 20],
+			[68, 21],
+			[68, 22],
+			[68, 23],
+			[68, 24],
+			[72, 21],
+		],
+	},
+];
+const BIG_CHEST_WIDTH = 4;
+const BIG_CHEST_HEIGHT = 4;
+/** Quantas linhas a tampa aberta sobe acima do baú grande fechado. */
+const BIG_CHEST_LID = 2;
+
+/**
  * O fogão da casa (`casa79`, [61-63,27-31]): a coluna da direita apagada [63,27-30] troca pela acesa [64,27-30]
  * (`casa80`, a boca acesa, e `casa183`, o forno aceso). A folha não tem fumaça nem panela.
  */
@@ -131,6 +182,72 @@ function matchChest(tileAt: (dx: number, dy: number) => InteriorTile | undefined
 				}),
 			);
 			return { cells: list, open };
+		}
+	}
+	return undefined;
+}
+
+/**
+ * O que fica por baixo da tampa pintada aberta na célula (x, y): o tile da camada de baixo daquela em que ela está,
+ * ou o vazio do mapa. É o que o baú grande pintado aberto mostra acima dele quando fecha.
+ */
+function beneath(map: InteriorMap, x: number, y: number): InteriorTile {
+	for (const layer of [2, 1]) {
+		if (!map.tile(layer, x, y)) continue;
+		for (let below = layer - 1; below >= 0; below--) {
+			const tile = map.tile(below, x, y);
+			if (tile) return tile;
+		}
+		break;
+	}
+	return map.data.backdrop;
+}
+
+/**
+ * O baú grande cujo canto de cima à esquerda está em (x, y): o fechado, ou o aberto com a tampa começando ali (o
+ * baú fica 2 linhas abaixo). As células vão com o baú primeiro (o canto dele é a primeira) e a tampa depois.
+ */
+function matchBigChest(map: InteriorMap, x: number, y: number, free: (x: number, y: number) => boolean) {
+	for (const chest of BIG_CHESTS) {
+		for (const open of [false, true]) {
+			const rows = open ? BIG_CHEST_HEIGHT + BIG_CHEST_LID : BIG_CHEST_HEIGHT;
+			let fits = true;
+			for (let j = 0; j < rows && fits; j++) {
+				for (let i = 0; i < BIG_CHEST_WIDTH && fits; i++) {
+					const [col, row] = open ? chest.open[j] : [chest.closed[0], chest.closed[1] + j];
+					fits = free(x + i, y + j) && same(map.ground(x + i, y + j), chest.sheet, col + i, row);
+				}
+			}
+			if (!fits) continue;
+			// Pintado aberto, a tampa está no mapa: o canto do baú fica abaixo dela.
+			const top = open ? y + BIG_CHEST_LID : y;
+			const cells = new Array<FixtureCell>();
+			for (let j = 0; j < BIG_CHEST_HEIGHT; j++) {
+				for (let i = 0; i < BIG_CHEST_WIDTH; i++) {
+					const [col, row] = chest.open[j + BIG_CHEST_LID];
+					cells.push({
+						dx: i,
+						dy: j,
+						off: [chest.sheet, chest.closed[0] + i, chest.closed[1] + j],
+						on: [chest.sheet, col + i, row],
+					});
+				}
+			}
+			// A tampa: aberto, em pé; fechado, o que o mapa tinha ali (pintado fechado, o mapa como está; pintado
+			// aberto, o que fica por baixo da tampa).
+			for (let j = 0; j < BIG_CHEST_LID; j++) {
+				for (let i = 0; i < BIG_CHEST_WIDTH; i++) {
+					const [col, row] = chest.open[j];
+					cells.push({
+						dx: i,
+						dy: j - BIG_CHEST_LID,
+						off: open ? beneath(map, x + i, y + j) : undefined,
+						on: [chest.sheet, col + i, row],
+						upright: true,
+					});
+				}
+			}
+			return { x, y: top, cells, open, rows };
 		}
 	}
 	return undefined;
@@ -166,6 +283,24 @@ export function findFixtures(map: InteriorMap) {
 					h: 2,
 					cells: chest.cells,
 					startsOn: chest.open,
+				});
+				continue;
+			}
+			const big = matchBigChest(map, x, y, (cx, cy) => !claimed.has(map.key(cx, cy)));
+			if (big) {
+				// Pintado aberto, a tampa também é do baú; pintado fechado, as linhas de cima continuam do mapa.
+				for (let j = 0; j < big.rows; j++) {
+					for (let i = 0; i < BIG_CHEST_WIDTH; i++) claimed.add(map.key(x + i, y + j));
+				}
+				fixtures.push({
+					id: `chest@${big.x},${big.y}`,
+					kind: "chest",
+					x: big.x,
+					y: big.y,
+					w: BIG_CHEST_WIDTH,
+					h: BIG_CHEST_HEIGHT,
+					cells: big.cells,
+					startsOn: big.open,
 				});
 				continue;
 			}
