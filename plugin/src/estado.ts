@@ -17,6 +17,13 @@ export const mapas = source<ResumoMapa[]>([]);
 export const mapaAberto = source<string | undefined>(undefined);
 /** Bloco aberto no editor, em coordenadas de bloco. */
 export const blocoAberto = source<[number, number]>([0, 0]);
+/** O mapa aberto tem mudança não salva? (o cabeçalho da janela mostra o "*"). */
+export const mapaSujo = source(false);
+/**
+ * O último "Verificar tudo", em texto curto ("[erro] mapa x: o quê"), para o contexto do "Pedir ao Claude".
+ * Nada = ainda não verificou nesta sessão.
+ */
+export const ultimosProblemas = source<string[] | undefined>(undefined);
 
 /** Ids (`rbxassetid://`) das duas metades de cada folha do Aeko, pelo nome da folha. */
 export type ImagensFolhas = Record<string, [string, string] | undefined>;

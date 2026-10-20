@@ -3,7 +3,8 @@
 // um arrasto (retângulo) no canvas. Toda mudança passa por `mudar`, que registra no histórico e sobe a versão.
 import Vide, { effect, source } from "@rbxts/vide";
 import { Abas, Botao, Campo, Coluna, Linha, Lista, Rotulo, Separador } from "../ui/kit";
-import { CampoMulti, Ciclo } from "../ui/kit";
+import { CampoMulti, Ciclo, Fileira, TextoCurto } from "../ui/kit";
+import { idsAssets } from "../estado";
 import { Legenda, ListaSelecao } from "../ui/extras";
 import { copiarMarcadores, Entrada, LADO, Marcadores, ModeloBloco, Morador, Pose, Saida, ZonaMapa } from "./bloco";
 import { Historico } from "./historico";
@@ -47,6 +48,26 @@ const POSES: Array<{ valor: Pose; texto: string }> = [
 	{ valor: "sit", texto: "sentado" },
 	{ valor: "lie", texto: "deitado" },
 ];
+
+/**
+ * Os ambientes que o jogo conhece (cópia de AMBIENCE_PROFILES em src/shared/sounds.ts, 2026-10-20; a zona com outro
+ * nome fica sem ambiente). As músicas vêm do registro de assets: cada `musica.<lugar>_<período>` vira o lugar.
+ */
+const AMBIENTES = ["casa", "exterior", "mar"];
+const MUSICAS_RESERVA = ["ilha", "sala"];
+const PERIODOS = ["manha", "dia", "tarde", "noite"];
+
+function musicasDoRegistro(): string[] {
+	const lugares = new Array<string>();
+	for (const [chave] of pairs(idsAssets())) {
+		const [lugar, periodo] = (chave as string).match("^musica%.(.+)_(%a+)$");
+		if (lugar === undefined || !PERIODOS.includes(tostring(periodo))) continue;
+		if (!lugares.includes(tostring(lugar))) lugares.push(tostring(lugar));
+	}
+	for (const m of MUSICAS_RESERVA) if (!lugares.includes(m)) lugares.push(m);
+	lugares.sort();
+	return lugares;
+}
 
 function inteiro(texto: string, minimo: number, maximo: number): number | undefined {
 	const n = tonumber(texto);
@@ -189,6 +210,15 @@ export function PainelMarcadores(props: PropsMarcadores) {
 			z.nome = zNome();
 			z.props = textoParaProps(zProps());
 		});
+	};
+	/** Escolher música ou ambiente numa lista (sem digitar chave=valor): muda a propriedade e aplica. */
+	const valorDaProp = (chave: string) => textoParaProps(zProps())[chave] ?? "";
+	const escolherProp = (chave: string, valor: string) => {
+		const p = textoParaProps(zProps());
+		if (valor === "") delete p[chave];
+		else p[chave] = valor;
+		zProps(propsParaTexto(p));
+		aplicarZona();
 	};
 
 	// ------------------------------------------------------------------ moradores
@@ -488,11 +518,25 @@ export function PainelMarcadores(props: PropsMarcadores) {
 						</Linha>
 						<Separador ordem={2} />
 						{linhaCampo("Nome", zNome, aplicarZona, 3, 150)}
-						<Rotulo texto="Propriedades, uma por linha (chave=valor): musica=sala, ambiente=casa…" tom="fraco" ordem={4} />
-						<CampoMulti valor={zProps} dica="musica=sala" mono={true} ordem={5} />
-						<Botao texto="Aplicar" principal={true} desligado={() => zonaSel() === undefined} aoClicar={aplicarZona} ordem={6} />
-						<Separador ordem={7} />
-						<Rotulo texto="Áreas da zona:" negrito={true} ordem={8} />
+						<Fileira ordem={4} espaco={2}>
+							<TextoCurto texto="Música:" tom="fraco" ordem={0} />
+							<Botao texto="nenhuma" ativo={() => valorDaProp("musica") === ""} desligado={() => zonaSel() === undefined} aoClicar={() => escolherProp("musica", "")} ordem={1} />
+							{musicasDoRegistro().map((m, i) => (
+								<Botao texto={m} ativo={() => valorDaProp("musica") === m} desligado={() => zonaSel() === undefined} aoClicar={() => escolherProp("musica", m)} ordem={2 + i} />
+							))}
+						</Fileira>
+						<Fileira ordem={5} espaco={2}>
+							<TextoCurto texto="Ambiente:" tom="fraco" ordem={0} />
+							<Botao texto="nenhum" ativo={() => valorDaProp("ambiente") === ""} desligado={() => zonaSel() === undefined} aoClicar={() => escolherProp("ambiente", "")} ordem={1} />
+							{AMBIENTES.map((a, i) => (
+								<Botao texto={a} ativo={() => valorDaProp("ambiente") === a} desligado={() => zonaSel() === undefined} aoClicar={() => escolherProp("ambiente", a)} ordem={2 + i} />
+							))}
+						</Fileira>
+						<Rotulo texto="Outras propriedades, uma por linha (chave=valor):" tom="fraco" ordem={6} />
+						<CampoMulti valor={zProps} dica="musica=sala" mono={true} ordem={8} />
+						<Botao texto="Aplicar" principal={true} desligado={() => zonaSel() === undefined} aoClicar={aplicarZona} ordem={9} />
+						<Separador ordem={10} />
+						<Rotulo texto="Áreas da zona:" negrito={true} ordem={11} />
 						<ListaSelecao
 							itens={() => {
 								props.versao();
@@ -502,9 +546,9 @@ export function PainelMarcadores(props: PropsMarcadores) {
 							texto={(a) => `[${a[0]}, ${a[1]}] – [${a[2]}, ${a[3]}]`}
 							selecionado={areaSel}
 							altura={70}
-							ordem={9}
+							ordem={12}
 						/>
-						<Linha espaco={4} ordem={10}>
+						<Linha espaco={4} ordem={13}>
 							<Botao
 								texto="Adicionar área"
 								desligado={() => zonaSel() === undefined}

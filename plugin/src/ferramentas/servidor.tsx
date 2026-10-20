@@ -5,8 +5,11 @@
 // jogador e o "teleportar" (deixa InteriorTeste e InteriorTesteCelula prontos para o próximo teste).
 //
 // Lógica em plugin/src/servidor/: execucao.ts, atributos.ts, place.ts, output.ts, teleporte.ts.
-import Vide, { cleanup, effect, For, mount, source, untrack } from "@rbxts/vide";
-import { mapas as mapasConhecidos, recarregarMapas } from "../estado";
+//
+// Desde a janela única (2026-10-20) isto é o "Avançado" da seção Testar (ferramentas/testar.tsx): as abas
+// Execução, Atributos, Place e Output, montadas dentro dela. Quem registra as ações é o Testar.
+import Vide, { cleanup, effect, For, source, untrack } from "@rbxts/vide";
+import { mapas as mapasConhecidos } from "../estado";
 import {
 	ATRIBUTO_INTERIOR_CELULA,
 	ATRIBUTO_INTERIOR_TESTE,
@@ -19,18 +22,15 @@ import {
 	lerCelular,
 	textoDoValor,
 } from "../servidor/atributos";
-import { descreverJogadores, descricaoModo, jogadores, Modo, modoAtual, parar, pausar, rodar } from "../servidor/execucao";
+import { descreverJogadores, descricaoModo, jogadores, Modo, parar, pausar, rodar } from "../servidor/execucao";
 import { filtrar, Filtro, ligarOutput, limparMensagens, mensagens, Nivel as NivelOutput, PREFIXOS, textoDasMensagens, versaoOutput } from "../servidor/output";
 import { resumirPlace, Verificacao, verificarPlace } from "../servidor/place";
-import { aplicarPendente, descartarPendente, pendente, teleportar } from "../servidor/teleporte";
+import { descartarPendente, pendente, teleportar } from "../servidor/teleporte";
 import { copiarTexto } from "../ui/copiar";
-import { AcaoSimulada, argTexto, registrarAcoes } from "../simulacao";
-import { Abas, AreaTexto, Botao, Campo, Coluna, Lista, Painel, Rotulo, Separador, Titulo, Tom } from "../ui/kit";
+import { AcaoSimulada, argTexto } from "../simulacao";
+import { Abas, AreaTexto, Botao, Campo, Coluna, Lista, Rotulo, Separador, Tom } from "../ui/kit";
 import { Aviso, Bloco, Etiqueta, Fileira, Interruptor, Preenche, TextoCurto } from "../ui/kit";
-import { OpcoesWidget, widgetVisivel } from "../widget";
-
-export const DESCRICAO =
-	"Play e Stop, atributos de desenvolvimento do place, teleporte para um mapa ou célula e filtro do Output.";
+import { widgetVisivel } from "../widget";
 
 const ABAS = [
 	{ id: "execucao", titulo: "Execução" },
@@ -405,61 +405,26 @@ function AbaOutput(props: { visivel: () => boolean; mensagem: Vide.Source<string
 	);
 }
 
-// ------------------------------------------------------------------ o painel
+// ------------------------------------------------------------------ o Avançado do Testar
 
-export function PainelServidor(props: { plugin: Plugin }) {
-	const aba = source("execucao");
-	// As abas vistas de fora (simulacao.ts).
-	const acoes: Record<string, AcaoSimulada> = {
-		aba: (args) => aba(argTexto(args, "id")),
-	};
-	cleanup(registrarAcoes("servidor", acoes));
-	const modo = source<Modo>(modoAtual());
-	const mensagem = source("");
-
-	// Relê o modo de tempos em tempos (o Studio não avisa o plugin quando entra no Play) e aplica o teleporte
-	// pendente quando esta é a instância da edição.
-	let vivo = true;
-	cleanup(() => {
-		vivo = false;
-	});
-	task.spawn(() => {
-		while (vivo) {
-			// Com o widget fechado (X), o laço só espera: nada para mostrar e nada para aplicar.
-			if (widgetVisivel("servidor")) {
-				const atual = modoAtual();
-				if (atual !== modo()) modo(atual);
-				const aplicado = aplicarPendente(props.plugin);
-				if (aplicado !== undefined) mensagem(aplicado);
-			}
-			task.wait(INTERVALO);
-		}
-	});
-
-	// A lista de mapas da ponte, para os botões de InteriorTeste e do teleporte.
-	task.spawn(() => recarregarMapas());
-
+/**
+ * As quatro abas de antes (Execução, Atributos, Place, Output). `modo` e `mensagem` vêm do Testar, que relê o modo
+ * do Studio; `acoes` recebe `aba` e `output` (o comando `simular` da seção Testar).
+ */
+export function ServidorAvancado(props: { plugin: Plugin; modo: () => Modo; mensagem: Vide.Source<string>; acoes: Record<string, AcaoSimulada>; aba?: Vide.Source<string> }) {
+	const aba = props.aba ?? source("execucao");
+	props.acoes.aba = (args) => aba(argTexto(args, "id"));
 	return (
-		<Painel>
-			<Coluna tamanho={UDim2.fromScale(1, 1)}>
-				<Titulo texto="Servidor" ordem={0} />
-				<Bloco ordem={1}>
-					<Abas abas={ABAS} aberta={aba} />
-				</Bloco>
-				<Aviso texto={mensagem} tom="normal" ordem={2} />
-				<Preenche ordem={3}>
-					<AbaExecucao plugin={props.plugin} modo={modo} visivel={() => aba() === "execucao"} mensagem={mensagem} />
-					<AbaAtributos visivel={() => aba() === "atributos"} mensagem={mensagem} />
-					<AbaPlace visivel={() => aba() === "place"} />
-					<AbaOutput visivel={() => aba() === "output"} mensagem={mensagem} acoes={acoes} />
-				</Preenche>
-			</Coluna>
-		</Painel>
+		<Coluna tamanho={UDim2.fromScale(1, 1)} nome="ServidorAvancado">
+			<Bloco ordem={0}>
+				<Abas abas={ABAS} aberta={aba} />
+			</Bloco>
+			<Preenche ordem={1}>
+				<AbaExecucao plugin={props.plugin} modo={props.modo} visivel={() => aba() === "execucao"} mensagem={props.mensagem} />
+				<AbaAtributos visivel={() => aba() === "atributos"} mensagem={props.mensagem} />
+				<AbaPlace visivel={() => aba() === "place"} />
+				<AbaOutput visivel={() => aba() === "output"} mensagem={props.mensagem} acoes={props.acoes} />
+			</Preenche>
+		</Coluna>
 	);
-}
-
-export const WIDGET: OpcoesWidget = { titulo: "Servidor", largura: 560, altura: 520 };
-
-export function montar(gui: DockWidgetPluginGui, plugin: Plugin) {
-	return mount(() => <PainelServidor plugin={plugin} />, gui);
 }

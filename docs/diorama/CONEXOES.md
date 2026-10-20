@@ -116,3 +116,36 @@ GET /eventos?desde=<n>&espera=25   → { "proximo": n2, "eventos": [ { "n": 41, 
 - Aseprite: `aseprite_estado`, `aseprite_comando` (genérico) e os atalhos `aseprite_abrir_regiao`, `aseprite_salvar_regiao`.
 
 Cada ferramenta devolve texto curto com o JSON da resposta; erro de conexão vira mensagem dizendo o que ligar (ponte, Studio com o plugin, Aseprite com a extensão).
+
+## 7. IA: "Pedir ao Claude" (2026-10-20)
+
+Decisão do usuário: pedir coisas à IA de dentro do Diorama, e a IA **age com confirmação**. No plugin, o botão "Pedir ao Claude" (Ctrl+K) no cabeçalho da janela abre a caixa (`plugin/src/ia.ts`, `ui/pedirClaude.tsx`). O back-end é da ponte e **ainda não existe**: enquanto as rotas respondem 404, 405 ou 501, o plugin mostra "Ainda não disponível: atualize a ponte" e não guarda nada. Contrato (todas as rotas com `X-Diorama: 1`, como os demais POST):
+
+```
+POST /ia/pedidos
+     { "texto": "põe uma zona Cozinha na área do fogão",
+       "contexto": { "mapa": "casa_teste_v2_l" | null,
+                     "secao": "mapa" | "pecas" | "arte" | "testar" | "verificar" | "ajuda" | "configuracoes",
+                     "selecao": { "celula": [x, y], "ultimo_clique": [x, y], "ferramenta": "pincel", "camada": "Chão",
+                                  "tile_escolhido": "casa [36, 16] 1×1", "peca": "chair", "nao_salvo": false,
+                                  "studio": ["Workspace.Part", …] },
+                     "problemas": ["[erro] mapa x, bloco 0_0: …", …] },
+       "modo": "agir" }
+     → 200/201 { "id": "p7" }
+
+GET  /ia/pedidos/<id>?espera=30
+     → 202 { "estado": "pensando" }                       (ainda pensando; o plugin pergunta de novo)
+     → 200 { "estado": "proposta", "resposta": "texto",
+             "proposta": { "resumo": "Criar a zona Cozinha", "mudancas": ["zona Cozinha em [10,4]–[18,9]", "musica=sala"] } }
+     → 200 { "estado": "feito", "resposta": "texto" }     (só explicou, ou já aplicou o que não muda nada)
+     → 200 { "estado": "erro", "resposta": "o que deu errado" }
+
+POST /ia/pedidos/<id>/confirmar  { "aceitar": true | false }
+     → o mesmo formato do GET ("feito" ou "erro" depois de aplicar; pode voltar 202 "pensando" e o plugin espera)
+```
+
+- `selecao` só traz as chaves que existem no momento (sem mapa aberto, não há `celula`); `problemas` é a lista do último "Verificar tudo" da sessão (até 30, sem as notas).
+- O plugin manda `espera=20` (abaixo do limite do `RequestAsync`, como o long-poll do canal do Studio) e repete até 5 minutos; a ponte deve aceitar qualquer `espera` até 30.
+- **Nada muda sem o OK**: quando o pedido muda algo (mapa, catálogo, arquivos), a resposta é `"proposta"` e a ponte só aplica depois de `confirmar { aceitar: true }`. `aceitar: false` descarta. Um pedido novo enquanto há proposta pendente cancela a anterior (`aceitar: false`).
+- Como a IA aplica: pelas mesmas rotas da ponte (gravar bloco, catálogo) ou pelo canal do Studio (`abrir_mapa`, `simular`…). Depois de gravar um bloco aberto no editor, a ponte pode mandar `abrir_mapa { id, descartar: true }` ao Studio para o editor reler.
+- `GET /status` deve ganhar um campo `ia` (por exemplo `{ "ligada": true }`) quando o back-end existir: o autoteste do plugin só manda o pedido de teste ("Ainda não disponível") enquanto esse campo falta.

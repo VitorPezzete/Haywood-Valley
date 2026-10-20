@@ -1,63 +1,128 @@
-// Os widgets das ferramentas. A casca cria cada DockWidgetPluginGui uma vez (pelo id) e o entrega de novo, vazio,
-// a cada pacote; aqui o pacote liga o botão da barra ao widget e monta o painel da ferramenta na primeira vez que o
-// widget fica à vista (montar o editor de Mapas é caro; não vale fazer para um widget fechado).
+// A janela única do Diorama e as seções dela (2026-10-20). A casca cria um botão e um DockWidgetPluginGui; aqui o
+// pacote guarda a janela, o quadro de cada seção (criado pela moldura, ui/janela.tsx) e monta o painel da seção na
+// primeira vez que ela fica à vista (montar o editor de mapas é caro; não vale fazer para uma seção fechada).
 //
-// O botão alterna o widget; fechar pelo X também desmarca o botão. A posição, o encaixe e o tamanho o próprio Studio
-// guarda pelo id do widget (`Diorama_<id>`), que por isso é estável.
+// O nome do arquivo ficou "widget.ts" porque os painéis e o canal importavam daqui (`mostrar`, `widgetVisivel`...);
+// as funções mantêm os nomes, agora valendo para seções. Todo id passa por `resolverSecao`, então os nomes antigos
+// das ferramentas ("mapas", "catalogo", "servidor"...) continuam funcionando.
+//
+// Este módulo não importa os painéis (eles importam daqui): `app.ts` entrega a lista.
+import { source } from "@rbxts/vide";
 import { aoParar, ambiente } from "./ambiente";
-import type { Ferramenta } from "./ferramentas";
+import { resolverSecao } from "./secoes";
 
-export interface OpcoesWidget {
-	titulo: string;
-	largura?: number;
-	altura?: number;
-	larguraMinima?: number;
-	alturaMinima?: number;
+/** O que um painel recebe ao montar. */
+export interface ContextoSecao {
+	plugin: Plugin;
+	/** A janela (para foco do teclado, título e Enabled). */
+	gui: DockWidgetPluginGui;
 }
 
+export interface SecaoMontavel {
+	id: string;
+	nome: string;
+	/** Monta o painel no quadro da seção e devolve a função que o desmonta. */
+	montar: (quadro: Frame, contexto: ContextoSecao) => () => void;
+}
+
+/** Compatibilidade com o formato das ferramentas de antes (o README antigo e outros agentes citam). */
+export type OpcoesWidget = { titulo: string; largura?: number; altura?: number; larguraMinima?: number; alturaMinima?: number };
+
 interface Registro {
-	ferramenta: Ferramenta;
-	gui: DockWidgetPluginGui;
-	botao: PluginToolbarButton;
+	secao: SecaoMontavel;
+	quadro?: Frame;
 	desmontar?: () => void;
 	/** O erro da última montagem, se falhou. */
 	erro?: string;
 }
 
 const registros = new Map<string, Registro>();
-/** Os ids na ordem da barra. */
 const ordem = new Array<string>();
+let gui: DockWidgetPluginGui | undefined;
+let botao: PluginToolbarButton | undefined;
+
+/** A seção à vista na janela. */
+export const secaoAberta = source("mapa");
+/** A janela está aberta (Enabled)? Espelho reativo para a moldura. */
+export const janelaAberta = source(false);
 
 /** Desmonta o painel (o Vide só encerra os efeitos; as instâncias saem com ClearAllChildren). */
 function desmontarRegistro(r: Registro) {
 	if (r.desmontar) {
 		const [ok, erro] = pcall(r.desmontar);
-		if (!ok) warn(`[Diorama] erro ao desmontar ${r.ferramenta.nome}: ${tostring(erro)}`);
+		if (!ok) warn(`[Diorama] erro ao desmontar ${r.secao.nome}: ${tostring(erro)}`);
 		r.desmontar = undefined;
 	}
-	pcall(() => r.gui.ClearAllChildren());
+	if (r.quadro) {
+		const q = r.quadro;
+		pcall(() => q.ClearAllChildren());
+	}
 }
 
 /**
- * Monta o painel da ferramenta, se ainda não está montado. Devolve o erro, se a montagem falhou (o widget fica
- * com uma mensagem no lugar do painel).
+ * Pega da casca o botão e a janela e registra as seções (sem montar). Com a casca da janela única, ela já liga o
+ * clique; com uma casca anterior (até o Studio reiniciar), o pacote pede um botão "Diorama" novo e liga ele mesmo.
  */
-export function garantirMontada(id: string): string | undefined {
+export function prepararJanela(lista: ReadonlyArray<SecaoMontavel>): DockWidgetPluginGui {
+	const a = ambiente();
+	if (a.janela) {
+		gui = a.janela.gui;
+		botao = a.janela.botao;
+	} else {
+		gui = a.widget("Diorama_janela", { titulo: "", largura: 980, altura: 660, larguraMinima: 420, alturaMinima: 320 });
+		botao = a.botao("diorama", "Diorama", "Abre o Diorama numa janela só.", "");
+		const g = gui;
+		aoParar(botao.Click.Connect(() => (g.Enabled = !g.Enabled)));
+	}
+	for (const secao of lista) {
+		registros.set(secao.id, { secao });
+		ordem.push(secao.id);
+	}
+	const g = gui;
+	janelaAberta(g.Enabled);
+	aoParar(
+		g.GetPropertyChangedSignal("Enabled").Connect(() => {
+			janelaAberta(g.Enabled);
+			botao?.SetActive(g.Enabled);
+			if (g.Enabled) garantirMontada(secaoAberta());
+		}),
+	);
+	botao.SetActive(g.Enabled);
+	return g;
+}
+
+/** A moldura (ui/janela.tsx) entrega o quadro de cada seção quando o cria. */
+export function definirQuadro(id: string, quadro: Frame) {
 	const r = registros.get(id);
-	if (!r) return `ferramenta desconhecida: ${id}`;
+	if (r) r.quadro = quadro;
+}
+
+/**
+ * Monta o painel da seção, se ainda não está montado. Devolve o erro, se a montagem falhou (o quadro fica com uma
+ * mensagem no lugar do painel).
+ */
+export function garantirMontada(idOuApelido: string): string | undefined {
+	const id = resolverSecao(idOuApelido);
+	const r = registros.get(id);
+	if (!r) return `seção desconhecida: ${idOuApelido}`;
 	if (r.desmontar) return undefined;
-	const [ok, resultado] = pcall(() => r.ferramenta.montar(r.gui, ambiente().plugin));
+	if (!r.quadro || !gui) return `a seção ${r.secao.nome} ainda não tem quadro (a janela não montou)`;
+	const quadro = r.quadro;
+	const contexto: ContextoSecao = { plugin: ambiente().plugin, gui };
+	const [ok, resultado] = pcall(() => r.secao.montar(quadro, contexto));
 	if (!ok || !typeIs(resultado, "function")) {
 		r.erro = ok ? "montar não devolveu a função de desmontar" : tostring(resultado);
-		warn(`[Diorama] a ferramenta ${r.ferramenta.nome} não montou: ${r.erro}`);
-		pcall(() => r.gui.ClearAllChildren());
+		warn(`[Diorama] a seção ${r.secao.nome} não montou: ${r.erro}`);
+		pcall(() => quadro.ClearAllChildren());
 		const aviso = new Instance("TextLabel");
 		aviso.Size = UDim2.fromScale(1, 1);
+		aviso.BackgroundTransparency = 1;
 		aviso.TextWrapped = true;
+		aviso.TextSize = 15;
 		aviso.TextXAlignment = Enum.TextXAlignment.Left;
 		aviso.TextYAlignment = Enum.TextYAlignment.Top;
-		aviso.Text = `A ferramenta ${r.ferramenta.nome} não montou:\n${r.erro}`;
-		aviso.Parent = r.gui;
+		aviso.Text = `${r.secao.nome} não abriu: ${r.erro}\n\nRecarregue o plugin (salve qualquer arquivo do plugin com a ponte no ar) ou veja o Output.`;
+		aviso.Parent = quadro;
 		return r.erro;
 	}
 	r.erro = undefined;
@@ -65,79 +130,78 @@ export function garantirMontada(id: string): string | undefined {
 	return undefined;
 }
 
-/** Liga botões e widgets às ferramentas. Chamado por `app.iniciar`. */
-export function prepararFerramentas(lista: ReadonlyArray<Ferramenta>) {
-	const a = ambiente();
-	for (const ferramenta of lista) {
-		const gui = a.widget(`Diorama_${ferramenta.id}`, ferramenta.widget);
-		const botao = a.botao(`diorama_${ferramenta.id}`, ferramenta.nome, ferramenta.descricao, ferramenta.icone);
-		const r: Registro = { ferramenta, gui, botao };
-		registros.set(ferramenta.id, r);
-		ordem.push(ferramenta.id);
-		aoParar(botao.Click.Connect(() => alternar(ferramenta.id)));
-		aoParar(
-			gui.GetPropertyChangedSignal("Enabled").Connect(() => {
-				botao.SetActive(gui.Enabled);
-				if (gui.Enabled) garantirMontada(ferramenta.id);
-			}),
-		);
-		botao.SetActive(gui.Enabled);
-		// O Studio restaura o widget aberto da sessão anterior; e numa recarga o widget aberto continua aberto.
-		if (gui.Enabled) garantirMontada(ferramenta.id);
-	}
-}
-
-/** Mostra o widget da ferramenta (e monta o painel). Devolve o erro da montagem, se houve. */
-export function mostrar(id: string): string | undefined {
-	const r = registros.get(id);
-	if (!r) return `ferramenta desconhecida: ${id}`;
-	r.gui.Enabled = true;
+/** Abre a janela na seção (e monta o painel). Devolve o erro da montagem, se houve. */
+export function mostrar(idOuApelido: string): string | undefined {
+	const id = resolverSecao(idOuApelido);
+	if (!registros.has(id)) return `seção desconhecida: ${idOuApelido}`;
+	secaoAberta(id);
+	if (gui) gui.Enabled = true;
 	return garantirMontada(id);
 }
 
-/** Abre o widget fechado ou fecha o aberto. */
-export function alternar(id: string) {
-	const r = registros.get(id);
-	if (!r) return;
-	if (r.gui.Enabled) r.gui.Enabled = false;
-	else mostrar(id);
+/** Abre a janela fechada ou fecha a aberta. */
+export function alternarJanela() {
+	if (gui) gui.Enabled = !gui.Enabled;
 }
 
-/** O widget da ferramenta. */
-export function widget(id: string): DockWidgetPluginGui | undefined {
-	return registros.get(id)?.gui;
+/** Compatibilidade: alternar uma "ferramenta" agora é abrir a seção ou fechar a janela. */
+export function alternar(idOuApelido: string) {
+	if (gui && gui.Enabled && secaoAberta() === resolverSecao(idOuApelido)) gui.Enabled = false;
+	else mostrar(idOuApelido);
 }
 
-/** O painel está montado? */
-export function montada(id: string): boolean {
-	return registros.get(id)?.desmontar !== undefined;
+/** A janela única. */
+export function janela(): DockWidgetPluginGui | undefined {
+	return gui;
 }
 
-/** O erro da última montagem da ferramenta, se falhou. */
-export function erroDeMontagem(id: string): string | undefined {
-	return registros.get(id)?.erro;
+/** O botão da barra. */
+export function botaoDaBarra(): PluginToolbarButton | undefined {
+	return botao;
 }
 
-/** Desmonta o painel da ferramenta (o widget continua; abrir de novo monta outra vez). */
-export function desmontar(id: string) {
-	const r = registros.get(id);
+/** O quadro da seção (onde o painel monta). */
+export function quadro(idOuApelido: string): Frame | undefined {
+	return registros.get(resolverSecao(idOuApelido))?.quadro;
+}
+
+/** O painel da seção está montado? */
+export function montada(idOuApelido: string): boolean {
+	return registros.get(resolverSecao(idOuApelido))?.desmontar !== undefined;
+}
+
+/** O erro da última montagem da seção, se falhou. */
+export function erroDeMontagem(idOuApelido: string): string | undefined {
+	return registros.get(resolverSecao(idOuApelido))?.erro;
+}
+
+/** Desmonta o painel da seção (o quadro continua; mostrar de novo monta outra vez). */
+export function desmontar(idOuApelido: string) {
+	const r = registros.get(resolverSecao(idOuApelido));
 	if (r) desmontarRegistro(r);
 }
 
 /**
- * O widget da ferramenta está à vista (criado e com `Enabled`)? Para os laços dos painéis (o Servidor relê o modo
- * e os jogadores de segundo em segundo) pararem de trabalhar enquanto o usuário fechou o widget.
+ * A seção está à vista (janela aberta e seção escolhida)? Os laços dos painéis param de trabalhar quando não está
+ * (o Testar relê o modo do Studio de segundo em segundo, o Output refaz o texto).
  */
-export function widgetVisivel(id: string): boolean {
-	const gui = registros.get(id)?.gui;
-	return gui !== undefined && gui.Enabled;
+export function secaoVisivel(idOuApelido: string): boolean {
+	return gui !== undefined && gui.Enabled && secaoAberta() === resolverSecao(idOuApelido);
 }
 
-/** Ids das ferramentas com o widget à vista. */
-export function ferramentasAbertas(): string[] {
+/** O nome de antes, para os painéis que já o usavam. */
+export const widgetVisivel = secaoVisivel;
+
+/** As seções com o painel montado. */
+export function secoesMontadas(): string[] {
 	const lista = new Array<string>();
-	for (const [id, r] of registros) if (r.gui.Enabled) lista.push(id);
+	for (const id of ordem) if (registros.get(id)?.desmontar !== undefined) lista.push(id);
 	return lista;
+}
+
+/** A seção à vista, se a janela está aberta (lista de uma ou nenhuma, como `ferramentas_abertas` antes). */
+export function ferramentasAbertas(): string[] {
+	return gui !== undefined && gui.Enabled ? [secaoAberta()] : [];
 }
 
 /** Desmonta todos os painéis e esquece os registros. Chamado quando o pacote para (recarga ou Studio fechando). */
@@ -147,7 +211,8 @@ export function desmontarTodos() {
 	ordem.clear();
 }
 
-/** Os ids das ferramentas, na ordem da barra. */
+/** Os ids das seções, na ordem da navegação. */
 export function idsFerramentas(): string[] {
 	return [...ordem];
 }
+export const idsSecoes = idsFerramentas;

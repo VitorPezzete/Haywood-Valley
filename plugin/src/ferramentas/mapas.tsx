@@ -1,7 +1,13 @@
-// Mapas: o editor do bloco (docs/diorama/ARQUITETURA.md, ESPECIFICACAO.md seção 12). À esquerda, os mapas da ponte,
-// novo, salvar, gerar e testar; no centro, a barra de pincéis e camadas e o canvas (mapas/canvas.tsx); à direita,
-// as abas Tiles (paleta), Peças (catálogo), Marcadores e Log. O bloco em si é um objeto mutável (mapas/bloco.ts) fora
-// do Vide: quem o muda sobe `versao` (células) ou `versaoMarcadores`, e o canvas redesenha só o que mudou.
+// Mapa: o editor do bloco (docs/diorama/ARQUITETURA.md, ESPECIFICACAO.md seção 12), a seção principal da janela
+// única (2026-10-20). Em cima, a barra (salvar, desfazer, pincéis, camadas, zoom, "⋯ Mais"); no meio, o canvas
+// (mapas/canvas.tsx) e o painel Tiles / Peças / Marcadores (/ Log no Avançado), à direita com a janela larga e
+// embaixo com a estreita; no rodapé, a mensagem e a célula sob o mouse. Sem mapa aberto, a tela inicial: abrir,
+// novo mapa, verificar tudo. A lista de mapas também está no seletor do cabeçalho da janela (ui/janela.tsx).
+// O bloco em si é um objeto mutável (mapas/bloco.ts) fora do Vide: quem o muda sobe `versao` (células) ou
+// `versaoMarcadores`, e o canvas redesenha só o que mudou.
+//
+// "⋯ Mais" (2026-10-20): duplicar, renomear e apagar o mapa, o orçamento de desempenho (mapas/orcamento.ts) e
+// "Gerar para o jogo".
 //
 // Atalhos (com o widget focado e nenhum campo de texto ativo): B pincel, R retângulo, G balde, E borracha,
 // I conta-gotas; 1/2/3 camada chão/objeto/frente, 4 terreno; Ctrl+Z/Ctrl+Y; Ctrl+S salva; +/− zoom; Esc cancela.
@@ -11,10 +17,16 @@
 // confere antes se o bloco mudou no disco desde que foi aberto (outro programa gravou) e pede um segundo clique
 // para sobrescrever; uma mudança feita enquanto o salvamento ia pela ponte deixa o mapa sujo. O último mapa, a
 // ferramenta, a camada e o zoom ficam guardados entre as sessões.
-import Vide, { effect, For, mount, source, untrack } from "@rbxts/vide";
+import Vide, { action, effect, For, mount, source, untrack } from "@rbxts/vide";
 import { cleanup } from "@rbxts/vide";
 import { HttpService, RunService, UserInputService } from "@rbxts/services";
-import { avisoImagens, carregarImagensFolhas, erroPonte, imagensFolhas, mapaAberto, mapas as listaMapas, ponteLigada, recarregarMapas } from "../estado";
+import { avisoImagens, carregarImagensFolhas, erroPonte, imagensFolhas, mapaAberto, mapaSujo, mapas as listaMapas, ponteLigada, recarregarMapas } from "../estado";
+import { avancado, gradePadrao, lembrarMapa, zoomPadrao } from "../config";
+import { ContextoSecao, mostrar, secaoVisivel } from "../widget";
+import { acoesDe } from "../simulacao";
+import { BotaoAvancado, BotaoGrande, Cartao, Vazio } from "../ui/simples";
+import { orcamentoDoMapa } from "../mapas/orcamento";
+import { Fileira, Preenche } from "../ui/kit";
 import { gravarConfig, lerConfig } from "../ambiente";
 import { canonico } from "../canonico";
 import { abrirNoAseprite } from "../aseprite";
@@ -22,11 +34,10 @@ import { argNumero, argTexto, registrarAcoes } from "../simulacao";
 import { ATRIBUTO_INTERIOR_CELULA, ATRIBUTO_INTERIOR_TESTE, gravarAtributo } from "../servidor/atributos";
 import { AvisoFolhaSalva } from "../ui/alternarFolhas";
 import * as ponte from "../ponte";
-import { Abas, AreaTexto, Botao, Campo, Coluna, ESPACO, Linha, Lista, Painel, Rotulo, Separador, Titulo, Tom } from "../ui/kit";
+import { AreaTexto, Botao, Campo, Coluna, ESPACO, Linha, Lista, Painel, Rotulo, Separador, TextoCurto, Titulo, Tom } from "../ui/kit";
 import { Alternar, Ciclo } from "../ui/kit";
 import { Amostra, Legenda } from "../ui/extras";
 import { AlternarFolhasLocais } from "../ui/alternarFolhas";
-import type { OpcoesWidget } from "../widget";
 import { avisosDoBloco, CAMADA_TERRENO, desempacotar, empacotar, idValido, ModeloBloco, TERRENOS, TITULOS_CAMADA } from "../mapas/bloco";
 import { CanvasBloco, Fantasma, Imagens, Modificadores } from "../mapas/canvas";
 import { registrarControle, resumirModelo } from "../mapas/controle";
@@ -50,12 +61,11 @@ import {
 import { carimbarPeca, Catalogo, celulasDoPlano, normalizarCatalogo, Peca, planejarPeca } from "../mapas/regras";
 import { DESCRICAO_ZONA, Tile, zonaDoTile } from "../mapas/zonas";
 
-export const DESCRICAO =
-	"Editor do bloco: camadas, pincéis, carimbo de peças do catálogo, exterior, entradas, saídas, zonas, moradores e nascimento. Salva na ponte, gera o módulo do jogo e testa no Play.";
 
-const ESQUERDA = 190;
+/** Largura do painel Tiles / Peças / Marcadores ao lado do canvas (janela larga). */
 const DIREITA = 330;
-const BARRA = 58;
+/** Abaixo desta largura do corpo, o painel vai para baixo do canvas. */
+const LARGURA_LADO_A_LADO = 720;
 /** Os rascunhos dos mapas sujos (`{ [mapa]: { mapa, json, em, base? } }`) e as escolhas lembradas do editor (plugin:SetSetting). */
 const CHAVE_RASCUNHOS = "Diorama_mapas_rascunhos";
 const CHAVE_LEMBRAR = "Diorama_mapas_lembrar";
@@ -105,7 +115,7 @@ function lerLembrado(): Lembrado {
 	return typeIs(r, "table") ? (r as Lembrado) : {};
 }
 
-const OPACIDADES = [
+const OPCOES_OPACIDADE = [
 	{ valor: 0, texto: "opacas" },
 	{ valor: 0.5, texto: "50%" },
 	{ valor: 0.8, texto: "20%" },
@@ -150,8 +160,9 @@ export function PainelMapas(props: { gui?: DockWidgetPluginGui }) {
 			: "pincel",
 	);
 	const camada = source(typeIs(lembrado.camada, "number") && lembrado.camada >= 0 && lembrado.camada <= CAMADA_TERRENO ? lembrado.camada : 0);
-	const zoom = source(typeIs(lembrado.zoom, "number") && lembrado.zoom >= 1 && lembrado.zoom <= 3 ? lembrado.zoom : 2);
-	const grade = source(true);
+	// Zoom e grade começam como Configurações manda (o zoom não é mais lembrado por mapa).
+	const zoom = source(zoomPadrao());
+	const grade = source(gradePadrao());
 	const opacidade = source(0.5);
 	// As imagens das folhas são compartilhadas com o Catálogo (estado.ts); o canvas lê o mesmo tipo.
 	const imagens: () => Imagens = () => imagensFolhas();
@@ -168,7 +179,7 @@ export function PainelMapas(props: { gui?: DockWidgetPluginGui }) {
 	const forma = source(0);
 	const motivoPeca = source("");
 
-	const mensagem = source("Escolha um mapa à esquerda ou crie um novo.");
+	const mensagem = source("Escolha um mapa ou crie um novo.");
 	const tomMensagem = source<Tom>("fraco");
 	const log = source("");
 	const ocupado = source(false);
@@ -177,6 +188,15 @@ export function PainelMapas(props: { gui?: DockWidgetPluginGui }) {
 		lembrado.aba === "pecas" || lembrado.aba === "marcadores" || lembrado.aba === "log" ? lembrado.aba : "tiles",
 	);
 	const idNovo = source("");
+	/** A tela inicial pedida com um mapa aberto ("abrir" ou "novo"); sem mapa, ela aparece sempre. */
+	const inicio = source<"abrir" | "novo" | undefined>(undefined);
+	/** O "⋯ Mais" aberto e o que ele está fazendo. */
+	const maisAberto = source(false);
+	const acaoMais = source<"duplicar" | "renomear" | "apagar" | "orcamento" | undefined>(undefined);
+	const nomeMais = source("");
+	const textoOrcamento = source("");
+	/** A tela inicial está à vista? (sem mapa aberto, ou pedida pelo seletor do cabeçalho). */
+	const telaInicial = () => mapaAberto() === undefined || inicio() !== undefined;
 
 	const avisar = (texto: string, tom: Tom = "aviso") => {
 		mensagem(texto);
@@ -752,7 +772,7 @@ export function PainelMapas(props: { gui?: DockWidgetPluginGui }) {
 	};
 	// Na montagem: a lista, as imagens e o catálogo; depois reabre o último mapa (se não há rascunho esperando).
 	atualizarTudo(() => {
-		const ultimo = lembrado.mapa;
+		const ultimo = lembrarMapa() ? lembrado.mapa : undefined;
 		if (modelo.mapa !== "" || rascunhosPendentes().some((r) => r.mapa === ultimo) || ultimo === undefined) return;
 		if (!listaMapas().some((m) => m.id === ultimo)) return;
 		carregarMapa(ultimo);
@@ -800,6 +820,33 @@ export function PainelMapas(props: { gui?: DockWidgetPluginGui }) {
 	// O controle de fora (canal do Studio: abrir_mapa; autoteste).
 	cleanup(
 		registrarControle({
+			clicar: (id) => {
+				inicio(undefined);
+				abrirMapa(id);
+				return confirmarDescarte() === id ? mensagem() : undefined;
+			},
+			inicio: (modo) => {
+				inicio(modo);
+				if (modo === "novo") idNovo("");
+			},
+			salvar: () => {
+				esperarLivre(10);
+				salvar();
+				task.wait();
+				esperarLivre(30);
+				return ultimoSalvar ?? { ok: false, mensagem: mensagem() };
+			},
+			celulaDeTeste: () => ultimoClique() ?? modelo.marcadores.nascimento,
+			contexto: () => ({
+				celula: celula(),
+				ultimo_clique: ultimoClique(),
+				ferramenta: ferramenta(),
+				camada: TITULOS_CAMADA[camada()],
+				tile_escolhido: selecao() ? `${selecao()!.folha} [${selecao()!.c0}, ${selecao()!.l0}] ${selecao()!.largura}×${selecao()!.altura}` : undefined,
+				peca: ferramenta() === "peca" ? peca()?.id : undefined,
+				nao_salvo: sujo(),
+			}),
+			ocupado: () => ocupado(),
 			abrir: (id, descartar) => {
 				if (sujo() && !descartar) return { ok: false, erro: `o editor tem mudanças não salvas em "${modelo.mapa}"` };
 				// Espera outra leitura em andamento terminar (o botão Atualizar, por exemplo).
@@ -973,16 +1020,11 @@ export function PainelMapas(props: { gui?: DockWidgetPluginGui }) {
 
 	// ------------------------------------------------------------------ título e teclado
 
-	effect(() => {
-		const gui = props.gui;
-		if (!gui) return;
-		const id = mapaAberto();
-		(gui as unknown as { Title: string }).Title = `Diorama: Mapas${id !== undefined ? ` — ${id}` : ""}${sujo() ? " *" : ""}`;
-	});
+	// O cabeçalho da janela mostra o mapa e o "*" (ui/janela.tsx); aqui só o espelho do sujo.
+	effect(() => mapaSujo(sujo()));
 	cleanup(() => {
-		// Desmontado, o widget não mostra mais o mapa (o título ficava com o nome e o "*" do painel velho).
-		if (props.gui) (props.gui as unknown as { Title: string }).Title = "Diorama: Mapas";
 		mapaAberto(undefined);
+		mapaSujo(false);
 	});
 
 	let focado = props.gui === undefined;
@@ -1001,6 +1043,8 @@ export function PainelMapas(props: { gui?: DockWidgetPluginGui }) {
 	cleanup(
 		UserInputService.InputBegan.Connect((input) => {
 			if (!focado || input.UserInputType !== Enum.UserInputType.Keyboard) return;
+			// A janela tem várias seções: os atalhos do editor só valem com o Mapa à vista e a tela inicial fechada.
+			if (!secaoVisivel("mapa") || telaInicial()) return;
 			if (UserInputService.GetFocusedTextBox() !== undefined) return;
 			const ctrl = UserInputService.IsKeyDown(Enum.KeyCode.LeftControl) || UserInputService.IsKeyDown(Enum.KeyCode.RightControl);
 			const k = input.KeyCode;
@@ -1008,6 +1052,7 @@ export function PainelMapas(props: { gui?: DockWidgetPluginGui }) {
 			if (ctrl && k === Enum.KeyCode.Y) return refazer();
 			if (ctrl && k === Enum.KeyCode.S) return salvar();
 			if (ctrl) return;
+			if (k === Enum.KeyCode.Escape && maisAberto()) return maisAberto(false);
 			if (k === Enum.KeyCode.One) return camada(0);
 			if (k === Enum.KeyCode.Two) return camada(1);
 			if (k === Enum.KeyCode.Three) return camada(2);
@@ -1043,172 +1088,393 @@ export function PainelMapas(props: { gui?: DockWidgetPluginGui }) {
 		return `${NOME_DA_FERRAMENTA[f]} na camada ${TITULOS_CAMADA[camada()]}.`;
 	};
 
+	// ------------------------------------------------------------------ "⋯ Mais": duplicar, renomear, apagar, orçamento
+
+	/** Mapa sujo não se duplica nem se renomeia: a cópia sairia do disco, não do editor. */
+	const exigirSalvo = () => {
+		if (modelo.mapa === "") {
+			avisar("Nenhum mapa aberto.");
+			return false;
+		}
+		if (sujo()) {
+			avisar("Salve o mapa antes (Ctrl+S).");
+			return false;
+		}
+		return true;
+	};
+	/** Grava o bloco aberto com outro id. Yielda. */
+	const gravarComo = (novo: string): string | undefined => {
+		const json = modelo.paraJson();
+		json.mapa = novo;
+		const r = ponte.gravarBloco(novo, json.bloco[0], json.bloco[1], json);
+		return r.ok ? undefined : r.erro;
+	};
+	const idDoCampo = () => nomeMais().gsub("%s", "")[0];
+	const duplicarMapa = () => {
+		if (!exigirSalvo() || ocupado()) return;
+		const novo = idDoCampo();
+		if (!idValido(novo)) return avisar("Nome inválido: só letras minúsculas, números e _.");
+		if (listaMapas().some((m) => m.id === novo)) return avisar(`Já existe um mapa "${novo}".`);
+		ocupado(true);
+		task.spawn(() => {
+			const erro = gravarComo(novo);
+			carregarLista();
+			ocupado(false);
+			if (erro !== undefined) return avisar(`Não duplicou: ${erro}`, "erro");
+			acaoMais(undefined);
+			carregarMapa(novo);
+			avisar(`Cópia "${novo}" criada e aberta.`, "ok");
+		});
+	};
+	const renomearMapa = () => {
+		if (!exigirSalvo() || ocupado()) return;
+		const antigo = modelo.mapa;
+		const novo = idDoCampo();
+		if (!idValido(novo)) return avisar("Nome inválido: só letras minúsculas, números e _.");
+		if (novo === antigo) return avisar("É o mesmo nome.");
+		if (listaMapas().some((m) => m.id === novo)) return avisar(`Já existe um mapa "${novo}".`);
+		ocupado(true);
+		task.spawn(() => {
+			const erro = gravarComo(novo);
+			if (erro !== undefined) {
+				ocupado(false);
+				return avisar(`Não renomeou: ${erro}`, "erro");
+			}
+			const apagou = ponte.apagarMapa(antigo);
+			carregarLista();
+			ocupado(false);
+			acaoMais(undefined);
+			carregarMapa(novo);
+			avisar(
+				apagou.ok
+					? `"${antigo}" agora é "${novo}". Saídas de outros mapas que levavam a "${antigo}" precisam do nome novo; gere de novo para o jogo.`
+					: `Cópia "${novo}" criada, mas "${antigo}" não saiu: ${apagou.erro}`,
+				apagou.ok ? "ok" : "aviso",
+			);
+		});
+	};
+	let confirmarApagar: string | undefined;
+	const apagarMapaAberto = () => {
+		const id = modelo.mapa;
+		if (id === "" || ocupado()) return;
+		if (confirmarApagar !== id) {
+			confirmarApagar = id;
+			return avisar(`Apagar "${id}" do disco? Clique em "Apagar" de novo para confirmar (o git guarda a última versão salva).`);
+		}
+		confirmarApagar = undefined;
+		ocupado(true);
+		task.spawn(() => {
+			const r = ponte.apagarMapa(id);
+			ocupado(false);
+			if (!r.ok && r.status !== 404) return avisar(`Não apagou: ${r.erro}`, "erro");
+			esquecerRascunho(id);
+			sujo(false);
+			trocarModelo(ModeloBloco.novo(""), undefined);
+			carregarLista();
+			acaoMais(undefined);
+			maisAberto(false);
+			avisar(`"${id}" apagado. O módulo gerado do jogo (src/shared/interiors/${id}.ts) continua até você apagá-lo.`, "ok");
+		});
+	};
+	const mostrarOrcamento = () => {
+		if (modelo.mapa === "") return avisar("Nenhum mapa aberto.");
+		const o = orcamentoDoMapa(modelo);
+		textoOrcamento(
+			`${o.frase}\nPor camada: chão ${o.imagens[0]} (${o.celulas[0]} células), objeto ${o.imagens[1]} (${o.celulas[1]}), frente ${o.imagens[2]} (${o.celulas[2]}). Estimativa do editor; o número exato está no painel do jogo (Ctrl+Shift+O no Play).`,
+		);
+		acaoMais("orcamento");
+	};
+	const escolherAcaoMais = (a: "duplicar" | "renomear" | "apagar") => {
+		confirmarApagar = undefined;
+		nomeMais(a === "duplicar" ? `${modelo.mapa}_copia` : modelo.mapa);
+		acaoMais(acaoMais() === a ? undefined : a);
+	};
+	const verificarTudo = () => {
+		const ja = acoesDe("verificar") !== undefined;
+		mostrar("verificar");
+		if (ja) task.spawn(() => acoesDe("verificar")?.rodar({}));
+	};
+	const criarDaTelaInicial = () => {
+		criarMapa();
+		if (mapaAberto() !== undefined && mapaAberto() === idNovo().gsub("%s", "")[0]) inicio(undefined);
+	};
+
 	// ------------------------------------------------------------------ interface
+
+	/** Largura do corpo (canvas + painel), para pôr o painel ao lado ou embaixo. */
+	const larguraCorpo = source(1000);
+	const ladoALado = () => larguraCorpo() >= LARGURA_LADO_A_LADO;
+	const tamCanvas = () => (ladoALado() ? new UDim2(1, -(DIREITA + ESPACO), 1, 0) : new UDim2(1, 0, 0.55, -ESPACO / 2));
+	const posLado = () => (ladoALado() ? new UDim2(1, -DIREITA, 0, 0) : new UDim2(0, 0, 0.55, ESPACO / 2));
+	const tamLado = () => (ladoALado() ? new UDim2(0, DIREITA, 1, 0) : new UDim2(1, 0, 0.45, -ESPACO / 2));
+	const abasDoLado = () => (avancado() ? ABAS_DIREITA : ABAS_DIREITA.filter((a) => a.id !== "log"));
+	effect(() => {
+		if (!avancado() && abaDireita() === "log") abaDireita("tiles");
+	});
+	const linhaSimples = () => {
+		versao();
+		const c = celula();
+		if (!c) return "";
+		const topo = modelo.topo(c[0], c[1]);
+		return `${topo ? DESCRICAO_ZONA[zonaDoTile(topo)] : "vazio"}${modelo.bloqueia(c[0], c[1]) ? " · bloqueia" : ""}`;
+	};
 
 	return (
 		<Painel margem={4}>
-			{/* Esquerda: mapas e ações */}
-			<frame Name="Esquerda" Size={new UDim2(0, ESQUERDA, 1, 0)} BackgroundTransparency={1}>
-				<Coluna espaco={4}>
-					<Titulo texto="Mapas" ordem={0} />
-					<Rotulo
-						texto={() => (ponteLigada() ? "Ponte ligada." : (erroPonte() ?? "Ponte: verificando..."))}
-						tom={() => (ponteLigada() ? "ok" : "erro")}
-						ordem={1}
-					/>
-					<Coluna espaco={2} ordem={2} visivel={() => rascunhosPendentes().size() > 0}>
+			{/* O editor */}
+			<frame Name="Editor" Size={UDim2.fromScale(1, 1)} BackgroundTransparency={1} Visible={() => !telaInicial()}>
+				<Coluna tamanho={UDim2.fromScale(1, 1)} espaco={4}>
+					{/* Rascunho esperando */}
+					<Coluna espaco={2} ordem={0} visivel={() => rascunhosPendentes().size() > 0}>
 						<Rotulo texto={textoRascunho} tom="aviso" ordem={0} />
 						<Linha espaco={4} ordem={1}>
 							<Botao texto="Recuperar" principal={true} aoClicar={recuperarRascunho} ordem={0} />
 							<Botao texto="Descartar" aoClicar={descartarRascunho} ordem={1} />
 						</Linha>
 					</Coluna>
-					<Botao texto={() => (ocupado() ? "Aguarde..." : "Atualizar")} desligado={ocupado} aoClicar={atualizarTudo} ordem={3} />
-					<Lista tamanho={new UDim2(1, 0, 0, 170)} espaco={2} ordem={4}>
-						<For each={() => listaMapas()}>
-							{(m: ponte.ResumoMapa, i: () => number) => (
-								<Botao texto={m.id} ativo={() => mapaAberto() === m.id} aoClicar={() => abrirMapa(m.id)} largura={new UDim(1, -10)} ordem={i()} />
-							)}
-						</For>
-					</Lista>
-					<Linha espaco={4} ordem={5}>
-						<Campo valor={idNovo} dica="id_do_mapa" aoConfirmar={criarMapa} largura={new UDim(0, ESQUERDA - 62)} ordem={0} />
-						<Botao texto="Novo" aoClicar={criarMapa} ordem={1} />
-					</Linha>
-					<Separador ordem={6} />
-					<Botao texto={() => `Salvar (Ctrl+S)${sujo() ? " *" : ""}`} principal={true} desligado={ocupado} aoClicar={() => salvar()} largura={new UDim(1, 0)} ordem={7} />
-					<Botao texto="Gerar para o jogo" desligado={ocupado} aoClicar={gerar} largura={new UDim(1, 0)} ordem={8} />
-					<Botao texto="Testar (atributos)" aoClicar={testar} largura={new UDim(1, 0)} ordem={9} />
-					<Botao texto="Parar teste" aoClicar={pararTeste} largura={new UDim(1, 0)} ordem={10} />
-					<Rotulo texto="Testar grava InteriorTeste e InteriorTesteCelula (a última célula clicada, senão o nascimento) no Workspace; dê Play." tom="fraco" ordem={11} />
-					<Separador ordem={12} />
-					<Linha espaco={4} ordem={13}>
-						<Botao texto="Desfazer Ctrl+Z" aoClicar={desfazer} ordem={0} />
-						<Botao texto="Refazer Ctrl+Y" aoClicar={refazer} ordem={1} />
-					</Linha>
-					<Rotulo texto={mensagem} tom={tomMensagem} ordem={14} />
-					<Rotulo texto={avisoImagens} tom="aviso" ordem={15} />
-					<AvisoFolhaSalva ordem={16} />
+					{/* Barra: quebra linha na janela estreita */}
+					<Fileira ordem={1} espaco={3}>
+						<Botao texto={() => (ocupado() ? "Aguarde..." : `Salvar Ctrl+S${sujo() ? " *" : ""}`)} principal={true} desligado={ocupado} aoClicar={() => salvar()} ordem={0} />
+						<Botao texto="↶ Ctrl+Z" aoClicar={desfazer} ordem={1} />
+						<Botao texto="↷ Ctrl+Y" aoClicar={refazer} ordem={2} />
+						<Legenda texto="" largura={4} ordem={3} />
+						{(["pincel", "retangulo", "balde", "borracha", "contagotas"] as Ferramenta[]).map((f, i) => (
+							<Botao texto={NOME_DA_FERRAMENTA[f]} ativo={() => ferramenta() === f} aoClicar={() => ferramenta(f)} ordem={10 + i} />
+						))}
+						<Legenda texto="" largura={4} ordem={19} />
+						{TITULOS_CAMADA.map((titulo, i) => (
+							<Botao texto={`${i + 1} ${titulo}`} ativo={() => camada() === i} aoClicar={() => camada(i)} ordem={20 + i} />
+						))}
+						<Legenda texto="" largura={4} ordem={29} />
+						<Botao texto="−" aoClicar={() => zoom(math.max(1, zoom() - 1))} ordem={30} />
+						<Legenda texto={() => `${zoom()}×`} largura={22} ordem={31} />
+						<Botao texto="+" aoClicar={() => zoom(math.min(3, zoom() + 1))} ordem={32} />
+						<Alternar texto="Grade" valor={grade} ordem={33} />
+						<Ciclo rotulo="Outras camadas" opcoes={OPCOES_OPACIDADE} valor={opacidade} ordem={34} />
+						<Botao texto="⋯ Mais" ativo={maisAberto} aoClicar={() => maisAberto(!maisAberto())} ordem={40} />
+					</Fileira>
+					{/* Terrenos (camada 4) */}
+					<Fileira ordem={2} espaco={3} visivel={() => camada() === CAMADA_TERRENO}>
+						{TERRENOS.map((t, i) => (
+							<Amostra cor={t.cor} texto={t.nome} ativo={() => terrenoAtivo() === t.codigo} aoClicar={() => terrenoAtivo(t.codigo)} ordem={i} />
+						))}
+					</Fileira>
+					{/* ⋯ Mais */}
+					<Cartao ordem={3} visivel={maisAberto} nome="Mais">
+						<Fileira ordem={0} espaco={3}>
+							<Botao texto="Duplicar" ativo={() => acaoMais() === "duplicar"} aoClicar={() => escolherAcaoMais("duplicar")} ordem={0} />
+							<Botao texto="Renomear" ativo={() => acaoMais() === "renomear"} aoClicar={() => escolherAcaoMais("renomear")} ordem={1} />
+							<Botao texto="Apagar" ativo={() => acaoMais() === "apagar"} aoClicar={() => escolherAcaoMais("apagar")} ordem={2} />
+							<Botao texto="Orçamento" ativo={() => acaoMais() === "orcamento"} aoClicar={mostrarOrcamento} ordem={3} />
+							<Botao texto="Gerar para o jogo" desligado={ocupado} aoClicar={gerar} ordem={4} />
+							<Botao texto="Tela inicial" aoClicar={() => inicio("abrir")} ordem={5} />
+						</Fileira>
+						<Fileira ordem={1} visivel={() => acaoMais() === "duplicar" || acaoMais() === "renomear"}>
+							<TextoCurto texto={() => (acaoMais() === "duplicar" ? "Nome da cópia:" : "Nome novo:")} tom="fraco" ordem={0} />
+							<Campo
+								valor={nomeMais}
+								dica="nome_do_mapa"
+								largura={new UDim(0, 180)}
+								aoConfirmar={() => (acaoMais() === "duplicar" ? duplicarMapa() : renomearMapa())}
+								ordem={1}
+							/>
+							<Botao
+								texto={() => (acaoMais() === "duplicar" ? "Duplicar" : "Renomear")}
+								principal={true}
+								desligado={ocupado}
+								aoClicar={() => (acaoMais() === "duplicar" ? duplicarMapa() : renomearMapa())}
+								ordem={2}
+							/>
+						</Fileira>
+						<Fileira ordem={2} visivel={() => acaoMais() === "apagar"}>
+							<TextoCurto texto={() => `Apagar "${mapaAberto() ?? ""}" do disco?`} ordem={0} />
+							<Botao texto="Apagar" principal={true} desligado={ocupado} aoClicar={apagarMapaAberto} ordem={1} />
+						</Fileira>
+						<Rotulo texto={() => (acaoMais() === "orcamento" ? textoOrcamento() : "")} ordem={3} />
+					</Cartao>
+					{/* Corpo: canvas e o painel Tiles / Peças / Marcadores */}
+					<Preenche ordem={4}>
+						<frame Name="Corpo" Size={UDim2.fromScale(1, 1)} BackgroundTransparency={1}>
+							{action((f: Frame) => {
+								larguraCorpo(f.AbsoluteSize.X);
+								f.GetPropertyChangedSignal("AbsoluteSize").Connect(() => larguraCorpo(f.AbsoluteSize.X));
+							})}
+							<frame Name="AreaCanvas" Size={tamCanvas} BackgroundTransparency={1}>
+								<CanvasBloco
+									modelo={modeloAtual}
+									versao={versao}
+									versaoMarcadores={versaoMarcadores}
+									zoom={zoom}
+									grade={grade}
+									camadaAtiva={camada}
+									opacidadeInativa={opacidade}
+									imagens={imagens}
+									fantasma={fantasma}
+									previa={previa}
+									aoMover={aoMover}
+									aoPressionar={aoPressionar}
+									aoArrastar={aoArrastar}
+									aoSoltar={aoSoltar}
+									aoRedesenhar={(ms, tudo) => {
+										ultimoRedesenho = { ms: math.floor(ms * 10) / 10, tudo };
+									}}
+								/>
+							</frame>
+							<frame Name="Direita" Position={posLado} Size={tamLado} BackgroundTransparency={1}>
+								<frame Size={new UDim2(1, 0, 0, 28)} BackgroundTransparency={1}>
+									<Linha espaco={2}>
+										<For each={abasDoLado}>
+											{(aba, i) => <Botao texto={aba.titulo} ativo={() => abaDireita() === aba.id} aoClicar={() => abaDireita(aba.id)} ordem={i()} />}
+										</For>
+									</Linha>
+								</frame>
+								<frame Name="Conteudo" Position={UDim2.fromOffset(0, 32)} Size={new UDim2(1, 0, 1, -32)} BackgroundTransparency={1}>
+									<frame Size={UDim2.fromScale(1, 1)} BackgroundTransparency={1} Visible={() => abaDireita() === "tiles"}>
+										<Paleta imagens={imagens} selecao={selecao} aviso={(texto) => avisar(texto)} aoAseprite={(s) => task.spawn(abrirSelecaoNoAseprite, s)} />
+									</frame>
+									<frame Size={UDim2.fromScale(1, 1)} BackgroundTransparency={1} Visible={() => abaDireita() === "pecas"}>
+										<PainelPecas
+											catalogo={catalogo}
+											erro={erroCatalogo}
+											imagens={imagens}
+											selecionada={(valor?: Peca) => {
+												if (valor !== undefined) {
+													peca(valor);
+													ferramenta("peca");
+													motivoPeca("");
+												}
+												return peca();
+											}}
+											forma={forma}
+											motivo={motivoPeca}
+										/>
+									</frame>
+									<frame Size={UDim2.fromScale(1, 1)} BackgroundTransparency={1} Visible={() => abaDireita() === "marcadores"}>
+										<PainelMarcadores
+											modelo={modeloAtual}
+											versao={versaoMarcadores}
+											hist={hist}
+											pedido={pedido}
+											aoMudar={marcarSujo}
+											aviso={avisar}
+											acoes={acoesMarcadores}
+										/>
+									</frame>
+									<frame Size={UDim2.fromScale(1, 1)} BackgroundTransparency={1} Visible={() => abaDireita() === "log"}>
+										<AreaTexto texto={() => (log() === "" ? "O log do gerador aparece aqui." : log())} />
+									</frame>
+								</frame>
+							</frame>
+						</frame>
+					</Preenche>
+					{/* Rodapé */}
+					<Coluna espaco={0} ordem={5}>
+						<Rotulo texto={mensagem} tom={tomMensagem} ordem={0} />
+						<Rotulo texto={linhaEstado} tom={() => (pedido() ? "aviso" : "fraco")} ordem={1} />
+						<Rotulo texto={() => (avancado() ? linhaCelula() : linhaSimples())} tom="fraco" ordem={2} />
+						<Rotulo texto={avisoImagens} tom="aviso" ordem={3} />
+						<AvisoFolhaSalva horizontal={true} ordem={4} />
+					</Coluna>
 				</Coluna>
 			</frame>
 
-			{/* Centro: barra e canvas */}
-			<frame
-				Name="Centro"
-				Position={UDim2.fromOffset(ESQUERDA + ESPACO, 0)}
-				Size={new UDim2(1, -(ESQUERDA + DIREITA + 2 * ESPACO), 1, 0)}
-				BackgroundTransparency={1}
-			>
-				<frame Name="Barra" Size={new UDim2(1, 0, 0, BARRA)} BackgroundTransparency={1}>
-					<Coluna espaco={2}>
-						<Linha espaco={3} ordem={0}>
-							{(["pincel", "retangulo", "balde", "borracha", "contagotas"] as Ferramenta[]).map((f, i) => (
-								<Botao texto={NOME_DA_FERRAMENTA[f]} ativo={() => ferramenta() === f} aoClicar={() => ferramenta(f)} ordem={i} />
-							))}
-							<Legenda texto="" largura={6} ordem={9} />
-							{TITULOS_CAMADA.map((titulo, i) => (
-								<Botao texto={`${i + 1} ${titulo}`} ativo={() => camada() === i} aoClicar={() => camada(i)} ordem={10 + i} />
-							))}
-						</Linha>
-						<Linha espaco={3} ordem={1}>
-							<Botao texto="−" aoClicar={() => zoom(math.max(1, zoom() - 1))} ordem={0} />
-							<Legenda texto={() => `${zoom()}×`} largura={24} ordem={1} />
-							<Botao texto="+" aoClicar={() => zoom(math.min(3, zoom() + 1))} ordem={2} />
-							<Alternar texto="Grade" valor={grade} ordem={3} />
-							<Ciclo rotulo="Outras camadas" opcoes={OPACIDADES} valor={opacidade} ordem={4} />
-							<AlternarFolhasLocais ordem={6} />
-							<frame Size={new UDim2(0, 0, 0, 24)} AutomaticSize={Enum.AutomaticSize.X} BackgroundTransparency={1} Visible={() => camada() === CAMADA_TERRENO} LayoutOrder={5}>
-								<Linha espaco={3}>
-									{TERRENOS.map((t, i) => (
-										<Amostra cor={t.cor} texto={t.nome} ativo={() => terrenoAtivo() === t.codigo} aoClicar={() => terrenoAtivo(t.codigo)} ordem={i} />
-									))}
-								</Linha>
-							</frame>
+			{/* Tela inicial: sem mapa aberto (ou pedida pelo seletor do cabeçalho) */}
+			<frame Name="Inicio" Size={UDim2.fromScale(1, 1)} BackgroundTransparency={1} Visible={telaInicial}>
+				<Lista tamanho={UDim2.fromScale(1, 1)} espaco={8}>
+					<uipadding PaddingTop={new UDim(0, 8)} PaddingLeft={new UDim(0, 8)} PaddingRight={new UDim(0, 14)} PaddingBottom={new UDim(0, 8)} />
+					<Titulo texto={() => (mapaAberto() !== undefined ? `Mapa aberto: ${mapaAberto()}` : "Nenhum mapa aberto")} ordem={0} />
+					<Coluna espaco={2} ordem={1} visivel={() => rascunhosPendentes().size() > 0}>
+						<Rotulo texto={textoRascunho} tom="aviso" ordem={0} />
+						<Linha espaco={4} ordem={1}>
+							<Botao
+								texto="Recuperar"
+								principal={true}
+								aoClicar={() => {
+									inicio(undefined);
+									recuperarRascunho();
+								}}
+								ordem={0}
+							/>
+							<Botao texto="Descartar" aoClicar={descartarRascunho} ordem={1} />
 						</Linha>
 					</Coluna>
-				</frame>
-				<frame Name="AreaCanvas" Position={UDim2.fromOffset(0, BARRA)} Size={new UDim2(1, 0, 1, -BARRA - 40)} BackgroundTransparency={1}>
-					<CanvasBloco
-						modelo={modeloAtual}
-						versao={versao}
-						versaoMarcadores={versaoMarcadores}
-						zoom={zoom}
-						grade={grade}
-						camadaAtiva={camada}
-						opacidadeInativa={opacidade}
-						imagens={imagens}
-						fantasma={fantasma}
-						previa={previa}
-						aoMover={aoMover}
-						aoPressionar={aoPressionar}
-						aoArrastar={aoArrastar}
-						aoSoltar={aoSoltar}
-						aoRedesenhar={(ms, tudo) => {
-							ultimoRedesenho = { ms: math.floor(ms * 10) / 10, tudo };
+					<BotaoGrande titulo="Abrir mapa" explicacao="Escolha um da lista abaixo." principal={true} aoClicar={() => inicio("abrir")} ordem={2} nome="AbrirMapa" />
+					<BotaoGrande
+						titulo="Novo mapa"
+						explicacao="Um mapa vazio de 64 × 64 células."
+						aoClicar={() => {
+							idNovo("");
+							inicio("novo");
 						}}
+						ordem={3}
+						nome="NovoMapa"
 					/>
-				</frame>
-				<frame Name="Rodape" Position={new UDim2(0, 0, 1, -38)} Size={new UDim2(1, 0, 0, 38)} BackgroundTransparency={1}>
-					<Coluna espaco={0}>
-						<Rotulo texto={linhaCelula} mono={true} ordem={0} />
-						<Rotulo texto={linhaEstado} tom={() => (pedido() ? "aviso" : "fraco")} ordem={1} />
+					<BotaoGrande titulo="Verificar tudo" explicacao="Procura erros nos mapas, nas peças e nas imagens." aoClicar={verificarTudo} ordem={4} nome="VerificarTudo" />
+					<Botao texto="Voltar ao mapa" aoClicar={() => inicio(undefined)} ordem={5} desligado={() => mapaAberto() === undefined} />
+					<Separador ordem={6} />
+					{/* Novo mapa */}
+					<Coluna espaco={4} ordem={7} visivel={() => inicio() === "novo"}>
+						<Rotulo texto="Nome do mapa novo (letras minúsculas, números e _):" negrito={true} ordem={0} />
+						<Fileira ordem={1}>
+							<Campo valor={idNovo} dica="casa_do_ze" aoConfirmar={criarDaTelaInicial} largura={new UDim(0, 200)} ordem={0} />
+							<Botao texto="Criar (Enter)" principal={true} aoClicar={criarDaTelaInicial} ordem={1} />
+						</Fileira>
 					</Coluna>
-				</frame>
-			</frame>
-
-			{/* Direita: abas */}
-			<frame Name="Direita" Position={new UDim2(1, -DIREITA, 0, 0)} Size={new UDim2(0, DIREITA, 1, 0)} BackgroundTransparency={1}>
-				<frame Size={new UDim2(1, 0, 0, 28)} BackgroundTransparency={1}>
-					<Abas abas={ABAS_DIREITA} aberta={abaDireita} />
-				</frame>
-				<frame Name="Conteudo" Position={UDim2.fromOffset(0, 32)} Size={new UDim2(1, 0, 1, -32)} BackgroundTransparency={1}>
-					<frame Size={UDim2.fromScale(1, 1)} BackgroundTransparency={1} Visible={() => abaDireita() === "tiles"}>
-						<Paleta
-								imagens={imagens}
-								selecao={selecao}
-								aviso={(texto) => avisar(texto)}
-								aoAseprite={(s) => task.spawn(abrirSelecaoNoAseprite, s)}
-							/>
-					</frame>
-					<frame Size={UDim2.fromScale(1, 1)} BackgroundTransparency={1} Visible={() => abaDireita() === "pecas"}>
-						<PainelPecas
-							catalogo={catalogo}
-							erro={erroCatalogo}
-							imagens={imagens}
-							selecionada={(valor?: Peca) => {
-								if (valor !== undefined) {
-									peca(valor);
-									ferramenta("peca");
-									motivoPeca("");
-								}
-								return peca();
-							}}
-							forma={forma}
-							motivo={motivoPeca}
+					{/* Abrir mapa */}
+					<Coluna espaco={4} ordem={8} visivel={() => inicio() !== "novo"}>
+						<Fileira ordem={0}>
+							<TextoCurto texto="Mapas" negrito={true} ordem={0} />
+							<Botao texto={() => (ocupado() ? "Aguarde..." : "Atualizar")} desligado={ocupado} aoClicar={() => atualizarTudo()} ordem={1} />
+						</Fileira>
+						<Vazio
+							texto={() => (ponteLigada() ? "" : (erroPonte() ?? "A ponte está desligada."))}
+							botao="Tentar de novo"
+							aoClicar={() => atualizarTudo()}
+							tom="aviso"
+							visivel={() => !ponteLigada() && !ocupado()}
+							ordem={1}
 						/>
-					</frame>
-					<frame Size={UDim2.fromScale(1, 1)} BackgroundTransparency={1} Visible={() => abaDireita() === "marcadores"}>
-						<PainelMarcadores
-								modelo={modeloAtual}
-								versao={versaoMarcadores}
-								hist={hist}
-								pedido={pedido}
-								aoMudar={marcarSujo}
-								aviso={avisar}
-								acoes={acoesMarcadores}
-							/>
-					</frame>
-					<frame Size={UDim2.fromScale(1, 1)} BackgroundTransparency={1} Visible={() => abaDireita() === "log"}>
-						<AreaTexto texto={() => (log() === "" ? "O log do gerador aparece aqui." : log())} />
-					</frame>
-				</frame>
+						<Vazio
+							texto="Ainda não há mapas. Crie o primeiro."
+							botao="Novo mapa"
+							aoClicar={() => inicio("novo")}
+							visivel={() => ponteLigada() && listaMapas().size() === 0 && !ocupado()}
+							ordem={2}
+						/>
+						<Fileira ordem={3} espaco={4}>
+							<For each={() => listaMapas()}>
+								{(m: ponte.ResumoMapa, i: () => number) => (
+									<Botao
+										texto={m.id}
+										ativo={() => mapaAberto() === m.id}
+										aoClicar={() => {
+											inicio(undefined);
+											abrirMapa(m.id);
+											if (confirmarDescarte() === m.id) inicio("abrir");
+										}}
+										ordem={i()}
+									/>
+								)}
+							</For>
+						</Fileira>
+					</Coluna>
+					<Rotulo texto={mensagem} tom={tomMensagem} ordem={9} />
+					<BotaoAvancado ordem={10} />
+					<Rotulo
+						texto={() =>
+							avancado()
+								? "Atalhos do editor: B pincel, R retângulo, G balde, E borracha, I conta-gotas, 1–4 camadas, +/− zoom, Ctrl+S salvar, Ctrl+Z/Ctrl+Y desfazer/refazer, Esc cancela."
+								: ""
+						}
+						tom="fraco"
+						ordem={11}
+					/>
+				</Lista>
 			</frame>
 		</Painel>
 	);
 }
 
-export const WIDGET: OpcoesWidget = { titulo: "Mapas", largura: 1100, altura: 700, larguraMinima: 800, alturaMinima: 480 };
-
-export function montar(gui: DockWidgetPluginGui) {
-	return mount(() => <PainelMapas gui={gui} />, gui);
+export function montar(quadro: Frame, contexto: ContextoSecao) {
+	return mount(() => <PainelMapas gui={contexto.gui} />, quadro);
 }

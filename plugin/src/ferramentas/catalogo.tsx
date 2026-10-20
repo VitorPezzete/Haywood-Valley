@@ -13,8 +13,8 @@
 // Recorte (etapa G, 2026-10-20): a seção "Recorte e cores" do formulário (../ui/recortePeca.tsx) mostra o recorte
 // que tools/recortes.py gravou no campo `recorte` da peça, as máscaras das partes e a prévia recolorida, e abre o
 // recorte no Aseprite. Só lê: nada da seção vai para pecas.json.
-import { HttpService } from "@rbxts/services";
-import Vide, { batch, cleanup, effect, For, mount, source, untrack } from "@rbxts/vide";
+import { HttpService, UserInputService } from "@rbxts/services";
+import Vide, { action, batch, cleanup, effect, For, mount, source, untrack } from "@rbxts/vide";
 import { abrirNoAseprite } from "../aseprite";
 import { canonico } from "../canonico";
 import { argNumero, argTexto, registrarAcoes } from "../simulacao";
@@ -62,6 +62,9 @@ import { gerarDecorar, gravarCatalogo, lerCatalogo as lerCatalogoPonte } from ".
 import { Destaque, FolhaVista, TileSobMouse, ZOOM_MAXIMO } from "../ui/folhaVista";
 import {
 	Alternar,
+	Bloco,
+	Coluna,
+	Preenche,
 	Botao,
 	Campo,
 	CampoMulti,
@@ -86,19 +89,16 @@ import { Recorte } from "../ui/recorte";
 import { ControleRecorte, RecortePecaVista } from "../ui/recortePeca";
 import { AlternarFolhasLocais, AvisoFolhaSalva } from "../ui/alternarFolhas";
 import { imagensFolhas } from "../estado";
-import type { OpcoesWidget } from "../widget";
+import { ContextoSecao, secaoVisivel } from "../widget";
+import { avancado } from "../config";
+import { BotaoAvancado } from "../ui/simples";
 
-export const DESCRICAO =
-	"As folhas do Aeko, as zonas e as peças com id, tipo, camada, ações e as formas do Decorar. Criar e editar peças e fundos e salvar em diorama/catalogo.";
 
 // Medidas do painel, em pixels da tela.
-const CABECALHO = 3 * (TEXTO + 10) + 2 * ESPACO;
-const RODAPE = 100;
 const ESQUERDA = 300;
 const MINIATURA = 32;
 /** A folha ocupa esta fração do meio; o formulário fica com o resto. */
-const FRACAO_FOLHA = 0.42;
-const MEIO_PERDIDO = CABECALHO + RODAPE + 2 * ESPACO;
+const FRACAO_FOLHA = 0.45;
 
 const COR_DO_TIPO: Record<string, Color3> = {
 	movel: Color3.fromRGB(80, 200, 120),
@@ -193,7 +193,7 @@ function linhasDe(texto: string): string[] {
 	return saida;
 }
 
-export function PainelCatalogo() {
+export function PainelCatalogo(props: { gui?: DockWidgetPluginGui }) {
 	// Estado geral
 	const metades = source<Record<string, Metades>>({});
 	// As imagens seguem o estado compartilhado: "Folhas locais" e recarregar_folhas as trocam sem "Recarregar".
@@ -981,58 +981,123 @@ export function PainelCatalogo() {
 	const metadesDaFolha = () => metades()[folha()];
 	const campoNumero = (valor: Vide.Source<string>) => <Campo valor={valor} largura={new UDim(0, 48)} />;
 
-	// Posições do meio (folha em cima, formulário embaixo), à direita da lista.
+	// Disposição (2026-10-20, janela única): com o corpo largo, a lista à esquerda e a folha em cima do formulário à
+	// direita; estreito, uma coisa de cada vez (Lista | Folha | Ficha), como num celular.
+	const larguraCorpo = source(1000);
+	const largo = () => larguraCorpo() >= 760;
+	const vista = source<"lista" | "folha" | "ficha">("lista");
 	const direitaX = ESQUERDA + ESPACO;
-	const posFolha = UDim2.fromOffset(direitaX, CABECALHO + ESPACO);
-	const tamFolha = new UDim2(1, -direitaX, FRACAO_FOLHA, -FRACAO_FOLHA * MEIO_PERDIDO);
-	const posForm = new UDim2(0, direitaX, FRACAO_FOLHA, CABECALHO + 2 * ESPACO - FRACAO_FOLHA * MEIO_PERDIDO);
-	const tamForm = new UDim2(1, -direitaX, 1 - FRACAO_FOLHA, -(1 - FRACAO_FOLHA) * MEIO_PERDIDO - ESPACO);
+	const ZERO = new UDim2(0, 0, 0, 0);
+	const posEsq = UDim2.fromOffset(0, 0);
+	const tamEsq = () => (largo() ? new UDim2(0, ESQUERDA, 1, 0) : UDim2.fromScale(1, 1));
+	const visEsq = () => largo() || vista() === "lista";
+	const posFolha = () => (largo() ? UDim2.fromOffset(direitaX, 0) : UDim2.fromOffset(0, 0));
+	const tamFolha = () => (largo() ? new UDim2(1, -direitaX, FRACAO_FOLHA, -ESPACO / 2) : vista() === "folha" ? UDim2.fromScale(1, 1) : ZERO);
+	const posForm = () => (largo() ? new UDim2(0, direitaX, FRACAO_FOLHA, ESPACO / 2) : UDim2.fromOffset(0, 0));
+	const tamForm = () => (largo() ? new UDim2(1, -direitaX, 1 - FRACAO_FOLHA, -ESPACO / 2) : vista() === "ficha" ? UDim2.fromScale(1, 1) : ZERO);
+	const selecionarDaLista = (p: Peca) => {
+		selecionarPeca(p);
+		if (!largo()) vista("ficha");
+	};
+
+	/** "Salvar" (Ctrl+S): grava o que estiver sujo, peças e depois fundos. */
+	const salvarTudo = () => {
+		if (ocupado()) return;
+		if (!sujoPecas() && !sujoFundos()) {
+			status("Nada para salvar.");
+			return;
+		}
+		task.spawn(() => {
+			if (sujoPecas()) {
+				salvarPecas();
+				task.wait();
+				while (ocupado()) task.wait();
+			}
+			if (sujoFundos()) salvarFundos();
+		});
+	};
+	// Ctrl+S com a seção Peças à vista e a janela focada.
+	let focado = false;
+	if (props.gui) {
+		cleanup(props.gui.WindowFocused.Connect(() => (focado = true)));
+		cleanup(props.gui.WindowFocusReleased.Connect(() => (focado = false)));
+	}
+	cleanup(
+		UserInputService.InputBegan.Connect((input) => {
+			if (!focado || input.KeyCode !== Enum.KeyCode.S || !secaoVisivel("pecas")) return;
+			const ctrl = UserInputService.IsKeyDown(Enum.KeyCode.LeftControl) || UserInputService.IsKeyDown(Enum.KeyCode.RightControl);
+			if (ctrl) salvarTudo();
+		}),
+	);
+	effect(() => {
+		if (!avancado() && aba() !== "pecas") aba("pecas");
+	});
 
 	return (
 		<Painel>
-			{/* Cabeçalho: três linhas. */}
-			<frame Name="Cabecalho" BackgroundTransparency={1} Size={new UDim2(1, 0, 0, CABECALHO)}>
-				<uilistlayout FillDirection={Enum.FillDirection.Vertical} SortOrder={Enum.SortOrder.LayoutOrder} Padding={new UDim(0, ESPACO)} />
-				<Fileira ordem={0}>
-					<Titulo texto="Catálogo" ordem={0} />
-					<TextoCurto texto="Folha:" tom="fraco" ordem={1} />
-					{FOLHAS.map((f, i) => (
-						<Botao texto={f} ativo={() => folha() === f} aoClicar={() => folha(f)} ordem={2 + i} />
-					))}
-					<TextoCurto texto="Zoom:" tom="fraco" ordem={10} />
-					<Botao texto="−" aoClicar={() => zoom(math.max(1, zoom() - 1))} ordem={11} />
-					<TextoCurto texto={() => `${zoom()}×`} ordem={12} />
-					<Botao texto="+" aoClicar={() => zoom(math.min(ZOOM_MAXIMO, zoom() + 1))} ordem={13} />
-					<Alternar texto="Grade" valor={grade} ordem={14} />
-					<Alternar texto="Zonas" valor={verZonas} ordem={15} />
-					<AlternarFolhasLocais ordem={16} />
-				</Fileira>
-				<Fileira ordem={1}>
-					<Botao texto="Recarregar" aoClicar={carregar} desligado={ocupado} ordem={0} />
-					<Botao texto={() => (sujoPecas() ? "Salvar peças *" : "Salvar peças")} aoClicar={salvarPecas} desligado={ocupado} principal={true} ordem={1} />
-					<Botao texto={() => (sujoFundos() ? "Salvar fundos *" : "Salvar fundos")} aoClicar={salvarFundos} desligado={ocupado} ordem={2} />
-					<Botao texto="Gerar decorCatalog" aoClicar={gerar} desligado={ocupado} ordem={3} />
-					<Botao texto="Nova peça (1×1 no tile 0,0)" aoClicar={() => criarPeca({ c: 0, l: 0, w: 1, h: 1 })} ordem={4} />
-					<Botao texto="Novo fundo" aoClicar={criarFundo} ordem={5} />
-				</Fileira>
-				<Fileira ordem={2}>
-					<TextoCurto texto={linhaDoMouse} ordem={0} />
-					<TextoCurto texto={status} tom="fraco" ordem={1} />
-				</Fileira>
-			</frame>
-
+			<Coluna tamanho={UDim2.fromScale(1, 1)} espaco={ESPACO}>
+				{/* Cabeçalho */}
+				<Coluna ordem={0} espaco={4}>
+					<Fileira ordem={0}>
+						<TextoCurto texto="Folha:" tom="fraco" ordem={1} />
+						{FOLHAS.map((f, i) => (
+							<Botao texto={f} ativo={() => folha() === f} aoClicar={() => folha(f)} ordem={2 + i} />
+						))}
+						<TextoCurto texto="Zoom:" tom="fraco" ordem={10} />
+						<Botao texto="−" aoClicar={() => zoom(math.max(1, zoom() - 1))} ordem={11} />
+						<TextoCurto texto={() => `${zoom()}×`} ordem={12} />
+						<Botao texto="+" aoClicar={() => zoom(math.min(ZOOM_MAXIMO, zoom() + 1))} ordem={13} />
+						<Alternar texto="Grade" valor={grade} ordem={14} />
+						<Alternar texto="Zonas" valor={verZonas} ordem={15} />
+					</Fileira>
+					<Fileira ordem={1}>
+						<Botao texto={() => (ocupado() ? "Aguarde..." : `Salvar Ctrl+S${sujoPecas() || sujoFundos() ? " *" : ""}`)} aoClicar={salvarTudo} desligado={ocupado} principal={true} ordem={0} />
+						<Botao texto="Mandar ao jogo" aoClicar={gerar} desligado={ocupado} ordem={1} />
+						<Botao texto="+ Nova peça" aoClicar={() => criarPeca({ c: 0, l: 0, w: 1, h: 1 })} ordem={2} />
+						<Botao texto="Recarregar" aoClicar={carregar} desligado={ocupado} ordem={3} />
+						<BotaoAvancado ordem={4} />
+					</Fileira>
+					<Fileira ordem={2} visivel={avancado}>
+						<Botao texto={() => (sujoPecas() ? "Salvar peças *" : "Salvar peças")} aoClicar={salvarPecas} desligado={ocupado} ordem={0} />
+						<Botao texto={() => (sujoFundos() ? "Salvar fundos *" : "Salvar fundos")} aoClicar={salvarFundos} desligado={ocupado} ordem={1} />
+						<Botao texto="Novo fundo" aoClicar={criarFundo} ordem={2} />
+						<AlternarFolhasLocais ordem={3} />
+					</Fileira>
+					<Fileira ordem={3} visivel={() => !largo()}>
+						<Botao texto="Lista" ativo={() => vista() === "lista"} aoClicar={() => vista("lista")} ordem={0} />
+						<Botao texto="Folha" ativo={() => vista() === "folha"} aoClicar={() => vista("folha")} ordem={1} />
+						<Botao texto="Ficha" ativo={() => vista() === "ficha"} aoClicar={() => vista("ficha")} ordem={2} />
+					</Fileira>
+					<Rotulo texto={status} tom="fraco" ordem={4} />
+					<Rotulo texto={() => (avancado() ? linhaDoMouse() : "")} ordem={5} />
+					<Rotulo
+						texto={'"Mandar ao jogo" gera a lista de peças do Decorar (decorCatalog.ts). Arraste na folha para criar uma peça; clique numa peça para editar.'}
+						tom="fraco"
+						ordem={6}
+					/>
+				</Coluna>
+				<Preenche ordem={1}>
+					<frame Name="Corpo" Size={UDim2.fromScale(1, 1)} BackgroundTransparency={1}>
+						{action((f: Frame) => {
+							larguraCorpo(f.AbsoluteSize.X);
+							f.GetPropertyChangedSignal("AbsoluteSize").Connect(() => larguraCorpo(f.AbsoluteSize.X));
+						})}
 			{/* Esquerda: abas e listas. */}
-			<frame Name="Esquerda" BackgroundTransparency={1} Position={UDim2.fromOffset(0, CABECALHO + ESPACO)} Size={new UDim2(0, ESQUERDA, 1, -MEIO_PERDIDO)}>
+			<frame Name="Esquerda" BackgroundTransparency={1} Position={posEsq} Size={tamEsq} Visible={visEsq}>
 				<uilistlayout FillDirection={Enum.FillDirection.Vertical} SortOrder={Enum.SortOrder.LayoutOrder} Padding={new UDim(0, ESPACO)} />
 				<Linha espaco={2} ordem={0}>
 					<Botao texto={() => `Peças (${pecasFiltradas().size()})`} ativo={() => aba() === "pecas"} aoClicar={() => aba("pecas")} ordem={0} />
-					<Botao texto={() => `Fundos (${fundosFiltrados().size()})`} ativo={() => aba() === "fundos"} aoClicar={() => aba("fundos")} ordem={1} />
-					<Botao texto="Zonas" ativo={() => aba() === "zonas"} aoClicar={() => aba("zonas")} ordem={2} />
-					<Botao texto="Log" ativo={() => aba() === "log"} aoClicar={() => aba("log")} ordem={3} />
+					<Linha espaco={2} ordem={1} visivel={avancado}>
+						<Botao texto={() => `Fundos (${fundosFiltrados().size()})`} ativo={() => aba() === "fundos"} aoClicar={() => aba("fundos")} ordem={1} />
+						<Botao texto="Zonas" ativo={() => aba() === "zonas"} aoClicar={() => aba("zonas")} ordem={2} />
+						<Botao texto="Log" ativo={() => aba() === "log"} aoClicar={() => aba("log")} ordem={3} />
+					</Linha>
 				</Linha>
 				<Campo valor={filtroTexto} dica="filtrar por id ou nome" aoConfirmar={(t) => filtroTexto(t)} aoVivo={true} ordem={1} />
-				<Escolha opcoes={[{ id: "", titulo: "todas" }, ...OPCOES_FOLHA]} valor={filtroFolha} rotulo="Folha:" ordem={2} />
-				<Escolha opcoes={[{ id: "", titulo: "todos" }, ...OPCOES_TIPO]} valor={filtroTipo} rotulo="Tipo:" ordem={3} />
+					<Bloco ordem={2} visivel={avancado} espaco={ESPACO}>
+						<Escolha opcoes={[{ id: "", titulo: "todas" }, ...OPCOES_FOLHA]} valor={filtroFolha} rotulo="Folha:" ordem={0} />
+						<Escolha opcoes={[{ id: "", titulo: "todos" }, ...OPCOES_TIPO]} valor={filtroTipo} rotulo="Tipo:" ordem={1} />
+					</Bloco>
 				{/* As quatro listas existem sempre; só uma fica visível. O UIFlexItem faz a lista ocupar o que sobra
 				    embaixo dos filtros (que quebram linha); o tamanho em offset é só o valor de partida. */}
 				<frame Name="Listas" BackgroundTransparency={1} Size={new UDim2(1, 0, 1, -(3 * (TEXTO + 10) + 60 + 5 * ESPACO))} LayoutOrder={4}>
@@ -1048,7 +1113,7 @@ export function PainelCatalogo() {
 										revisao={revisao}
 										metades={() => metades()[p.folha]}
 										selecionada={() => pecaSel() === p}
-										aoClicar={() => selecionarPeca(p)}
+										aoClicar={() => selecionarDaLista(p)}
 										ordem={indice()}
 									/>
 								)}
@@ -1139,17 +1204,17 @@ export function PainelCatalogo() {
 							<Recorte metades={() => metades()[fFolha()]} retangulo={areaDoFormulario} caixa={96} ordem={0} />
 							<frame BackgroundTransparency={1} Size={new UDim2(1, -96 - ESPACO, 0, 0)} AutomaticSize={Enum.AutomaticSize.Y} LayoutOrder={1}>
 								<uilistlayout FillDirection={Enum.FillDirection.Vertical} SortOrder={Enum.SortOrder.LayoutOrder} Padding={new UDim(0, ESPACO)} />
-								<LinhaCampo rotulo="Id" ordem={0}>
+								<LinhaCampo rotulo="Id" visivel={avancado} ordem={0}>
 									<Campo valor={fId} largura={new UDim(0, 200)} />
 									<TextoCurto texto="(como o jogo cita: casa8, casa@56,25, chair)" tom="fraco" />
 								</LinhaCampo>
 								<LinhaCampo rotulo="Nome" ordem={1}>
 									<Campo valor={fNome} largura={new UDim(0, 300)} />
 								</LinhaCampo>
-								<LinhaCampo rotulo="Folha" ordem={2}>
+								<LinhaCampo rotulo="Folha" visivel={avancado} ordem={2}>
 									<Escolha opcoes={OPCOES_FOLHA} valor={fFolha} />
 								</LinhaCampo>
-								<LinhaCampo rotulo="Área" ordem={3}>
+								<LinhaCampo rotulo="Área" visivel={avancado} ordem={3}>
 									<TextoCurto texto="col" tom="fraco" />
 									{campoNumero(fC)}
 									<TextoCurto texto="lin" tom="fraco" />
@@ -1170,24 +1235,24 @@ export function PainelCatalogo() {
 							<Escolha opcoes={OPCOES_CAMADA} valor={fCamada} />
 							<TextoCurto texto="(sugerida: onde a peça pousa no mapa)" tom="fraco" />
 						</LinhaCampo>
-						<LinhaCampo rotulo="Bloqueia" ordem={3}>
+						<LinhaCampo rotulo="Bloqueia" visivel={avancado} ordem={3}>
 							<Ciclo rotulo="Bloqueia" opcoes={OPCOES_BLOQUEIA} valor={fBloqueia} />
 							<TextoCurto texto="(informação para o plugin; o bloqueio do mapa vem da zona)" tom="fraco" />
 						</LinhaCampo>
-						<LinhaCampo rotulo="Ação" ordem={4}>
+						<LinhaCampo rotulo="Ação" visivel={avancado} ordem={4}>
 							<Escolha opcoes={OPCOES_ACAO} valor={fAcao} />
 							<TextoCurto texto="(um código para a peça toda; entra em actions do mapa)" tom="fraco" />
 						</LinhaCampo>
-						<LinhaCampo rotulo="Ações por linha" ordem={5}>
+						<LinhaCampo rotulo="Ações por linha" visivel={avancado} ordem={5}>
 							<frame BackgroundTransparency={1} Size={new UDim2(1, 0, 0, 0)} AutomaticSize={Enum.AutomaticSize.Y}>
 								<uilistlayout FillDirection={Enum.FillDirection.Vertical} SortOrder={Enum.SortOrder.LayoutOrder} Padding={new UDim(0, 2)} />
 								<CampoMulti valor={fAcoes} dica={"4444\n5555 (uma linha por linha da peça, um código por coluna; vazio = sem o campo)"} mono={true} altura={TEXTO * 3 + 12} ordem={0} />
 							</frame>
 						</LinhaCampo>
-						<LinhaCampo rotulo="Nota" ordem={6}>
+						<LinhaCampo rotulo="Nota" visivel={avancado} ordem={6}>
 							<Campo valor={fNota} largura={new UDim(0, 400)} />
 						</LinhaCampo>
-						<Rotulo texto={() => (fExtras() !== "" ? `Outros campos (preservados; editar no JSON): ${fExtras()}` : "")} tom="fraco" mono={true} ordem={7} />
+						<Rotulo texto={() => (avancado() && fExtras() !== "" ? `Outros campos (preservados; editar no JSON): ${fExtras()}` : "")} tom="fraco" mono={true} ordem={7} />
 						<Separador ordem={8} />
 						<RecortePecaVista
 							peca={pecaSel}
@@ -1207,7 +1272,7 @@ export function PainelCatalogo() {
 							<Botao texto="Adicionar forma" aoClicar={adicionarForma} desligado={() => !fTemDecorar()} ordem={1} />
 							<TextoCurto texto={() => (fTemDecorar() ? `${fFormas().size()} forma(s)` : "sem decorar: a peça não entra em decorCatalog.ts")} tom="fraco" ordem={2} />
 						</Fileira>
-						<frame Name="Formas" BackgroundTransparency={1} Size={new UDim2(1, 0, 0, 0)} AutomaticSize={Enum.AutomaticSize.Y} Visible={fTemDecorar} LayoutOrder={13}>
+						<frame Name="Formas" BackgroundTransparency={1} Size={new UDim2(1, 0, 0, 0)} AutomaticSize={Enum.AutomaticSize.Y} Visible={() => fTemDecorar() && avancado()} LayoutOrder={13}>
 							<uilistlayout FillDirection={Enum.FillDirection.Vertical} SortOrder={Enum.SortOrder.LayoutOrder} Padding={new UDim(0, ESPACO)} />
 							<For each={fFormas}>
 								{(f, fi) => (
@@ -1344,24 +1409,31 @@ export function PainelCatalogo() {
 				</frame>
 			</Lista>
 
-			{/* Rodapé: problemas. */}
-			<frame
-				Name="Rodape"
-				BackgroundTransparency={1}
-				AnchorPoint={new Vector2(0, 1)}
-				Position={UDim2.fromScale(0, 1)}
-				Size={new UDim2(1, 0, 0, RODAPE)}
-			>
-				<Rotulo texto={() => `Problemas do catálogo: ${problemas().size()}`} negrito={true} />
-				<frame Name="AvisoFolha" BackgroundTransparency={1} Position={UDim2.fromScale(0.4, 0)} Size={new UDim2(0.6, 0, 0, 0)} AutomaticSize={Enum.AutomaticSize.Y} ZIndex={2}>
-					<AvisoFolhaSalva horizontal={true} />
-				</frame>
-				<Lista posicao={UDim2.fromOffset(0, TEXTO + 6)} tamanho={new UDim2(1, 0, 1, -(TEXTO + 6))} espaco={1}>
-					<For each={problemas}>
-						{(p, indice) => <Botao texto={p.texto} largura={new UDim(1, -10)} aoClicar={() => irAoProblema(p)} ordem={indice()} />}
-					</For>
-				</Lista>
-			</frame>
+					</frame>
+				</Preenche>
+				{/* Rodapé: o aviso da folha salva no Aseprite e os problemas do catálogo (só quando há). */}
+				<Coluna ordem={2} espaco={2} nome="Rodape">
+					<AvisoFolhaSalva horizontal={true} ordem={0} />
+					<Rotulo texto={() => (problemas().size() > 0 ? `Problemas nas peças: ${problemas().size()} (clique para ir)` : "")} negrito={true} ordem={1} />
+					<frame Name="ListaProblemas" BackgroundTransparency={1} Size={new UDim2(1, 0, 0, 72)} Visible={() => problemas().size() > 0} LayoutOrder={2}>
+						<Lista espaco={1}>
+							<For each={problemas}>
+								{(p, indice) => (
+									<Botao
+										texto={p.texto}
+										largura={new UDim(1, -10)}
+										aoClicar={() => {
+											irAoProblema(p);
+											if (!largo()) vista("ficha");
+										}}
+										ordem={indice()}
+									/>
+								)}
+							</For>
+						</Lista>
+					</frame>
+				</Coluna>
+			</Coluna>
 		</Painel>
 	);
 }
@@ -1437,8 +1509,6 @@ function LinhaPeca(props: {
 	);
 }
 
-export const WIDGET: OpcoesWidget = { titulo: "Catálogo", largura: 1000, altura: 720, larguraMinima: 640, alturaMinima: 400 };
-
-export function montar(gui: DockWidgetPluginGui) {
-	return mount(() => <PainelCatalogo />, gui);
+export function montar(quadro: Frame, contexto: ContextoSecao) {
+	return mount(() => <PainelCatalogo gui={contexto.gui} />, quadro);
 }

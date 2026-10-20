@@ -14,9 +14,15 @@ export const ponteLigada = source(false);
 export const erroPonte = source<string | undefined>(undefined);
 
 export const PORTA = 34873;
+/** O endereço padrão da ponte (o que a casca usa para baixar o pacote). */
 export const BASE = `http://127.0.0.1:${PORTA}`;
+/** O endereço em uso: o padrão, ou o que o autor pôs em Configurações (config.ts). */
+export const enderecoPonte = source(BASE);
+export function definirEnderecoPonte(endereco: string) {
+	enderecoPonte(endereco);
+}
 /** Como subir a ponte, para as mensagens de erro. */
-export const COMO_LIGAR = "Rode `npm run diorama:ponte` na pasta do repositório.";
+export const COMO_LIGAR = "Dê dois cliques em Diorama.cmd, na pasta do repositório (ou rode `npm run diorama:ponte`).";
 
 export type Resultado<T> = { ok: true; valor: T } | { ok: false; erro: string; status?: number };
 
@@ -31,6 +37,8 @@ export interface Status {
 	folhas: number;
 	/** Ids dos mapas que já têm módulo gerado (src/shared/interiors/index.ts). */
 	gerados: string[];
+	/** O canal do Aseprite (CONEXOES.md, seção 3); falta numa ponte anterior a ele. */
+	aseprite?: { conectado: boolean; versao?: string; aseprite?: string };
 }
 
 export interface ResumoMapa {
@@ -134,10 +142,10 @@ export interface Resposta {
 /** Traduz o erro do RequestAsync para uma frase que diz o que fazer. */
 function mensagemAmigavel(erro: string): string {
 	if (erro.find("HttpError", 1, true)[0] !== undefined || erro.find("Connect", 1, true)[0] !== undefined) {
-		return `A ponte não respondeu em ${BASE}. ${COMO_LIGAR}`;
+		return `A ponte não respondeu em ${enderecoPonte()}. ${COMO_LIGAR}`;
 	}
 	if (erro.find("not enabled", 1, true)[0] !== undefined || erro.find("not allowed", 1, true)[0] !== undefined) {
-		return `O Studio não deixou o plugin chamar ${BASE}. Aceite o pedido de permissão de HTTP do plugin Diorama.`;
+		return `O Studio não deixou o plugin chamar ${enderecoPonte()}. Aceite o pedido de permissão de HTTP do plugin Diorama.`;
 	}
 	return `Erro ao falar com a ponte: ${erro}`;
 }
@@ -152,7 +160,7 @@ export function pedir(metodo: "GET" | "PUT" | "POST" | "DELETE", rota: string, c
 	const temCabecalho = corpo !== undefined || metodo !== "GET";
 	const [ok, resposta] = pcall(() =>
 		HttpService.RequestAsync({
-			Url: BASE + rota,
+			Url: enderecoPonte() + rota,
 			Method: metodo,
 			Body: corpo,
 			Headers: temCabecalho ? cabecalhos : undefined,

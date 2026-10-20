@@ -18,7 +18,8 @@ import { diagnosticar, resumir } from "./problemas/diagnostico";
 import { ATRIBUTO_INTERIOR_CELULA, ATRIBUTO_INTERIOR_TESTE, ATRIBUTOS, gravarAtributo, lerAtributo } from "./servidor/atributos";
 import { modoAtual } from "./servidor/execucao";
 import { mensagens, nivelDe } from "./servidor/output";
-import { alternar, desmontar, ferramentasAbertas, idsFerramentas, mostrar, widget } from "./widget";
+import { desmontar, ferramentasAbertas, idsFerramentas, janela, mostrar, quadro, secaoAberta, secoesMontadas } from "./widget";
+import { resolverSecao } from "./secoes";
 import { inspecionar } from "./inspecao";
 import { esperarAcoes, listaDeAcoes } from "./simulacao";
 
@@ -29,7 +30,7 @@ const ESPERA_POLL = 20;
 // Sem ponto: o plugin:SetSetting do Studio ignora em silêncio as chaves com "." (conferido em 2026-10-20).
 const CHAVE_LUAU = "Diorama_permitirLuau";
 
-/** "Permitir executar Luau" (painel Conexão): desligado por padrão, guardado em plugin:SetSetting. */
+/** "Permitir executar Luau" (Configurações): desligado por padrão, guardado em plugin:SetSetting. */
 export const permitirLuau = source(false);
 
 export function definirPermitirLuau(valor: boolean) {
@@ -140,6 +141,9 @@ const COMANDOS: Record<string, (args: Args) => unknown> = {
 			modo: modoAtual(),
 			selecao,
 			ferramentas_abertas: ferramentasAbertas(),
+			janela_aberta: janela()?.Enabled ?? false,
+			secao: secaoAberta(),
+			secoes_montadas: secoesMontadas(),
 			atributos: atributosDeTeste(),
 			mapa_aberto: controleMapas()?.resumo().id,
 			folhas_locais: folhasLocais(),
@@ -151,21 +155,29 @@ const COMANDOS: Record<string, (args: Args) => unknown> = {
 		};
 	},
 
+	/** Abre a janela na seção (`id`: mapa, pecas, arte, testar, verificar, ajuda, configuracoes; ou os nomes antigos). */
 	abrir_ferramenta: (args) => {
 		const id = texto(args.id);
 		if (id === undefined) error("falta id", 0);
 		const erro = mostrar(id);
 		if (erro !== undefined) error(erro, 0);
-		return true;
+		return resolverSecao(id);
+	},
+	abrir_secao: (args) => {
+		const id = texto(args.id);
+		if (id === undefined) error("falta id", 0);
+		const erro = mostrar(id);
+		if (erro !== undefined) error(erro, 0);
+		return resolverSecao(id);
 	},
 
 	abrir_mapa: (args) => {
 		const id = texto(args.id);
 		if (id === undefined) error("falta id", 0);
-		const erro = mostrar("mapas");
-		if (erro !== undefined) error(`a ferramenta Mapas não montou: ${erro}`, 0);
+		const erro = mostrar("mapa");
+		if (erro !== undefined) error(`a seção Mapa não montou: ${erro}`, 0);
 		const c = esperarControleMapas();
-		if (!c) error("o painel Mapas não ficou pronto", 0);
+		if (!c) error("o editor de mapas não ficou pronto", 0);
 		const r = c.abrir(id, args.descartar === true);
 		if (!r.ok) error(r.erro, 0);
 		return paraJson(r.resumo);
@@ -265,9 +277,9 @@ const COMANDOS: Record<string, (args: Args) => unknown> = {
 		const acao = texto(args.acao);
 		if (ferramenta === undefined || acao === undefined) error("falta ferramenta ou acao", 0);
 		const erro = mostrar(ferramenta);
-		if (erro !== undefined) error(`a ferramenta ${ferramenta} não montou: ${erro}`, 0);
+		if (erro !== undefined) error(`a seção ${ferramenta} não montou: ${erro}`, 0);
 		const acoes = esperarAcoes(ferramenta);
-		if (!acoes) error(`a ferramenta ${ferramenta} não registrou ações para simular`, 0);
+		if (!acoes) error(`a seção ${ferramenta} não registrou ações para simular`, 0);
 		if (acao === "acoes") return listaDeAcoes(ferramenta);
 		const f = acoes[acao];
 		if (!f) error(`ação desconhecida em ${ferramenta}: ${acao} (há: ${listaDeAcoes(ferramenta).join(", ")})`, 0);
@@ -275,36 +287,39 @@ const COMANDOS: Record<string, (args: Args) => unknown> = {
 	},
 
 	/**
-	 * Abre e fecha o widget (`vezes` vezes; `desmontar`: desmonta o painel a cada volta, como uma recarga) e devolve
-	 * as contas de antes e depois, para achar vazamento de instâncias e de memória.
+	 * Abre e fecha a janela na seção (`vezes` vezes; `desmontar`: desmonta o painel a cada volta, como uma recarga) e
+	 * devolve as contas de antes e depois, para achar vazamento de instâncias e de memória.
 	 */
 	ciclar_widget: (args) => {
-		const id = texto(args.ferramenta);
-		if (id === undefined || !idsFerramentas().includes(id)) error("ferramenta desconhecida", 0);
+		const id = resolverSecao(texto(args.ferramenta) ?? "");
+		if (!idsFerramentas().includes(id)) error("seção desconhecida", 0);
 		const vezes = typeIs(args.vezes, "number") ? math.clamp(args.vezes, 1, 50) : 5;
-		const gui = widget(id)!;
+		const gui = janela()!;
+		const q = quadro(id)!;
 		const estava = gui.Enabled;
-		const contar = () => ({ instancias: gui.GetDescendants().size(), memoria_lua_kb: math.floor(collectgarbage("count")) });
+		const secaoAntes = secaoAberta();
+		const contar = () => ({ instancias: q.GetDescendants().size(), janela: gui.GetDescendants().size(), memoria_lua_kb: math.floor(collectgarbage("count")) });
 		mostrar(id);
 		task.wait(0.5);
 		const antes = contar();
 		const t0 = os.clock();
 		for (let i = 0; i < vezes; i++) {
 			if (args.desmontar === true) desmontar(id);
-			alternar(id);
+			gui.Enabled = false;
 			task.wait();
-			alternar(id);
+			mostrar(id);
 			task.wait(0.2);
 		}
 		const segundos = os.clock() - t0;
 		task.wait(1);
 		const depois = contar();
+		mostrar(secaoAntes);
 		if (!estava) gui.Enabled = false;
 		return { antes, depois, vezes, ms_por_volta: math.floor((segundos / vezes) * 1000) };
 	},
 
 	executar_luau: (args) => {
-		if (!permitirLuau()) error('executar_luau está desligado: ligue "Permitir executar Luau" no painel Conexão do plugin', 0);
+		if (!permitirLuau()) error('executar_luau está desligado: ligue "Permitir executar Luau" em Configurações (cartão Claude) no Diorama', 0);
 		const codigo = texto(args.codigo);
 		if (codigo === undefined) error("falta codigo", 0);
 		return executarLuau(codigo);

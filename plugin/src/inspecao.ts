@@ -7,7 +7,8 @@ import { pendentesAoParar } from "./ambiente";
 import { folhasCarregadas } from "./folhasLocais";
 import { controleMapas } from "./mapas/controle";
 import { mensagens, quantosOuvintes } from "./servidor/output";
-import { ferramentasAbertas, idsFerramentas, montada, widget } from "./widget";
+import { resolverSecao } from "./secoes";
+import { ferramentasAbertas, idsFerramentas, janela, montada, quadro, secaoAberta } from "./widget";
 
 export interface NoResumo {
 	nome: string;
@@ -42,16 +43,31 @@ function pacotesNaCasca(): string[] {
 		.map((c) => c.Name);
 }
 
+/**
+ * `ferramenta`: a árvore de uma seção ("mapa", "pecas"…, ou o nome antigo) ou, com "janela", da janela inteira (a
+ * moldura, a navegação e as seções).
+ */
 export function inspecionar(ferramenta?: string, profundidade = 3) {
-	const widgets: Record<string, { aberto: boolean; montada: boolean; instancias: number }> = {};
+	const gui = janela();
+	const secoes: Record<string, { visivel: boolean; montada: boolean; instancias: number }> = {};
 	for (const id of idsFerramentas()) {
-		const gui = widget(id);
-		widgets[id] = { aberto: gui?.Enabled ?? false, montada: montada(id), instancias: gui ? gui.GetDescendants().size() : 0 };
+		const q = quadro(id);
+		secoes[id] = { visivel: gui !== undefined && gui.Enabled && secaoAberta() === id, montada: montada(id), instancias: q ? q.GetDescendants().size() : 0 };
 	}
 	const [, memoriaTotal] = pcall(() => Stats.GetTotalMemoryUsageMb());
 	const [, memoriaGui] = pcall(() => Stats.GetMemoryUsageMbForTag(Enum.DeveloperMemoryTag.Gui));
 	const resultado: Record<string, unknown> = {
-		widgets,
+		janela: gui
+			? {
+					nome: gui.Name,
+					aberta: gui.Enabled,
+					titulo: (gui as unknown as { Title: string }).Title,
+					instancias: gui.GetDescendants().size(),
+					filhos: gui.GetChildren().map((c) => c.Name),
+				}
+			: undefined,
+		secao_aberta: secaoAberta(),
+		secoes,
 		abertas: ferramentasAbertas(),
 		pacotes_na_casca: pacotesNaCasca(),
 		ao_parar: pendentesAoParar(),
@@ -64,9 +80,9 @@ export function inspecionar(ferramenta?: string, profundidade = 3) {
 		mapa: controleMapas()?.resumo(),
 	};
 	if (ferramenta !== undefined) {
-		const gui = widget(ferramenta);
-		if (!gui) error(`ferramenta desconhecida: ${ferramenta}`, 0);
-		resultado.arvore = resumirArvore(gui, profundidade);
+		const alvo = ferramenta === "janela" ? gui : quadro(resolverSecao(ferramenta));
+		if (!alvo) error(`seção desconhecida: ${ferramenta}`, 0);
+		resultado.arvore = resumirArvore(alvo, profundidade);
 	}
 	return resultado;
 }

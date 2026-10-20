@@ -142,10 +142,12 @@ export function Rotulo(props: {
 	ordem?: number;
 	/** Largura (padrão: a do pai inteira). */
 	largura?: UDim;
+	visivel?: Derivable<boolean>;
 }) {
 	return (
 		<textlabel
 			Name="Rotulo"
+			Visible={() => ler(props.visivel ?? true)}
 			BackgroundTransparency={1}
 			Size={new UDim2(props.largura ?? new UDim(1, 0), new UDim(0, 0))}
 			AutomaticSize={Enum.AutomaticSize.Y}

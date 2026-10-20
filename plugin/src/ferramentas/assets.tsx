@@ -2,24 +2,31 @@
 // e contagens; a prévia de uma imagem com id; o envio de imagem pelo Studio (experimental: EditableImage +
 // AssetService:CreateAssetAsync, com confirmação explícita porque usa a conta do usuário) e a importação de ids
 // (POST /assets/enviadas com { "<chave>": id }).
+//
+// Desde a janela única (2026-10-20) é a parte "Imagens e sons" da seção Arte (ferramentas/arte.tsx). Simples: a
+// lista com o que falta enviar, a prévia e o envio em dois passos; ids, arquivos, a importação de JSON e o log ficam
+// no Avançado. Com o painel largo, a lista fica à esquerda dos detalhes; estreito, em cima.
 import { HttpService } from "@rbxts/services";
-import Vide, { For, mount, source } from "@rbxts/vide";
+import Vide, { action, cleanup, For, source } from "@rbxts/vide";
+import { avancado } from "../config";
+import { registrarAcoes } from "../simulacao";
+import { Coluna, Preenche } from "../ui/kit";
 import { enviarImagem, ImagemPreparada, LADO_MAXIMO, prepararDaImagem } from "../assets/enviar";
 import { EntradaRegistro, idTexto, lerRegistro, recorteSugerido } from "../assets/registro";
 import { enviarAssets, lerAssets } from "../ponte";
 import { Alternar, CaixaTexto, Fileira, LinhaCampo, TextoCurto } from "../ui/kit";
 import { AreaTexto, Botao, Campo, cor, ESPACO, Lista, Painel, Rotulo, Separador, tema, TEXTO, Titulo } from "../ui/kit";
-import type { OpcoesWidget } from "../widget";
-
-export const DESCRICAO =
-	"O registro de assets, o que ainda não tem id no Roblox, envio de imagens pelo Studio e importação dos ids para src/shared/assets.ts.";
 
 const ESQUERDA_FRACAO = 0.55;
-const CABECALHO = 2 * (TEXTO + 10) + 24 + 3 * ESPACO;
 const ALTURA_LINHA = TEXTO + 6;
 const PREVIA = 192;
 
-/** Larguras das colunas da tabela, em fração da linha. */
+/** Colunas da tabela simples: a chave e se já foi enviada. */
+const COLUNAS_SIMPLES = [
+	{ titulo: "imagem ou som", x: 0, w: 0.7 },
+	{ titulo: "no Roblox", x: 0.7, w: 0.3 },
+];
+/** Larguras das colunas da tabela (Avançado), em fração da linha. */
 const COLUNAS = [
 	{ titulo: "chave", x: 0, w: 0.42 },
 	{ titulo: "id", x: 0.42, w: 0.26 },
@@ -28,6 +35,8 @@ const COLUNAS = [
 ];
 
 export function PainelAssets() {
+	const largura = source(1000);
+	const largo = () => largura() >= 700;
 	const entradas = source<EntradaRegistro[]>([]);
 	const notas = source<string[]>([]);
 	const revisao = source(0);
@@ -277,56 +286,85 @@ export function PainelAssets() {
 		/>
 	);
 
+	// As ações vistas de fora (simulacao.ts): o Verificar usa `filtrar` para levar a uma chave do registro.
+	cleanup(
+		registrarAcoes("arte", {
+			filtrar: (args) => {
+				filtro(typeIs(args.texto, "string") ? args.texto : "");
+				task.wait();
+				const lista = filtradas();
+				if (lista.size() === 1) selecionar(lista[0]);
+				return { mostradas: lista.size() };
+			},
+			estado: () => ({ entradas: entradas().size(), mostradas: filtradas().size(), status: status(), selecionada: selecionada()?.chave }),
+		}),
+	);
+
+	const colunasVisiveis = () => (avancado() ? COLUNAS : COLUNAS_SIMPLES);
+
 	return (
-		<Painel>
-			{/* Esquerda: filtro, contagens e tabela. */}
-			<frame Name="Esquerda" BackgroundTransparency={1} Size={new UDim2(ESQUERDA_FRACAO, -ESPACO, 1, 0)}>
-				<frame Name="Cabecalho" BackgroundTransparency={1} Size={new UDim2(1, 0, 0, CABECALHO)}>
-					<uilistlayout FillDirection={Enum.FillDirection.Vertical} SortOrder={Enum.SortOrder.LayoutOrder} Padding={new UDim(0, ESPACO)} />
+		<Painel margem={0}>
+			{action((f: Frame) => {
+				largura(f.AbsoluteSize.X);
+				f.GetPropertyChangedSignal("AbsoluteSize").Connect(() => largura(f.AbsoluteSize.X));
+			})}
+			{/* Esquerda (ou em cima): filtro, contagens e tabela. */}
+			<frame
+				Name="Esquerda"
+				BackgroundTransparency={1}
+				Size={() => (largo() ? new UDim2(ESQUERDA_FRACAO, -ESPACO, 1, 0) : new UDim2(1, 0, 0.45, -ESPACO / 2))}
+			>
+				<Coluna tamanho={UDim2.fromScale(1, 1)} espaco={4}>
 					<Fileira ordem={0}>
-						<Titulo texto="Assets" ordem={0} />
-						<Botao texto="Recarregar" aoClicar={carregar} desligado={ocupado} ordem={1} />
-						<Campo valor={filtro} dica="filtrar (Enter)" aoConfirmar={(t) => filtro(t)} largura={new UDim(0, 180)} ordem={2} />
+						<Campo valor={filtro} dica="procurar…" aoConfirmar={(t) => filtro(t)} aoVivo={true} largura={new UDim(0, 160)} ordem={0} />
+						<Alternar texto="Só o que falta enviar" valor={soSemId} ordem={1} />
+						<Botao texto="Recarregar" aoClicar={carregar} desligado={ocupado} ordem={2} />
 					</Fileira>
-					<Fileira ordem={1}>
-						<Alternar texto="Só sem id" valor={soSemId} ordem={0} />
-						<Alternar texto="Imagens" valor={verImagens} ordem={1} />
-						<Alternar texto="Sons" valor={verSons} ordem={2} />
-						<Alternar texto="Antigos" valor={verAntigos} ordem={3} />
+					<Fileira ordem={1} visivel={avancado}>
+						<Alternar texto="Imagens" valor={verImagens} ordem={0} />
+						<Alternar texto="Sons" valor={verSons} ordem={1} />
+						<Alternar texto="Antigos" valor={verAntigos} ordem={2} />
 					</Fileira>
 					<Rotulo texto={contagens} tom="fraco" ordem={2} />
-				</frame>
-				{/* Cabeçalho da tabela */}
-				<frame Name="Colunas" BackgroundTransparency={1} Position={UDim2.fromOffset(0, CABECALHO + ESPACO)} Size={new UDim2(1, -12, 0, ALTURA_LINHA)}>
-					{COLUNAS.map((c) => (
-						<textlabel
-							BackgroundTransparency={1}
-							Position={UDim2.fromScale(c.x, 0)}
-							Size={new UDim2(c.w, 0, 1, 0)}
-							Text={c.titulo}
-							TextSize={TEXTO}
-							FontFace={Font.fromEnum(Enum.Font.SourceSansBold)}
-							TextColor3={cor(Enum.StudioStyleGuideColor.DimmedText)}
-							TextXAlignment={Enum.TextXAlignment.Left}
-						/>
-					))}
-				</frame>
-				<Lista posicao={UDim2.fromOffset(0, CABECALHO + ALTURA_LINHA + 2 * ESPACO)} tamanho={new UDim2(1, 0, 1, -(CABECALHO + ALTURA_LINHA + 2 * ESPACO))} espaco={1}>
-					<For each={filtradas}>
-						{(e, indice) => <LinhaRegistro entrada={e} revisao={revisao} selecionada={() => selecionada() === e} aoClicar={() => selecionar(e)} ordem={indice()} />}
-					</For>
-				</Lista>
+					<Preenche ordem={3}>
+						{/* Cabeçalho da tabela */}
+						<frame Name="Colunas" BackgroundTransparency={1} Size={new UDim2(1, -12, 0, ALTURA_LINHA)}>
+							<For each={colunasVisiveis}>
+								{(c) => (
+									<textlabel
+										BackgroundTransparency={1}
+										Position={UDim2.fromScale(c.x, 0)}
+										Size={new UDim2(c.w, 0, 1, 0)}
+										Text={c.titulo}
+										TextSize={TEXTO}
+										FontFace={Font.fromEnum(Enum.Font.SourceSansBold)}
+										TextColor3={cor(Enum.StudioStyleGuideColor.DimmedText)}
+										TextXAlignment={Enum.TextXAlignment.Left}
+									/>
+								)}
+							</For>
+						</frame>
+						<Lista posicao={UDim2.fromOffset(0, ALTURA_LINHA + 2)} tamanho={new UDim2(1, 0, 1, -(ALTURA_LINHA + 2))} espaco={1}>
+							<For each={filtradas}>
+								{(e, indice) => <LinhaRegistro entrada={e} revisao={revisao} selecionada={() => selecionada() === e} aoClicar={() => selecionar(e)} ordem={indice()} />}
+							</For>
+						</Lista>
+					</Preenche>
+				</Coluna>
 			</frame>
 
 			{/* Direita: detalhes, prévia, envio, importação e log. */}
-			<Lista posicao={UDim2.fromScale(ESQUERDA_FRACAO, 0)} tamanho={new UDim2(1 - ESQUERDA_FRACAO, 0, 1, 0)}>
+			<Lista
+				posicao={() => (largo() ? UDim2.fromScale(ESQUERDA_FRACAO, 0) : new UDim2(0, 0, 0.45, ESPACO / 2))}
+				tamanho={() => (largo() ? new UDim2(1 - ESQUERDA_FRACAO, 0, 1, 0) : new UDim2(1, 0, 0.55, -ESPACO / 2))}
+			>
 				<Rotulo texto={status} tom={() => (ocupado() ? "aviso" : "normal")} ordem={0} />
 				<Separador ordem={1} />
-				<Rotulo texto={() => (selecionada() ? `Chave: ${selecionada()!.chave}` : "Clique numa linha da tabela para ver os detalhes.")} negrito={true} ordem={2} />
+				<Rotulo texto={() => (selecionada() ? selecionada()!.chave : "Clique numa linha para ver a imagem e enviar.")} negrito={true} ordem={2} />
 				{detalhe("Tipo", () => selecionada()?.tipo ?? "", 3)}
-				{detalhe("Id", () => (selecionada() ? idTexto(selecionada()!) || "(sem id: ainda não foi enviado)" : ""), 4)}
-				{detalhe("Arquivo", () => selecionada()?.arquivo ?? "", 5)}
-				{detalhe("Origem", () => selecionada()?.origem ?? "", 6)}
+				{detalhe("No Roblox", () => (selecionada() ? (selecionada()!.id !== undefined ? (avancado() ? idTexto(selecionada()!) : "enviado") : "ainda não foi enviado") : ""), 4)}
+				{detalhe("Arquivo", () => (avancado() ? (selecionada()?.arquivo ?? "") : ""), 5)}
+				{detalhe("Origem", () => (avancado() ? (selecionada()?.origem ?? "") : ""), 6)}
 				{detalhe("Nota", () => selecionada()?.nota ?? "", 7)}
 				<Rotulo texto={() => (selecionada()?.antigo ? "Entrada de `antigos`: não entra em assets.ts." : "")} tom="aviso" ordem={8} />
 				{/* Prévia da imagem com id */}
@@ -357,7 +395,7 @@ export function PainelAssets() {
 				<Separador ordem={10} />
 
 				{/* Envio */}
-				<Rotulo texto="Enviar imagem pelo Studio (experimental)" negrito={true} ordem={11} />
+				<Rotulo texto="Enviar ao Roblox (experimental)" negrito={true} ordem={11} />
 				<Rotulo
 					texto={
 						"Os pixels vêm da ponte (qualquer PNG de assets/ ou diorama/folhas/), entram numa EditableImage e AssetService:CreateAssetAsync cria o asset " +
@@ -366,12 +404,13 @@ export function PainelAssets() {
 					}
 					tom="fraco"
 					ordem={12}
+					visivel={avancado}
 				/>
-				<LinhaCampo rotulo="Imagem" ordem={13}>
+				<LinhaCampo rotulo="Imagem" ordem={13} visivel={avancado}>
 					<Campo valor={eFolha} dica="assets/ui/atlas" largura={new UDim(0, 260)} />
 					<TextoCurto tom="fraco" texto="(caminho a partir da raiz do repositório, sem .png)" />
 				</LinhaCampo>
-				<LinhaCampo rotulo="Recorte (px)" ordem={14}>
+				<LinhaCampo rotulo="Recorte (px)" ordem={14} visivel={avancado}>
 					<TextoCurto tom="fraco" texto="x" />
 					{campoNumero(eX)}
 					<TextoCurto tom="fraco" texto="y" />
@@ -382,11 +421,11 @@ export function PainelAssets() {
 					{campoNumero(eH)}
 					<TextoCurto tom="fraco" texto="(w ou h 0 = a folha inteira)" />
 				</LinhaCampo>
-				<LinhaCampo rotulo="Nome no Roblox" ordem={15}>
+				<LinhaCampo rotulo="Nome no Roblox" ordem={15} visivel={avancado}>
 					<Campo valor={eNome} largura={new UDim(0, 220)} />
 				</LinhaCampo>
 				<Fileira ordem={16}>
-					<Botao texto="1. Preparar (ler pixels pela ponte)" aoClicar={preparar} desligado={ocupado} ordem={0} />
+					<Botao texto="1. Preparar" aoClicar={preparar} desligado={ocupado} ordem={0} />
 					<Botao
 						texto="2. Enviar ao Roblox..."
 						aoClicar={() => {
@@ -440,22 +479,24 @@ export function PainelAssets() {
 				</frame>
 				<Separador ordem={20} />
 
-				{/* Importar */}
-				<Rotulo texto="Importar enviadas" negrito={true} ordem={21} />
-				<Rotulo
+				<Coluna ordem={21} visivel={avancado}>
+					{/* Importar */}
+					<Rotulo texto="Importar enviadas" negrito={true} ordem={21} />
+					<Rotulo
 					texto={'Cole um JSON { "chave": id } (a chave do registro, o caminho do arquivo ou só o nome dele; o id como número, "123" ou "rbxassetid://123"). Vai para POST /assets/enviadas, que grava assets/enviadas.json e roda npm run assets -- --importar.'}
 					tom="fraco"
 					ordem={22}
 				/>
-				<CaixaTexto valor={textoImportar} dica={'{ "ui.atlas": 123456789 }'} tamanho={new UDim2(1, -12, 0, 90)} ordem={23} />
-				<Fileira ordem={24}>
+					<CaixaTexto valor={textoImportar} dica={'{ "ui.atlas": 123456789 }'} tamanho={new UDim2(1, -12, 0, 90)} ordem={23} />
+					<Fileira ordem={24}>
 					<Botao texto="Importar enviadas" aoClicar={importar} desligado={ocupado} ordem={0} />
 					<Botao texto="Limpar" aoClicar={() => textoImportar("")} ordem={1} />
-				</Fileira>
-				<Separador ordem={25} />
-				<Rotulo texto="Log" negrito={true} ordem={26} />
-				<AreaTexto texto={() => (log() === "" ? "(nada ainda)" : log())} tamanho={new UDim2(1, -12, 0, 140)} ordem={27} />
-				<Rotulo texto={() => (notas().size() > 0 ? `Notas do registro: ${notas().join(" ")}` : "")} tom="fraco" ordem={28} />
+					</Fileira>
+					<Separador ordem={25} />
+					<Rotulo texto="Log" negrito={true} ordem={26} />
+					<AreaTexto texto={() => (log() === "" ? "(nada ainda)" : log())} tamanho={new UDim2(1, -12, 0, 140)} ordem={27} />
+					<Rotulo texto={() => (notas().size() > 0 ? `Notas do registro: ${notas().join(" ")}` : "")} tom="fraco" ordem={28} />
+				</Coluna>
 			</Lista>
 		</Painel>
 	);
@@ -478,6 +519,13 @@ function LinhaRegistro(props: { entrada: EntradaRegistro; revisao: () => number;
 			semId() ? Enum.StudioStyleGuideColor.WarningText : props.entrada.antigo ? Enum.StudioStyleGuideColor.DimmedText : Enum.StudioStyleGuideColor.MainText,
 			modificador(),
 		);
+	const valoresSimples: Array<() => string> = [
+		() => props.entrada.chave,
+		() => {
+			props.revisao();
+			return props.entrada.id === undefined ? "falta enviar" : "ok";
+		},
+	];
 	const valores: Array<() => string> = [
 		() => props.entrada.chave,
 		() => {
@@ -503,9 +551,10 @@ function LinhaRegistro(props: { entrada: EntradaRegistro; revisao: () => number;
 			{COLUNAS.map((c, i) => (
 				<textlabel
 					BackgroundTransparency={1}
-					Position={UDim2.fromScale(c.x, 0)}
-					Size={new UDim2(c.w, -4, 1, 0)}
-					Text={valores[i]}
+					Position={() => (avancado() ? UDim2.fromScale(c.x, 0) : UDim2.fromScale(COLUNAS_SIMPLES[math.min(i, 1)].x, 0))}
+					Size={() => (avancado() ? new UDim2(c.w, -4, 1, 0) : new UDim2(COLUNAS_SIMPLES[math.min(i, 1)].w, -4, 1, 0))}
+					Visible={() => avancado() || i < 2}
+					Text={() => (avancado() ? valores[i]() : i < 2 ? valoresSimples[i]() : "")}
 					TextSize={TEXTO}
 					FontFace={Font.fromEnum(i === 0 ? Enum.Font.SourceSansBold : Enum.Font.SourceSans)}
 					TextColor3={corTexto}
@@ -515,10 +564,4 @@ function LinhaRegistro(props: { entrada: EntradaRegistro; revisao: () => number;
 			))}
 		</textbutton>
 	);
-}
-
-export const WIDGET: OpcoesWidget = { titulo: "Assets", largura: 900, altura: 620, larguraMinima: 560, alturaMinima: 360 };
-
-export function montar(gui: DockWidgetPluginGui) {
-	return mount(() => <PainelAssets />, gui);
 }

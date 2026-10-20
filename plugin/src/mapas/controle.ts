@@ -22,6 +22,21 @@ export interface ControleMapas {
 	modelo: () => ModeloBloco;
 	resumo: () => ResumoMapaAberto;
 	sujo: () => boolean;
+	/**
+	 * Como o clique num mapa da lista (o seletor do cabeçalho): abre; com mudança não salva, o primeiro clique só
+	 * pergunta, e a pergunta volta aqui (nada = abriu ou está abrindo).
+	 */
+	clicar: (id: string) => string | undefined;
+	/** Mostra a tela inicial do editor: "abrir" (a lista de mapas) ou "novo" (o campo do nome). */
+	inicio: (modo: "abrir" | "novo") => void;
+	/** Salva o mapa aberto e espera (yielda). */
+	salvar: () => { ok: boolean; mensagem: string };
+	/** A célula para o teste no jogo: a última clicada no canvas, senão o nascimento. */
+	celulaDeTeste: () => [number, number] | undefined;
+	/** O que vai junto de um pedido ao Claude: célula sob o mouse, última clicada, ferramenta, camada, seleção da paleta. */
+	contexto: () => Record<string, unknown>;
+	/** O editor está lendo ou gravando na ponte? */
+	ocupado: () => boolean;
 }
 
 let atual: ControleMapas | undefined;

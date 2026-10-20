@@ -1,7 +1,8 @@
 // Casca do plugin Diorama (docs/diorama/CONEXOES.md, seção 1). É o Script raiz do .rbxm (o Rojo transforma a
 // pasta out/ no Script "Diorama" porque este arquivo vira out/init.server.luau) e é a única parte que o Studio só
-// relê ao reiniciar. Ela cria a barra "Diorama" e guarda botões e widgets por id; o resto do plugin (as
-// ferramentas) é um pacote que ela carrega e troca a quente:
+// relê ao reiniciar. Ela cria a barra "Diorama" com um botão só e a janela única (2026-10-20: antes eram sete
+// botões e sete widgets) e liga o botão à janela; o resto do plugin (as seções da janela) é um pacote que ela
+// carrega e troca a quente:
 //
 // - Ao abrir, pede `GET /plugin/versao` à ponte. Com a ponte no ar, baixa `GET /plugin/pacote`, monta a árvore de
 //   ModuleScripts numa pasta filha deste script e faz `require` de `app`. Sem a ponte, usa o pacote embutido no
@@ -46,6 +47,9 @@ interface Carregado {
 }
 
 const sessao = HttpService.GenerateGUID(false);
+/** O botão e a janela únicos (ids estáveis: o Studio guarda posição e tamanho da janela pelo id). */
+const ID_BOTAO = "diorama";
+const ID_JANELA = "Diorama_janela";
 const barra = plugin.CreateToolbar("Diorama");
 const botoes = new Map<string, PluginToolbarButton>();
 const widgets = new Map<string, DockWidgetPluginGui>();
@@ -93,13 +97,58 @@ function widget(id: string, opcoes: OpcoesWidgetCasca): DockWidgetPluginGui {
 		widgets.set(id, gui);
 	}
 	// `Title` existe no PluginGui, mas falta nos tipos do @rbxts/types.
-	(gui as unknown as { Title: string }).Title = `Diorama: ${opcoes.titulo}`;
+	(gui as unknown as { Title: string }).Title = opcoes.titulo === "" ? "Diorama" : `Diorama: ${opcoes.titulo}`;
 	return gui;
 }
+
+/** O ícone do botão no tema do Studio (o pincel do editor de terreno do próprio Studio). */
+function iconeAtual(): string {
+	const [, nome] = pcall(() => settings().Studio.Theme.Name);
+	const pasta = nome === "Dark" ? "Dark" : "Light";
+	return `rbxasset://studio_svg_textures/Lua/Terrain/${pasta}/Large/Terrain_Paint.png`;
+}
+
+// O botão e a janela existem desde o carregamento, mesmo que o pacote não carregue (aí a janela diz por quê).
+const botaoPrincipal = botao(ID_BOTAO, "Diorama", "Abre o Diorama: mapa, peças, arte, testar e verificar numa janela só.", iconeAtual());
+const janelaPrincipal = widget(ID_JANELA, { titulo: "", largura: 980, altura: 660, larguraMinima: 420, alturaMinima: 320 });
+botaoPrincipal.Click.Connect(() => {
+	janelaPrincipal.Enabled = !janelaPrincipal.Enabled;
+});
+janelaPrincipal.GetPropertyChangedSignal("Enabled").Connect(() => botaoPrincipal.SetActive(janelaPrincipal.Enabled));
+botaoPrincipal.SetActive(janelaPrincipal.Enabled);
+pcall(() =>
+	settings().Studio.ThemeChanged.Connect(() => {
+		// `Icon` falta nos tipos do botão.
+		pcall(() => {
+			(botaoPrincipal as unknown as { Icon: string }).Icon = iconeAtual();
+		});
+	}),
+);
 
 function limparWidgets() {
 	for (const [, gui] of widgets) pcall(() => gui.ClearAllChildren());
 	for (const [, b] of botoes) pcall(() => b.SetActive(false));
+	botaoPrincipal.SetActive(janelaPrincipal.Enabled);
+}
+
+/** Sem pacote nenhum: a janela diz o que aconteceu, em vez de ficar vazia. */
+function mostrarFalha(texto: string) {
+	pcall(() => {
+		janelaPrincipal.ClearAllChildren();
+		const aviso = new Instance("TextLabel");
+		aviso.Name = "Falha";
+		aviso.Size = UDim2.fromScale(1, 1);
+		aviso.BackgroundTransparency = 1;
+		aviso.TextWrapped = true;
+		aviso.TextSize = 16;
+		aviso.TextColor3 = settings().Studio.Theme.GetColor(Enum.StudioStyleGuideColor.MainText);
+		aviso.Text = `O Diorama não carregou.
+
+${texto}
+
+Dê dois cliques em Diorama.cmd (na pasta do repositório) e reabra o Studio, ou veja o Output.`;
+		aviso.Parent = janelaPrincipal;
+	});
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -186,7 +235,16 @@ let vivo = true;
 
 function iniciar(c: Carregado): string | undefined {
 	limparWidgets();
-	const ambiente: Ambiente = { plugin, botao, widget, versao: c.versao, hash: c.hash, origem: c.origem, sessao };
+	const ambiente: Ambiente = {
+		plugin,
+		botao,
+		widget,
+		versao: c.versao,
+		hash: c.hash,
+		origem: c.origem,
+		sessao,
+		janela: { botao: botaoPrincipal, gui: janelaPrincipal },
+	};
 	const [ok, parar] = pcall(() => c.app.iniciar(ambiente));
 	if (!ok) return tostring(parar);
 	if (!typeIs(parar, "function")) return "iniciar não devolveu a função parar";
@@ -250,9 +308,10 @@ function verificar(primeira: boolean) {
 		const [carregou, embutido] = carregarEmbutido();
 		if (!carregou) {
 			aviso(`o pacote embutido não carregou: ${embutido}`);
+			mostrarFalha(`O pacote embutido não carregou: ${embutido}`);
 			return;
 		}
-		trocar(embutido);
+		if (!trocar(embutido) && atual === undefined) mostrarFalha("O pacote embutido não iniciou (o erro está no Output).");
 	}
 }
 

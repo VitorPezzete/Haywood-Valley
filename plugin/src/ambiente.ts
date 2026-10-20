@@ -30,6 +30,12 @@ export interface Ambiente {
 	origem: "ponte" | "embutido";
 	/** Id desta instância do plugin no Studio, gerado pela casca ao carregar; o mesmo entre recargas. */
 	sessao: string;
+	/**
+	 * O botão "Diorama" e a janela única, criados pela casca da janela única (2026-10-20). A casca liga o clique do
+	 * botão à janela; sem este campo (uma casca anterior, até o Studio reiniciar), o pacote pede botão e janela por
+	 * `botao`/`widget` e liga o clique ele mesmo.
+	 */
+	janela?: { botao: PluginToolbarButton; gui: DockWidgetPluginGui };
 }
 
 let atual: Ambiente | undefined;
