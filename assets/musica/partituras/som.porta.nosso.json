@@ -1,0 +1,76 @@
+{
+  "chave": "som.porta.nosso",
+  "titulo": "Porta (nossa)",
+  "bpm": 60,
+  "compasso": [1, 4],
+  "tom": "sem tom",
+  "compassos": 4,
+  "laco": false,
+  "cauda_s": 0.3,
+  "duracao_s": 4.0,
+  "regiao_no_jogo": [0.1, 3.45],
+  "trilhas": [
+    {
+      "papel": "sfx_metal",
+      "notas": [
+        [82, 0.1, 0.03, 70],
+        [77, 0.13, 0.03, 50],
+        [84, 3.12, 0.03, 66],
+        [79, 3.145, 0.03, 46]
+      ]
+    },
+    {
+      "papel": "sfx_madeira",
+      "notas": [
+        [60, 0.22, 0.022, 28],
+        [60, 0.247, 0.022, 29],
+        [61, 0.274, 0.022, 29],
+        [62, 0.307, 0.022, 37],
+        [63, 0.329, 0.022, 34],
+        [63, 0.363, 0.022, 36],
+        [65, 0.387, 0.022, 43],
+        [65, 0.416, 0.022, 43],
+        [66, 0.448, 0.022, 41],
+        [66, 0.476, 0.022, 43],
+        [67, 0.5, 0.022, 40],
+        [67, 0.532, 0.022, 41],
+        [66, 0.56, 0.022, 40],
+        [65, 0.583, 0.022, 38],
+        [66, 0.612, 0.022, 34],
+        [65, 0.64, 0.022, 33],
+        [64, 0.671, 0.022, 31],
+        [65, 0.697, 0.022, 30],
+        [64, 0.724, 0.022, 28],
+        [63, 0.751, 0.022, 26],
+        [63, 0.776, 0.022, 26],
+        [66, 2.55, 0.022, 23],
+        [65, 2.577, 0.022, 32],
+        [64, 2.609, 0.022, 27],
+        [65, 2.636, 0.022, 29],
+        [64, 2.662, 0.022, 31],
+        [63, 2.691, 0.022, 38],
+        [63, 2.72, 0.022, 30],
+        [62, 2.745, 0.022, 32],
+        [61, 2.777, 0.022, 30],
+        [61, 2.806, 0.022, 28],
+        [61, 2.831, 0.022, 26],
+        [60, 2.859, 0.022, 20],
+        [47, 3.0, 0.1, 100],
+        [58, 3.05, 0.03, 30]
+      ]
+    },
+    {
+      "papel": "sfx_grave",
+      "notas": [
+        [36, 3.0, 0.15, 84]
+      ]
+    },
+    {
+      "papel": "sfx_ruido",
+      "notas": [
+        [52, 0.3, 0.9, 22]
+      ]
+    }
+  ],
+  "observacoes": "Substituto opcional de som.porta (hoje da biblioteca do Roblox, EFFECTS.porta com region [0.1, 3.45]). Mesma linha do tempo do original para o `region` continuar valendo: maçaneta em 0,1 s, a porta abrindo e rangendo, um sopro de ar, e de 2,55 s a 3,15 s a porta voltando, batendo e o trinco. Só trocar se ficar melhor que o atual.\nNo Live: as mesmas camadas do baú (madeira curta com ressonância, metal curto, grave), a batida mais grave e mais cheia que a do baú. Mono."
+}

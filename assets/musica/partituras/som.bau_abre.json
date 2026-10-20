@@ -1,0 +1,56 @@
+{
+  "chave": "som.bau_abre",
+  "titulo": "Baú abre",
+  "bpm": 60,
+  "compasso": [1, 4],
+  "tom": "sem tom",
+  "compassos": 2,
+  "laco": false,
+  "cauda_s": 0.4,
+  "duracao_s": 2.0,
+  "trilhas": [
+    {
+      "papel": "sfx_metal",
+      "notas": [
+        [84, 0, 0.03, 72],
+        [79, 0.025, 0.03, 50],
+        [91, 0.15, 0.32, 18]
+      ]
+    },
+    {
+      "papel": "sfx_madeira",
+      "notas": [
+        [62, 0.12, 0.022, 34],
+        [63, 0.15, 0.022, 40],
+        [64, 0.178, 0.022, 37],
+        [66, 0.201, 0.022, 44],
+        [67, 0.232, 0.022, 45],
+        [68, 0.26, 0.022, 45],
+        [68, 0.29, 0.022, 53],
+        [70, 0.313, 0.022, 47],
+        [70, 0.34, 0.022, 42],
+        [69, 0.374, 0.022, 39],
+        [68, 0.4, 0.022, 39],
+        [67, 0.431, 0.022, 35],
+        [66, 0.46, 0.022, 36],
+        [65, 0.482, 0.022, 34],
+        [65, 0.511, 0.022, 29],
+        [50, 0.62, 0.08, 66],
+        [58, 0.7, 0.03, 28]
+      ]
+    },
+    {
+      "papel": "percussao_latina",
+      "notas": [
+        [74, 0.12, 0.4, 30]
+      ]
+    },
+    {
+      "papel": "sfx_grave",
+      "notas": [
+        [38, 0.62, 0.1, 44]
+      ]
+    }
+  ],
+  "observacoes": "Baú abrindo: o trinco (dois cliques de metal), a dobradiça rangendo enquanto a tampa sobe (uma rajada de estalinhos de madeira cuja altura sobe e desce, com um guiro longo bem baixo por baixo e um fio de metal agudo), e a tampa batendo para trás (baque de madeira e grave) com uma tremidinha no fim. Uns 0,8 s.\nNo Live: o rangido sai melhor com o sfx_madeira de decay bem curto (20 ms) e um pouco de ressonância (Resonators ou Corpus \"Wood\"); se quiser mais \"nheeec\", trocar o guiro pelo \"Gu-Creaker1\" (Konkrete Breaks) afinado para baixo, em camada. sfx_metal = Operator metálico curto (DS Clang serve). Mono."
+}

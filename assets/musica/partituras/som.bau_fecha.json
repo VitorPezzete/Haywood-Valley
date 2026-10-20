@@ -1,0 +1,48 @@
+{
+  "chave": "som.bau_fecha",
+  "titulo": "Baú fecha",
+  "bpm": 60,
+  "compasso": [1, 4],
+  "tom": "sem tom",
+  "compassos": 1,
+  "laco": false,
+  "cauda_s": 0.4,
+  "duracao_s": 1.0,
+  "trilhas": [
+    {
+      "papel": "sfx_madeira",
+      "notas": [
+        [68, 0.0, 0.022, 27],
+        [67, 0.025, 0.022, 32],
+        [66, 0.059, 0.022, 37],
+        [66, 0.085, 0.022, 42],
+        [64, 0.109, 0.022, 37],
+        [63, 0.144, 0.022, 31],
+        [62, 0.17, 0.022, 26],
+        [48, 0.26, 0.1, 108],
+        [60, 0.31, 0.03, 34],
+        [57, 0.34, 0.03, 24]
+      ]
+    },
+    {
+      "papel": "sfx_grave",
+      "notas": [
+        [36, 0.26, 0.14, 92]
+      ]
+    },
+    {
+      "papel": "percussao_latina",
+      "notas": [
+        [64, 0.26, 0.1, 50]
+      ]
+    },
+    {
+      "papel": "sfx_metal",
+      "notas": [
+        [86, 0.42, 0.03, 70],
+        [81, 0.445, 0.03, 48]
+      ]
+    }
+  ],
+  "observacoes": "Baú fechando: rangido curto descendo, a tampa batendo (madeira forte, grave e conga grave juntos), a tremida da tampa e o trinco no fim. Uns 0,5 s.\nNo Live: o baque precisa de corpo em 100–200 Hz (sfx_grave = \"Low Floor\" ou \"Kick Door\" em camada) e pouco agudo; o trinco é o mesmo metal do abrir. Mono."
+}

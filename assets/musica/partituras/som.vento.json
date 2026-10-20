@@ -1,0 +1,32 @@
+{
+  "chave": "som.vento",
+  "titulo": "Vento",
+  "bpm": 60,
+  "compasso": [4, 4],
+  "tom": "sem tom",
+  "compassos": 8,
+  "laco": true,
+  "cauda_s": 0.0,
+  "duracao_s": 32.0,
+  "modo": "laço de ambiente",
+  "trilhas": [
+    {
+      "papel": "sfx_ruido",
+      "notas": [
+        [43, 0, 32, 46],
+        [55, 0, 32, 30],
+        [61, 1.6, 4.675, 35],
+        [69, 6.043, 5.156, 42],
+        [85, 6.962, 2.378, 20],
+        [60, 9.274, 3.805, 53],
+        [57, 12.759, 3.226, 60],
+        [58, 15.961, 6.42, 56],
+        [67, 19.685, 3.396, 64],
+        [80, 19.868, 2.474, 18],
+        [59, 23.653, 3.104, 40],
+        [68, 27.271, 2.729, 56]
+      ]
+    }
+  ],
+  "observacoes": "Vento de fundo do exterior (AMBIENCE_LAYERS.vento, volume até 0,2). Laço de 32 s sem pulso: uma cama contínua (duas notas longas, grave e média) e rajadas de 3 a 6,5 s em tempos e forças sorteados; dois assobios finos e baixos. Nenhuma rajada perto da emenda (a emenda cai numa calmaria).\nA altura de cada nota no sfx_ruido é o filtro: mais aguda, mais \"assobio\"; mais grave, mais \"sopro\".\nNo Live: Operator \"Wind Machine\" (ou \"S&H Filtered Noise\") com ataque de 1,5 s e release de 2 s, o filtro seguindo a nota (key tracking) e um LFO bem lento no corte; Auto Filter \"Crashing Waves\" depois, misturado pela metade. Opcional: \"Wind Air God.wav\" esticado e filtrado como camada de fundo (nunca sozinho).\nLaço: renderizar duas voltas (64 s) e cortar de 32 s a 64 s, assim a cauda das notas que acabam no fim já está no começo."
+}

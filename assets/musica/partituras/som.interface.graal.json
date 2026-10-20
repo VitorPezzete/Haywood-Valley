@@ -1,0 +1,88 @@
+{
+  "chave": "som.interface.graal",
+  "titulo": "Interface Clássico",
+  "bpm": 60,
+  "compasso": [4, 4],
+  "tom": "sem tom fixo",
+  "compassos": 2,
+  "laco": false,
+  "cauda_s": 0.3,
+  "duracao_s": 8.0,
+  "trechos": [
+    {"nome": "click", "inicio_s": 0.0, "fim_s": 0.13},
+    {"nome": "focus", "inicio_s": 1.0, "fim_s": 1.13},
+    {"nome": "open", "inicio_s": 2.0, "fim_s": 2.38},
+    {"nome": "close", "inicio_s": 3.0, "fim_s": 3.36},
+    {"nome": "change", "inicio_s": 4.0, "fim_s": 4.22},
+    {"nome": "confirm", "inicio_s": 5.0, "fim_s": 5.33},
+    {"nome": "back", "inicio_s": 6.0, "fim_s": 6.24},
+    {"nome": "refused", "inicio_s": 7.0, "fim_s": 7.32}
+  ],
+  "trilhas": [
+    {
+      "papel": "sfx_click",
+      "notas": [
+        [84, 0, 0.03, 76]
+      ]
+    },
+    {
+      "papel": "chip_quadrada",
+      "notas": [
+        [96, 0, 0.02, 34],
+        [72, 2, 0.03, 36],
+        [76, 2.04, 0.03, 36],
+        [79, 2.08, 0.03, 38],
+        [84, 2.12, 0.05, 40],
+        [79, 3, 0.03, 34],
+        [76, 3.04, 0.03, 32],
+        [72, 3.08, 0.03, 32],
+        [67, 3.12, 0.05, 30],
+        [79, 5, 0.06, 60],
+        [84, 5.07, 0.14, 66],
+        [48, 7, 0.07, 70],
+        [48, 7.1, 0.12, 74]
+      ]
+    },
+    {
+      "papel": "chip_triangulo",
+      "notas": [
+        [84, 1, 0.03, 44],
+        [76, 6, 0.05, 56],
+        [72, 6.06, 0.08, 52],
+        [36, 7, 0.07, 60],
+        [36, 7.1, 0.12, 62]
+      ]
+    },
+    {
+      "papel": "glockenspiel",
+      "notas": [
+        [84, 2, 0.1, 70],
+        [88, 2.04, 0.1, 72],
+        [91, 2.08, 0.1, 76],
+        [96, 2.12, 0.16, 80],
+        [91, 3, 0.1, 72],
+        [88, 3.04, 0.1, 68],
+        [84, 3.08, 0.1, 66],
+        [79, 3.12, 0.14, 62],
+        [91, 5, 0.08, 64],
+        [96, 5.07, 0.16, 74]
+      ]
+    },
+    {
+      "papel": "crotales",
+      "notas": [
+        [88, 4, 0.12, 62]
+      ]
+    },
+    {
+      "papel": "sfx_sino",
+      "notas": [
+        [95, 4, 0.08, 40],
+        [84, 6, 0.06, 30],
+        [60, 7, 0.12, 40],
+        [66, 7, 0.12, 34]
+      ]
+    }
+  ],
+  "observacoes": "Kit do tema Clássico (o Graal; no jogo não aparece esse nome): RPG antigo, sinos e cristal, chip discreto. Oito sons num arquivo, um por segundo; `trechos` dá o `region` de cada um (UI_SOUNDS.graal em shared/sounds.ts).\nIdeia de cada um: click = estalo curto com um fio de quadrada; focus = um \"tic\" de triângulo (volume 0,3); open = varredura de sinos subindo, quadrada uma oitava abaixo; close = descendo; change = crotales (o cristal); confirm = quarta subindo em quadrada e glockenspiel, o \"plim-plim\" clássico; back = duas notas de triângulo descendo; refused = zumbido grave repetido com sino em trítono (\"não\").\nNo Live: chip_quadrada = Operator \"Square 8 Waveforms\" ou Drift \"Game Console\" com o Redux \"Chiptune Filter\" bem leve; chip_triangulo = Operator triângulo; glockenspiel e crotales dos Orchestral Mallets (ou Collision \"Glockenspiel Basic\", sem sample); sfx_sino = \"Bells Tinkle Toy\" (Operator); sfx_click = Designer Drums. A quadrada nunca na frente: é tempero. Release curto (até 100 ms nos sinos); fade de 5 ms no fim de cada trecho."
+}

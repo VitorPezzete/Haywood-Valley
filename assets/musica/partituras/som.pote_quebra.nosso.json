@@ -1,0 +1,77 @@
+{
+  "chave": "som.pote_quebra.nosso",
+  "titulo": "Pote quebra (nosso)",
+  "bpm": 60,
+  "compasso": [1, 4],
+  "tom": "sem tom",
+  "compassos": 3,
+  "laco": false,
+  "cauda_s": 0.4,
+  "duracao_s": 3.0,
+  "regiao_no_jogo": [0.1, 2.6],
+  "trilhas": [
+    {
+      "papel": "sfx_grave",
+      "notas": [
+        [40, 0.1, 0.12, 100]
+      ]
+    },
+    {
+      "papel": "sfx_madeira",
+      "notas": [
+        [55, 0.1, 0.05, 90]
+      ]
+    },
+    {
+      "papel": "sfx_ruido",
+      "notas": [
+        [70, 0.1, 0.25, 70]
+      ]
+    },
+    {
+      "papel": "sfx_sino",
+      "notas": [
+        [97, 0.101, 0.034, 48],
+        [93, 0.11, 0.04, 53],
+        [84, 0.114, 0.05, 54],
+        [97, 0.115, 0.073, 41],
+        [87, 0.122, 0.039, 47],
+        [92, 0.184, 0.078, 62],
+        [88, 0.189, 0.045, 49],
+        [100, 0.264, 0.078, 72],
+        [86, 0.271, 0.061, 78],
+        [84, 0.276, 0.053, 72],
+        [98, 0.299, 0.051, 41],
+        [90, 0.3, 0.038, 65]
+      ]
+    },
+    {
+      "papel": "sfx_click",
+      "notas": [
+        [92, 0.181, 0.02, 72],
+        [90, 0.225, 0.02, 70],
+        [83, 0.248, 0.02, 65],
+        [72, 0.299, 0.02, 62],
+        [95, 0.34, 0.02, 58],
+        [84, 0.412, 0.02, 55],
+        [84, 0.477, 0.02, 61],
+        [74, 0.557, 0.02, 58],
+        [90, 0.628, 0.02, 50],
+        [80, 0.739, 0.02, 43],
+        [94, 0.844, 0.02, 52],
+        [79, 0.916, 0.02, 39],
+        [91, 1.012, 0.02, 39],
+        [90, 1.129, 0.02, 38],
+        [91, 1.228, 0.02, 38],
+        [86, 1.337, 0.02, 33],
+        [82, 1.445, 0.02, 28],
+        [77, 1.568, 0.02, 32],
+        [94, 1.695, 0.02, 25],
+        [77, 1.832, 0.02, 26],
+        [84, 1.972, 0.02, 25],
+        [85, 2.114, 0.02, 21]
+      ]
+    }
+  ],
+  "observacoes": "Substituto opcional de som.pote_quebra (EFFECTS.poteQuebra, region [0.1, 2.6]): o impacto em 0,1 s (grave, corpo de barro e um estouro de ruído), cacos de cerâmica agudos nos primeiros 0,4 s, e os pedacinhos caindo e quicando cada vez mais espaçados e baixos até 2,1 s.\nNo Live: sfx_sino = sino curto e inarmônico (Collision ou \"Ceramic Tiles.adg\" do Sound Objects Lite); sfx_click = cliques de 20 ms com afinação aleatória. Mono."
+}

@@ -1,0 +1,60 @@
+{
+  "chave": "som.passo_pedra",
+  "titulo": "Passo na pedra",
+  "bpm": 60,
+  "compasso": [1, 4],
+  "tom": "sem tom",
+  "compassos": 4,
+  "laco": false,
+  "cauda_s": 0.1,
+  "duracao_s": 4.0,
+  "trechos": [
+    {"nome": "passo_1", "inicio_s": 0.0, "fim_s": 0.145},
+    {"nome": "passo_2", "inicio_s": 1.0, "fim_s": 1.145},
+    {"nome": "passo_3", "inicio_s": 2.0, "fim_s": 2.145},
+    {"nome": "passo_4", "inicio_s": 3.0, "fim_s": 3.145}
+  ],
+  "trilhas": [
+    {
+      "papel": "percussao_latina",
+      "notas": [
+        [75, 0.0, 0.03, 34],
+        [75, 1.0, 0.03, 35],
+        [75, 2.0, 0.03, 36],
+        [75, 3.0, 0.03, 37]
+      ]
+    },
+    {
+      "papel": "sfx_ruido",
+      "notas": [
+        [62, 0.0, 0.06, 56],
+        [66, 0.025, 0.04, 40],
+        [64, 1.0, 0.06, 50],
+        [68, 1.025, 0.04, 34],
+        [60, 2.0, 0.06, 60],
+        [64, 2.025, 0.04, 44],
+        [63, 3.0, 0.06, 54],
+        [67, 3.025, 0.04, 38]
+      ]
+    },
+    {
+      "papel": "sfx_click",
+      "notas": [
+        [70, 0.0, 0.02, 38],
+        [71, 1.0, 0.02, 38],
+        [72, 2.0, 0.02, 38],
+        [73, 3.0, 0.02, 38]
+      ]
+    },
+    {
+      "papel": "sfx_grave",
+      "notas": [
+        [38, 0.0, 0.05, 40],
+        [39, 1.0, 0.05, 40],
+        [37, 2.0, 0.05, 40],
+        [38, 3.0, 0.05, 40]
+      ]
+    }
+  ],
+  "observacoes": "Passo na pedra (caminho, castelo). Quatro variações em trechos. Toque duro e seco (claves baixas e um clique), o \"crec\" do cascalho em duas rajadas de ruído curtas, e um corpo grave pequeno.\nNo Live: sfx_ruido com ataque zero e decay de 50 ms, um pouco de distorção (Roar ou Saturator) para virar pedrisco; \"Grainy Sand.aif\" recortado (100 ms) em camada ajuda; sfx_grave = \"Kick Dark Stone\" bem baixo. Mono, sem reverb."
+}

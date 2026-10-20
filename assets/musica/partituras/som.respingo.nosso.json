@@ -1,0 +1,40 @@
+{
+  "chave": "som.respingo.nosso",
+  "titulo": "Respingo (nosso)",
+  "bpm": 60,
+  "compasso": [1, 4],
+  "tom": "sem tom",
+  "compassos": 2,
+  "laco": false,
+  "cauda_s": 0.2,
+  "duracao_s": 2.0,
+  "regiao_no_jogo": [0, 1.1],
+  "trilhas": [
+    {
+      "papel": "sfx_ruido",
+      "notas": [
+        [72, 0, 0.35, 76],
+        [60, 0.02, 0.25, 50]
+      ]
+    },
+    {
+      "papel": "sfx_bolha",
+      "notas": [
+        [60, 0.0, 0.05, 60],
+        [64, 0.02, 0.05, 57],
+        [68, 0.04, 0.05, 54],
+        [72, 0.06, 0.05, 51],
+        [76, 0.08, 0.05, 48],
+        [80, 0.1, 0.05, 45],
+        [95, 0.442, 0.04, 36],
+        [89, 0.511, 0.04, 57],
+        [90, 0.63, 0.04, 45],
+        [84, 0.684, 0.04, 60],
+        [96, 0.782, 0.04, 44],
+        [89, 0.827, 0.04, 50],
+        [85, 0.834, 0.04, 44]
+      ]
+    }
+  ],
+  "observacoes": "Substituto opcional de som.respingo (EFFECTS.respingo, region [0, 1.1]): o \"tchá\" (ruído agudo e médio), uma escadinha de bolhas subindo e gotas caindo até 1 s.\nNo Live: sfx_bolha = seno com queda rápida de afinação (Operator, pitch envelope de +12 a 0 em 30 ms) — é o \"plic\" de gota; sfx_ruido com passa-banda e envelope de 300 ms. Mono."
+}

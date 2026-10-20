@@ -1,0 +1,1357 @@
+{
+ "gerado_em": "2026-10-20",
+ "live": "Ableton Live 12 Suite 12.2.1",
+ "como_ler": [
+  "Cada papel tem uma ou mais camadas; cada camada vira uma trilha MIDI do Live chamada '<papel>' (uma camada) ou '<papel>:<nome>'.",
+  "uri: o endereço no navegador do Live (FileId muda se o banco do navegador for refeito); caminho: o mesmo item pelo navegador, usado quando a uri não acha nada.",
+  "efeitos: carregados depois do instrumento, na ordem; parametros pelo nome do parâmetro, em valor do Live (Dry/Wet de 0 a 1).",
+  "ganho_db: entra como 'Output Gain' de um EQ Eight no fim da cadeia (de -12 a +12 dB); é o volume relativo do papel (palpite, a conferir de ouvido).",
+  "notas [min, max]: a camada só recebe as notas desse intervalo. traducao {nota da partitura: nota do kit}: a camada só recebe essas notas, já traduzidas; nota fora da tabela é descartada e o montador avisa.",
+  "Sem notas nem traducao: a camada recebe tudo, na altura escrita."
+ ],
+ "papeis": {
+  "piano": {
+   "descricao": "Piano de cauda (e-instruments, afinação igual, timbre normal).",
+   "camadas": [
+    {
+     "preset": "Grand Piano Equal Solo.adg",
+     "caminho": "sounds/Piano & Keys/Grand Piano Equal Solo.adg",
+     "uri": "query:Sounds#Piano%20&%20Keys:FileId_10926",
+     "origem": "Grand Piano (e-instruments)",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Reverb/Room/Wooden Room.adv",
+       "parametros": {
+        "Dry/Wet": 0.18
+       },
+       "uri": "query:AudioFx#Reverb:Room:FileId_7501"
+      }
+     ],
+     "ganho_db": 0.0
+    }
+   ]
+  },
+  "piano_suave": {
+   "descricao": "Piano de cauda Mellow (macio, para sala e noite).",
+   "camadas": [
+    {
+     "preset": "Grand Piano Equal Mellow Solo.adg",
+     "caminho": "sounds/Piano & Keys/Grand Piano Equal Mellow Solo.adg",
+     "uri": "query:Sounds#Piano%20&%20Keys:FileId_10925",
+     "origem": "Grand Piano (e-instruments)",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Reverb/Room/Wooden Room.adv",
+       "parametros": {
+        "Dry/Wet": 0.24
+       },
+       "uri": "query:AudioFx#Reverb:Room:FileId_7501"
+      }
+     ],
+     "ganho_db": 0.0
+    }
+   ]
+  },
+  "celesta": {
+   "descricao": "Celesta amostrada (uma amostra esticada pela extensão; soa melhor de C4 a C7).",
+   "camadas": [
+    {
+     "preset": "Celeste.adg",
+     "caminho": "sounds/Mallets/Celeste.adg",
+     "uri": "query:Sounds#Mallets:FileId_5006",
+     "origem": "Core Library",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Reverb/Hall/Medium Concert.adv",
+       "parametros": {
+        "Dry/Wet": 0.25
+       },
+       "uri": "query:AudioFx#Reverb:Hall:FileId_7519"
+      }
+     ],
+     "ganho_db": -2
+    }
+   ]
+  },
+  "caixinha_de_musica": {
+   "descricao": "Caixinha de música amostrada.",
+   "camadas": [
+    {
+     "preset": "Music Box.adg",
+     "caminho": "sounds/Piano & Keys/Music Box.adg",
+     "uri": "query:Sounds#Piano%20&%20Keys:FileId_4858",
+     "origem": "Core Library",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Reverb/Room/Wooden Room.adv",
+       "parametros": {
+        "Dry/Wet": 0.25
+       },
+       "uri": "query:AudioFx#Reverb:Room:FileId_7501"
+      }
+     ],
+     "ganho_db": -2
+    }
+   ]
+  },
+  "harpa": {
+   "descricao": "Harpa de concerto amostrada.",
+   "camadas": [
+    {
+     "preset": "Harp Concert.adg",
+     "caminho": "sounds/Guitar & Plucked/Harp Concert.adg",
+     "uri": "query:Sounds#Guitar%20&%20Plucked:FileId_5055",
+     "origem": "Core Library",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Reverb/Hall/Medium Concert.adv",
+       "parametros": {
+        "Dry/Wet": 0.22
+       },
+       "uri": "query:AudioFx#Reverb:Hall:FileId_7519"
+      }
+     ],
+     "ganho_db": 0.0
+    }
+   ]
+  },
+  "violao": {
+   "descricao": "Violão de nylon por modelo físico (Tension, sem amostra).",
+   "camadas": [
+    {
+     "preset": "Nylon Basic Guitar.adv",
+     "caminho": "sounds/Guitar & Plucked/Nylon Basic Guitar.adv",
+     "uri": "query:Sounds#Guitar%20&%20Plucked:FileId_6413",
+     "origem": "Core Library (Tension)",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Reverb/Room/Wooden Room.adv",
+       "parametros": {
+        "Dry/Wet": 0.15
+       },
+       "uri": "query:AudioFx#Reverb:Room:FileId_7501"
+      }
+     ],
+     "ganho_db": 0.0
+    }
+   ]
+  },
+  "guitarra_limpa": {
+   "descricao": "Guitarra elétrica limpa multiamostrada.",
+   "camadas": [
+    {
+     "preset": "Guitar.adg",
+     "caminho": "sounds/Guitar & Plucked/Guitar.adg",
+     "uri": "query:Sounds#Guitar%20&%20Plucked:FileId_11113",
+     "origem": "Guitar and Bass",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Reverb/Room/Wooden Room.adv",
+       "parametros": {
+        "Dry/Wet": 0.12
+       },
+       "uri": "query:AudioFx#Reverb:Room:FileId_7501"
+      }
+     ],
+     "ganho_db": -2
+    }
+   ]
+  },
+  "guitarra_distorcida": {
+   "descricao": "Guitarra com dois amplificadores, distorção pesada (abertura de anime).",
+   "camadas": [
+    {
+     "preset": "Guitar-Dual Amped Heavy.adg",
+     "caminho": "sounds/Guitar & Plucked/Guitar-Dual Amped Heavy.adg",
+     "uri": "query:Sounds#Guitar%20&%20Plucked:FileId_11102",
+     "origem": "Guitar and Bass",
+     "efeitos": [],
+     "ganho_db": -4
+    }
+   ]
+  },
+  "baixo_eletrico": {
+   "descricao": "Baixo elétrico multiamostrado (dedo).",
+   "camadas": [
+    {
+     "preset": "Electric Bass.adg",
+     "caminho": "sounds/Bass/Electric Bass.adg",
+     "uri": "query:Sounds#Bass:FileId_11097",
+     "origem": "Guitar and Bass",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Glue Compressor/Bass - Punch.adv",
+       "parametros": {},
+       "uri": "query:AudioFx#Glue%20Compressor:FileId_7799"
+      }
+     ],
+     "ganho_db": -1
+    }
+   ]
+  },
+  "koto": {
+   "descricao": "Koto por modelo físico (Tension). Não há koto amostrado instalado.",
+   "camadas": [
+    {
+     "preset": "Koto.adv",
+     "caminho": "sounds/Guitar & Plucked/Koto.adv",
+     "uri": "query:Sounds#Guitar%20&%20Plucked:FileId_6407",
+     "origem": "Core Library (Tension)",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Reverb/Hall/Medium Concert.adv",
+       "parametros": {
+        "Dry/Wet": 0.22
+       },
+       "uri": "query:AudioFx#Reverb:Hall:FileId_7519"
+      }
+     ],
+     "ganho_db": 0.0
+    }
+   ]
+  },
+  "cordas_legato": {
+   "descricao": "Naipe de cordas, legato.",
+   "camadas": [
+    {
+     "preset": "Strings Ensemble Legato.adg",
+     "caminho": "sounds/Orchestral/Strings Ensemble Legato.adg",
+     "uri": "query:Sounds#Orchestral:FileId_21618",
+     "origem": "Orchestral Strings",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Reverb/Hall/Medium Concert.adv",
+       "parametros": {
+        "Dry/Wet": 0.22
+       },
+       "uri": "query:AudioFx#Reverb:Hall:FileId_7519"
+      }
+     ],
+     "ganho_db": -2
+    }
+   ]
+  },
+  "cordas_staccato": {
+   "descricao": "Naipe de cordas, staccato.",
+   "camadas": [
+    {
+     "preset": "Strings Ensemble Staccato.adg",
+     "caminho": "sounds/Orchestral/Strings Ensemble Staccato.adg",
+     "uri": "query:Sounds#Orchestral:FileId_21620",
+     "origem": "Orchestral Strings",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Reverb/Hall/Medium Concert.adv",
+       "parametros": {
+        "Dry/Wet": 0.2
+       },
+       "uri": "query:AudioFx#Reverb:Hall:FileId_7519"
+      }
+     ],
+     "ganho_db": -2
+    }
+   ]
+  },
+  "cordas_pizzicato": {
+   "descricao": "Naipe de cordas, pizzicato (também serve de baixo em pizzicato).",
+   "camadas": [
+    {
+     "preset": "Strings Ensemble Pizzicato.adg",
+     "caminho": "sounds/Orchestral/Strings Ensemble Pizzicato.adg",
+     "uri": "query:Sounds#Orchestral:FileId_21619",
+     "origem": "Orchestral Strings",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Reverb/Hall/Medium Concert.adv",
+       "parametros": {
+        "Dry/Wet": 0.2
+       },
+       "uri": "query:AudioFx#Reverb:Hall:FileId_7519"
+      }
+     ],
+     "ganho_db": 0.0
+    }
+   ]
+  },
+  "violoncelo": {
+   "descricao": "Violoncelo solo, legato.",
+   "camadas": [
+    {
+     "preset": "Cello Solo Legato.adg",
+     "caminho": "sounds/Orchestral/Cello Solo Legato.adg",
+     "uri": "query:Sounds#Orchestral:FileId_21606",
+     "origem": "Orchestral Strings",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Reverb/Hall/Medium Concert.adv",
+       "parametros": {
+        "Dry/Wet": 0.2
+       },
+       "uri": "query:AudioFx#Reverb:Hall:FileId_7519"
+      }
+     ],
+     "ganho_db": 0.0
+    }
+   ]
+  },
+  "contrabaixo": {
+   "descricao": "Naipe de contrabaixos, legato (para pizzicato, use cordas_pizzicato na região grave).",
+   "camadas": [
+    {
+     "preset": "Double Bass Section Legato.adg",
+     "caminho": "sounds/Orchestral/Double Bass Section Legato.adg",
+     "uri": "query:Sounds#Orchestral:FileId_21610",
+     "origem": "Orchestral Strings",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Reverb/Hall/Medium Concert.adv",
+       "parametros": {
+        "Dry/Wet": 0.15
+       },
+       "uri": "query:AudioFx#Reverb:Hall:FileId_7519"
+      }
+     ],
+     "ganho_db": 0.0
+    }
+   ]
+  },
+  "metais": {
+   "descricao": "Naipe de metais, legato.",
+   "camadas": [
+    {
+     "preset": "Brass Ensemble Legato.adg",
+     "caminho": "sounds/Orchestral/Brass Ensemble Legato.adg",
+     "uri": "query:Sounds#Orchestral:FileId_21449",
+     "origem": "Orchestral Brass",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Reverb/Hall/Medium Concert.adv",
+       "parametros": {
+        "Dry/Wet": 0.2
+       },
+       "uri": "query:AudioFx#Reverb:Hall:FileId_7519"
+      }
+     ],
+     "ganho_db": -3
+    }
+   ]
+  },
+  "trompa": {
+   "descricao": "Trompa solo, legato.",
+   "camadas": [
+    {
+     "preset": "French Horn Solo Legato.adg",
+     "caminho": "sounds/Orchestral/French Horn Solo Legato.adg",
+     "uri": "query:Sounds#Orchestral:FileId_21459",
+     "origem": "Orchestral Brass",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Reverb/Hall/Medium Concert.adv",
+       "parametros": {
+        "Dry/Wet": 0.22
+       },
+       "uri": "query:AudioFx#Reverb:Hall:FileId_7519"
+      }
+     ],
+     "ganho_db": -1
+    }
+   ]
+  },
+  "trompete": {
+   "descricao": "Trompete solo, legato.",
+   "camadas": [
+    {
+     "preset": "Trumpet Solo Legato.adg",
+     "caminho": "sounds/Orchestral/Trumpet Solo Legato.adg",
+     "uri": "query:Sounds#Orchestral:FileId_21472",
+     "origem": "Orchestral Brass",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Reverb/Hall/Medium Concert.adv",
+       "parametros": {
+        "Dry/Wet": 0.2
+       },
+       "uri": "query:AudioFx#Reverb:Hall:FileId_7519"
+      }
+     ],
+     "ganho_db": -2
+    }
+   ]
+  },
+  "trombone": {
+   "descricao": "Naipe de trombones, legato (não há trombone solo; há trombone baixo solo).",
+   "camadas": [
+    {
+     "preset": "Trombone Section Legato.adg",
+     "caminho": "sounds/Orchestral/Trombone Section Legato.adg",
+     "uri": "query:Sounds#Orchestral:FileId_21462",
+     "origem": "Orchestral Brass",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Reverb/Hall/Medium Concert.adv",
+       "parametros": {
+        "Dry/Wet": 0.2
+       },
+       "uri": "query:AudioFx#Reverb:Hall:FileId_7519"
+      }
+     ],
+     "ganho_db": -2
+    }
+   ]
+  },
+  "flauta": {
+   "descricao": "Flauta solo, legato com vibrato.",
+   "camadas": [
+    {
+     "preset": "Concert Flute Solo Legato Vibrato.adg",
+     "caminho": "sounds/Orchestral/Concert Flute Solo Legato Vibrato.adg",
+     "uri": "query:Sounds#Orchestral:FileId_21752",
+     "origem": "Orchestral Woodwinds",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Reverb/Hall/Medium Concert.adv",
+       "parametros": {
+        "Dry/Wet": 0.22
+       },
+       "uri": "query:AudioFx#Reverb:Hall:FileId_7519"
+      }
+     ],
+     "ganho_db": 0.0
+    }
+   ]
+  },
+  "flautim": {
+   "descricao": "Flautim solo, legato com vibrato.",
+   "camadas": [
+    {
+     "preset": "Piccolo Solo Legato Vibrato.adg",
+     "caminho": "sounds/Orchestral/Piccolo Solo Legato Vibrato.adg",
+     "uri": "query:Sounds#Orchestral:FileId_21777",
+     "origem": "Orchestral Woodwinds",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Reverb/Hall/Medium Concert.adv",
+       "parametros": {
+        "Dry/Wet": 0.22
+       },
+       "uri": "query:AudioFx#Reverb:Hall:FileId_7519"
+      }
+     ],
+     "ganho_db": -3
+    }
+   ]
+  },
+  "oboe": {
+   "descricao": "Oboé solo, legato com vibrato.",
+   "camadas": [
+    {
+     "preset": "Oboe Solo Legato Vibrato.adg",
+     "caminho": "sounds/Orchestral/Oboe Solo Legato Vibrato.adg",
+     "uri": "query:Sounds#Orchestral:FileId_21769",
+     "origem": "Orchestral Woodwinds",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Reverb/Hall/Medium Concert.adv",
+       "parametros": {
+        "Dry/Wet": 0.22
+       },
+       "uri": "query:AudioFx#Reverb:Hall:FileId_7519"
+      }
+     ],
+     "ganho_db": 0.0
+    }
+   ]
+  },
+  "clarinete": {
+   "descricao": "Clarinete em Si bemol solo, legato com vibrato.",
+   "camadas": [
+    {
+     "preset": "Bb Clarinet Solo Legato Vibrato.adg",
+     "caminho": "sounds/Orchestral/Bb Clarinet Solo Legato Vibrato.adg",
+     "uri": "query:Sounds#Orchestral:FileId_21739",
+     "origem": "Orchestral Woodwinds",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Reverb/Hall/Medium Concert.adv",
+       "parametros": {
+        "Dry/Wet": 0.22
+       },
+       "uri": "query:AudioFx#Reverb:Hall:FileId_7519"
+      }
+     ],
+     "ganho_db": 0.0
+    }
+   ]
+  },
+  "fagote": {
+   "descricao": "Fagote solo, legato.",
+   "camadas": [
+    {
+     "preset": "Bassoon Solo Legato.adg",
+     "caminho": "sounds/Orchestral/Bassoon Solo Legato.adg",
+     "uri": "query:Sounds#Orchestral:FileId_21732",
+     "origem": "Orchestral Woodwinds",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Reverb/Hall/Medium Concert.adv",
+       "parametros": {
+        "Dry/Wet": 0.2
+       },
+       "uri": "query:AudioFx#Reverb:Hall:FileId_7519"
+      }
+     ],
+     "ganho_db": 0.0
+    }
+   ]
+  },
+  "shakuhachi": {
+   "descricao": "Não há shakuhachi: flauta indiana amostrada (bansuri, soprosa) com reverb grande. Alternativa: Alto Flute Solo Legato (Orchestral Woodwinds).",
+   "camadas": [
+    {
+     "preset": "Indian Flute.adg",
+     "caminho": "sounds/Winds/Indian Flute.adg",
+     "uri": "query:Sounds#Winds:FileId_4516",
+     "origem": "Core Library",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Reverb/Hall/Concert Hall.adv",
+       "parametros": {
+        "Dry/Wet": 0.28
+       },
+       "uri": "query:AudioFx#Reverb:Hall:FileId_7507"
+      }
+     ],
+     "ganho_db": 0.0
+    }
+   ]
+  },
+  "glockenspiel": {
+   "descricao": "Glockenspiel.",
+   "camadas": [
+    {
+     "preset": "Glockenspiel.adg",
+     "caminho": "sounds/Orchestral/Glockenspiel.adg",
+     "uri": "query:Sounds#Orchestral:FileId_21535",
+     "origem": "Orchestral Mallets",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Reverb/Hall/Medium Concert.adv",
+       "parametros": {
+        "Dry/Wet": 0.22
+       },
+       "uri": "query:AudioFx#Reverb:Hall:FileId_7519"
+      }
+     ],
+     "ganho_db": -3
+    }
+   ]
+  },
+  "marimba": {
+   "descricao": "Marimba.",
+   "camadas": [
+    {
+     "preset": "Marimba.adg",
+     "caminho": "sounds/Orchestral/Marimba.adg",
+     "uri": "query:Sounds#Orchestral:FileId_21539",
+     "origem": "Orchestral Mallets",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Reverb/Hall/Medium Concert.adv",
+       "parametros": {
+        "Dry/Wet": 0.18
+       },
+       "uri": "query:AudioFx#Reverb:Hall:FileId_7519"
+      }
+     ],
+     "ganho_db": 0.0
+    }
+   ]
+  },
+  "vibrafone": {
+   "descricao": "Vibrafone.",
+   "camadas": [
+    {
+     "preset": "Vibraphone.adg",
+     "caminho": "sounds/Orchestral/Vibraphone.adg",
+     "uri": "query:Sounds#Orchestral:FileId_21547",
+     "origem": "Orchestral Mallets",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Reverb/Hall/Medium Concert.adv",
+       "parametros": {
+        "Dry/Wet": 0.2
+       },
+       "uri": "query:AudioFx#Reverb:Hall:FileId_7519"
+      }
+     ],
+     "ganho_db": -1
+    }
+   ]
+  },
+  "xilofone": {
+   "descricao": "Xilofone.",
+   "camadas": [
+    {
+     "preset": "Xylophone.adg",
+     "caminho": "sounds/Orchestral/Xylophone.adg",
+     "uri": "query:Sounds#Orchestral:FileId_21550",
+     "origem": "Orchestral Mallets",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Reverb/Hall/Medium Concert.adv",
+       "parametros": {
+        "Dry/Wet": 0.18
+       },
+       "uri": "query:AudioFx#Reverb:Hall:FileId_7519"
+      }
+     ],
+     "ganho_db": -2
+    }
+   ]
+  },
+  "sinos_tubulares": {
+   "descricao": "Sinos tubulares (uma amostra esticada).",
+   "camadas": [
+    {
+     "preset": "Tubular Bells.adg",
+     "caminho": "sounds/Orchestral/Tubular Bells.adg",
+     "uri": "query:Sounds#Orchestral:FileId_21544",
+     "origem": "Orchestral Mallets",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Reverb/Hall/Concert Hall.adv",
+       "parametros": {
+        "Dry/Wet": 0.25
+       },
+       "uri": "query:AudioFx#Reverb:Hall:FileId_7507"
+      }
+     ],
+     "ganho_db": -3
+    }
+   ]
+  },
+  "crotales": {
+   "descricao": "Crotales.",
+   "camadas": [
+    {
+     "preset": "Crotales.adg",
+     "caminho": "sounds/Orchestral/Crotales.adg",
+     "uri": "query:Sounds#Orchestral:FileId_21531",
+     "origem": "Orchestral Mallets",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Reverb/Hall/Medium Concert.adv",
+       "parametros": {
+        "Dry/Wet": 0.22
+       },
+       "uri": "query:AudioFx#Reverb:Hall:FileId_7519"
+      }
+     ],
+     "ganho_db": -4
+    }
+   ]
+  },
+  "bateria_rock": {
+   "descricao": "Bateria acústica de estúdio (Kit-BigPunchy, Session Drums Club), mapa GM traduzido. 39 (palma) vira aro; 48 e 50 viram o tom de 10\"; 58 não existe.",
+   "camadas": [
+    {
+     "preset": "Kit-BigPunchy.adg",
+     "caminho": "drums/Kit-BigPunchy.adg",
+     "uri": "query:Drums#FileId_23186",
+     "origem": "Session Drums Club",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Glue Compressor/Drum - Gentle Two Buss.adv",
+       "parametros": {},
+       "uri": "query:AudioFx#Glue%20Compressor:FileId_7802"
+      },
+      {
+       "caminho": "audio_effects/Reverb/Room/Drums Room.adv",
+       "parametros": {
+        "Dry/Wet": 0.12
+       },
+       "uri": "query:AudioFx#Reverb:Room:FileId_7479"
+      }
+     ],
+     "ganho_db": -2,
+     "traducao": {
+      "35": 36,
+      "36": 36,
+      "37": 37,
+      "38": 38,
+      "39": 37,
+      "40": 40,
+      "41": 41,
+      "42": 42,
+      "43": 43,
+      "44": 44,
+      "45": 45,
+      "46": 46,
+      "47": 47,
+      "48": 47,
+      "49": 49,
+      "50": 47,
+      "51": 51,
+      "52": 66,
+      "53": 62,
+      "54": 48,
+      "55": 64,
+      "56": 39,
+      "57": 67,
+      "59": 63
+     }
+    }
+   ]
+  },
+  "bateria_leve": {
+   "descricao": "Bateria com vassourinha (Kit-BrushSizzle, Session Drums Club), mapa GM traduzido. 54 (pandeirola) não existe nesse kit.",
+   "camadas": [
+    {
+     "preset": "Kit-BrushSizzle.adg",
+     "caminho": "drums/Kit-BrushSizzle.adg",
+     "uri": "query:Drums#FileId_23188",
+     "origem": "Session Drums Club",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Reverb/Room/Wooden Room.adv",
+       "parametros": {
+        "Dry/Wet": 0.18
+       },
+       "uri": "query:AudioFx#Reverb:Room:FileId_7501"
+      }
+     ],
+     "ganho_db": -2,
+     "traducao": {
+      "35": 36,
+      "36": 36,
+      "37": 37,
+      "38": 38,
+      "39": 37,
+      "40": 40,
+      "41": 41,
+      "42": 42,
+      "43": 43,
+      "44": 44,
+      "45": 45,
+      "46": 46,
+      "47": 47,
+      "48": 48,
+      "49": 49,
+      "50": 48,
+      "51": 51,
+      "52": 66,
+      "53": 62,
+      "55": 64,
+      "56": 39,
+      "57": 67,
+      "59": 63
+     }
+    }
+   ]
+  },
+  "percussao_latina": {
+   "descricao": "Percussão latina no mapa GM (60-81 e 54/56/58), repartida em cinco kits do Latin Percussion e da Core Library.",
+   "camadas": [
+    {
+     "preset": "Latin Pop.adg",
+     "caminho": "drums/Latin Pop.adg",
+     "uri": "query:Drums#FileId_13579",
+     "origem": "Latin Percussion",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Reverb/Room/Wooden Room.adv",
+       "parametros": {
+        "Dry/Wet": 0.15
+       },
+       "uri": "query:AudioFx#Reverb:Room:FileId_7501"
+      }
+     ],
+     "ganho_db": -2,
+     "nome": "congas",
+     "traducao": {
+      "60": 44,
+      "61": 42,
+      "62": 39,
+      "63": 38,
+      "64": 36,
+      "69": 50,
+      "71": 51,
+      "72": 51
+     }
+    },
+    {
+     "preset": "Timbales A.adg",
+     "caminho": "drums/Timbales A.adg",
+     "uri": "query:Drums#FileId_13942",
+     "origem": "Latin Percussion",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Reverb/Room/Wooden Room.adv",
+       "parametros": {
+        "Dry/Wet": 0.15
+       },
+       "uri": "query:AudioFx#Reverb:Room:FileId_7501"
+      }
+     ],
+     "ganho_db": -3,
+     "nome": "timbales",
+     "traducao": {
+      "65": 44,
+      "66": 36
+     }
+    },
+    {
+     "preset": "Bells & Triangle.adg",
+     "caminho": "drums/Bells & Triangle.adg",
+     "uri": "query:Drums#FileId_13929",
+     "origem": "Latin Percussion",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Reverb/Room/Wooden Room.adv",
+       "parametros": {
+        "Dry/Wet": 0.15
+       },
+       "uri": "query:AudioFx#Reverb:Room:FileId_7501"
+      }
+     ],
+     "ganho_db": -4,
+     "nome": "sinos",
+     "traducao": {
+      "56": 39,
+      "67": 41,
+      "68": 40,
+      "80": 44,
+      "81": 45
+     }
+    },
+    {
+     "preset": "Wood A.adg",
+     "caminho": "drums/Wood A.adg",
+     "uri": "query:Drums#FileId_13945",
+     "origem": "Latin Percussion",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Reverb/Room/Wooden Room.adv",
+       "parametros": {
+        "Dry/Wet": 0.15
+       },
+       "uri": "query:AudioFx#Reverb:Room:FileId_7501"
+      }
+     ],
+     "ganho_db": -3,
+     "nome": "madeiras",
+     "traducao": {
+      "75": 36,
+      "76": 48,
+      "77": 46
+     }
+    },
+    {
+     "preset": "Percussion Core Kit.adg",
+     "caminho": "drums/Percussion Core Kit.adg",
+     "uri": "query:Drums#FileId_5420",
+     "origem": "Core Library",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Reverb/Room/Wooden Room.adv",
+       "parametros": {
+        "Dry/Wet": 0.15
+       },
+       "uri": "query:AudioFx#Reverb:Room:FileId_7501"
+      }
+     ],
+     "ganho_db": -3,
+     "nome": "chocalhos",
+     "traducao": {
+      "54": 48,
+      "58": 50,
+      "70": 41,
+      "73": 42,
+      "74": 42,
+      "82": 41,
+      "84": 51
+     },
+     "obs": "73/74 (guiro) viram cabasa curta; não há guiro neste kit."
+    }
+   ]
+  },
+  "taiko": {
+   "descricao": "Não há taiko instalado. Corpo: surdo (Latin Percussion) por altura (36-40 aberto, 41-44 abafado, 45-47 dedo, 48 aro); por baixo, tímpano afinado na própria nota, mais baixo. Saturação leve e salão grande.",
+   "camadas": [
+    {
+     "preset": "Surdo Cuica Whistle Snap.adg",
+     "caminho": "drums/Surdo Cuica Whistle Snap.adg",
+     "uri": "query:Drums#FileId_13940",
+     "origem": "Latin Percussion",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Saturator/A Bit Warmer.adv",
+       "parametros": {},
+       "uri": "query:AudioFx#Saturator:FileId_7361"
+      },
+      {
+       "caminho": "audio_effects/Reverb/Hall/Concert Hall.adv",
+       "parametros": {
+        "Dry/Wet": 0.25
+       },
+       "uri": "query:AudioFx#Reverb:Hall:FileId_7507"
+      }
+     ],
+     "ganho_db": 0,
+     "nome": "surdo",
+     "traducao": {
+      "36": 36,
+      "37": 36,
+      "38": 36,
+      "39": 36,
+      "40": 36,
+      "41": 37,
+      "42": 37,
+      "43": 37,
+      "44": 37,
+      "45": 38,
+      "46": 38,
+      "47": 38,
+      "48": 39
+     }
+    },
+    {
+     "preset": "Timpani.adg",
+     "caminho": "sounds/Orchestral/Timpani.adg",
+     "uri": "query:Sounds#Orchestral:FileId_21543",
+     "origem": "Orchestral Mallets",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Reverb/Hall/Concert Hall.adv",
+       "parametros": {
+        "Dry/Wet": 0.25
+       },
+       "uri": "query:AudioFx#Reverb:Hall:FileId_7507"
+      }
+     ],
+     "ganho_db": -6,
+     "nome": "timpano",
+     "notas": [
+      36,
+      48
+     ]
+    }
+   ]
+  },
+  "percussao_orquestral": {
+   "descricao": "Tímpanos na própria altura (36-53). Bumbo de orquestra em 35 (surdo aberto). Pratos FORA do GM, porque 49/51/52 caem nos tímpanos: 55 prato suspenso, 57 pratos a dois, 58 gongo, 80/81 triângulo abafado/aberto.",
+   "camadas": [
+    {
+     "preset": "Timpani.adg",
+     "caminho": "sounds/Orchestral/Timpani.adg",
+     "uri": "query:Sounds#Orchestral:FileId_21543",
+     "origem": "Orchestral Mallets",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Reverb/Hall/Medium Concert.adv",
+       "parametros": {
+        "Dry/Wet": 0.22
+       },
+       "uri": "query:AudioFx#Reverb:Hall:FileId_7519"
+      }
+     ],
+     "ganho_db": 0,
+     "nome": "timpanos",
+     "notas": [
+      36,
+      53
+     ]
+    },
+    {
+     "preset": "Surdo Cuica Whistle Snap.adg",
+     "caminho": "drums/Surdo Cuica Whistle Snap.adg",
+     "uri": "query:Drums#FileId_13940",
+     "origem": "Latin Percussion",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Reverb/Hall/Medium Concert.adv",
+       "parametros": {
+        "Dry/Wet": 0.25
+       },
+       "uri": "query:AudioFx#Reverb:Hall:FileId_7519"
+      }
+     ],
+     "ganho_db": -2,
+     "nome": "bumbo",
+     "traducao": {
+      "35": 36
+     }
+    },
+    {
+     "preset": "Cymbals.adg",
+     "caminho": "drums/Cymbals.adg",
+     "uri": "query:Drums#FileId_13938",
+     "origem": "Latin Percussion",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Reverb/Hall/Medium Concert.adv",
+       "parametros": {
+        "Dry/Wet": 0.25
+       },
+       "uri": "query:AudioFx#Reverb:Hall:FileId_7519"
+      }
+     ],
+     "ganho_db": -4,
+     "nome": "pratos",
+     "traducao": {
+      "55": 42,
+      "57": 40,
+      "58": 51
+     }
+    },
+    {
+     "preset": "Bells & Triangle.adg",
+     "caminho": "drums/Bells & Triangle.adg",
+     "uri": "query:Drums#FileId_13929",
+     "origem": "Latin Percussion",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Reverb/Hall/Medium Concert.adv",
+       "parametros": {
+        "Dry/Wet": 0.25
+       },
+       "uri": "query:AudioFx#Reverb:Hall:FileId_7519"
+      }
+     ],
+     "ganho_db": -6,
+     "nome": "triangulo",
+     "traducao": {
+      "80": 44,
+      "81": 45
+     }
+    }
+   ],
+   "mapa_de_notas": {
+    "35": "bumbo",
+    "36-53": "tímpanos",
+    "55": "prato suspenso",
+    "57": "pratos a dois",
+    "58": "gongo",
+    "80": "triângulo abafado",
+    "81": "triângulo aberto"
+   }
+  },
+  "pad": {
+   "descricao": "Pad macio (Wavetable).",
+   "camadas": [
+    {
+     "preset": "Analog Soft Pad.adv",
+     "caminho": "sounds/Pad/Analog Soft Pad.adv",
+     "uri": "query:Sounds#Pad:FileId_6107",
+     "origem": "Core Library (Wavetable)",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Reverb/Hall/Medium Concert.adv",
+       "parametros": {
+        "Dry/Wet": 0.2
+       },
+       "uri": "query:AudioFx#Reverb:Hall:FileId_7519"
+      }
+     ],
+     "ganho_db": -6
+    }
+   ]
+  },
+  "pad_quente": {
+   "descricao": "Pad analógico quente (Drift).",
+   "camadas": [
+    {
+     "preset": "Warm Analog Pad.adg",
+     "caminho": "sounds/Pad/Warm Analog Pad.adg",
+     "uri": "query:Sounds#Pad:FileId_4977",
+     "origem": "Core Library (Drift)",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Reverb/Hall/Medium Concert.adv",
+       "parametros": {
+        "Dry/Wet": 0.15
+       },
+       "uri": "query:AudioFx#Reverb:Hall:FileId_7519"
+      }
+     ],
+     "ganho_db": -6
+    }
+   ]
+  },
+  "lead": {
+   "descricao": "Lead doce (Analog + Operator).",
+   "camadas": [
+    {
+     "preset": "Sweet Lead.adg",
+     "caminho": "sounds/Synth Lead/Sweet Lead.adg",
+     "uri": "query:Sounds#Synth%20Lead:FileId_4634",
+     "origem": "Core Library",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Reverb/Room/Wooden Room.adv",
+       "parametros": {
+        "Dry/Wet": 0.12
+       },
+       "uri": "query:AudioFx#Reverb:Room:FileId_7501"
+      }
+     ],
+     "ganho_db": -5
+    }
+   ]
+  },
+  "baixo_synth": {
+   "descricao": "Baixo analógico básico (Analog).",
+   "camadas": [
+    {
+     "preset": "Basic Analog Bass.adg",
+     "caminho": "sounds/Bass/Basic Analog Bass.adg",
+     "uri": "query:Sounds#Bass:FileId_5167",
+     "origem": "Core Library (Analog)",
+     "efeitos": [],
+     "ganho_db": -4
+    }
+   ]
+  },
+  "chip_quadrada": {
+   "descricao": "Não há instrumento de 8 bits: Drift 'Game Console' (onda quadrada) com Redux 'Chiptune Filter'.",
+   "camadas": [
+    {
+     "preset": "Game Console.adv",
+     "caminho": "sounds/Synth Lead/Game Console.adv",
+     "uri": "query:Sounds#Synth%20Lead:FileId_7077",
+     "origem": "Core Library (Drift)",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Redux/Chiptune Filter.adv",
+       "parametros": {},
+       "uri": "query:AudioFx#Redux:FileId_7539"
+      }
+     ],
+     "ganho_db": -8
+    }
+   ]
+  },
+  "chip_triangulo": {
+   "descricao": "Operator com onda triangular (componente 'Triangle Waveforms') e Redux 'Chiptune Filter'.",
+   "camadas": [
+    {
+     "preset": "Triangle Waveforms.adv",
+     "caminho": "instruments/Operator/Components/Triangle Waveforms.adv",
+     "uri": "query:Synths#Operator:Components:FileId_6878",
+     "origem": "Core Library (Operator)",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Redux/Chiptune Filter.adv",
+       "parametros": {},
+       "uri": "query:AudioFx#Redux:FileId_7539"
+      }
+     ],
+     "ganho_db": -4
+    }
+   ]
+  },
+  "chip_ruido": {
+   "descricao": "Operator 'Noise Hit Attack' (ruído curto) com Redux 'Low Sample Rate'. O ruído não muda de altura com a nota.",
+   "camadas": [
+    {
+     "preset": "Noise Hit Attack.adv",
+     "caminho": "instruments/Operator/Components/Noise Hit Attack.adv",
+     "uri": "query:Synths#Operator:Components:FileId_6862",
+     "origem": "Core Library (Operator)",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Redux/Low Sample Rate.adv",
+       "parametros": {},
+       "uri": "query:AudioFx#Redux:FileId_7543"
+      }
+     ],
+     "ganho_db": -8
+    }
+   ]
+  },
+  "arpejo": {
+   "descricao": "Pluck FM (Operator) sem arpejador: as notas do arpejo vêm da partitura.",
+   "camadas": [
+    {
+     "preset": "FM Basic Pluck.adv",
+     "caminho": "sounds/Guitar & Plucked/FM Basic Pluck.adv",
+     "uri": "query:Sounds#Guitar%20&%20Plucked:FileId_6832",
+     "origem": "Core Library (Operator)",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Reverb/Room/Wooden Room.adv",
+       "parametros": {
+        "Dry/Wet": 0.15
+       },
+       "uri": "query:AudioFx#Reverb:Room:FileId_7501"
+      }
+     ],
+     "ganho_db": -5
+    }
+   ]
+  },
+  "sfx_madeira": {
+   "descricao": "Batida de madeira sintetizada (Designer Drums 'Wood Perc 1', Operator). Nota 60 = afinação original.",
+   "camadas": [
+    {
+     "preset": "Wood Perc 1.adg",
+     "caminho": "drums/Drum Hits/Misc Percussion/Wood Perc 1.adg",
+     "uri": "query:Drums#Drum%20Hits:Misc%20Percussion:FileId_9855",
+     "origem": "Designer Drums",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Reverb/Room/Wooden Room.adv",
+       "parametros": {
+        "Dry/Wet": 0.1
+       },
+       "uri": "query:AudioFx#Reverb:Room:FileId_7501"
+      }
+     ],
+     "ganho_db": 0.0
+    }
+   ]
+  },
+  "sfx_metal": {
+   "descricao": "Batida metálica FM (Operator 'Metallic Hit').",
+   "camadas": [
+    {
+     "preset": "Metallic Hit.adv",
+     "caminho": "sounds/Mallets/Metallic Hit.adv",
+     "uri": "query:Sounds#Mallets:FileId_6823",
+     "origem": "Core Library (Operator)",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Reverb/Room/Wooden Room.adv",
+       "parametros": {
+        "Dry/Wet": 0.12
+       },
+       "uri": "query:AudioFx#Reverb:Room:FileId_7501"
+      }
+     ],
+     "ganho_db": -4
+    }
+   ]
+  },
+  "sfx_ruido": {
+   "descricao": "Vento e sopro (Operator 'Wind Machine'): nota longa; a altura muda o filtro.",
+   "camadas": [
+    {
+     "preset": "Wind Machine.adv",
+     "caminho": "sounds/Effects/Wind Machine.adv",
+     "uri": "query:Sounds#Effects:FileId_6859",
+     "origem": "Core Library (Operator)",
+     "efeitos": [],
+     "ganho_db": -6
+    }
+   ]
+  },
+  "sfx_fogo": {
+   "descricao": "Ruído com filtro aleatório (Operator 'S&H Filtered Noise'), base para estalos e o 'fuuf' do fogo.",
+   "camadas": [
+    {
+     "preset": "S&H Filtered Noise.adv",
+     "caminho": "sounds/Effects/S&H Filtered Noise.adv",
+     "uri": "query:Sounds#Effects:FileId_6850",
+     "origem": "Core Library (Operator)",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Saturator/A Bit Warmer.adv",
+       "parametros": {},
+       "uri": "query:AudioFx#Saturator:FileId_7361"
+      }
+     ],
+     "ganho_db": -6
+    }
+   ]
+  },
+  "sfx_bolha": {
+   "descricao": "Pluck aquoso (Wavetable 'Water Pluck'): bolhas e gotas em notas agudas e curtas.",
+   "camadas": [
+    {
+     "preset": "Water Pluck.adg",
+     "caminho": "sounds/Guitar & Plucked/Water Pluck.adg",
+     "uri": "query:Sounds#Guitar%20&%20Plucked:FileId_4824",
+     "origem": "Core Library (Wavetable)",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Reverb/Room/Wooden Room.adv",
+       "parametros": {
+        "Dry/Wet": 0.12
+       },
+       "uri": "query:AudioFx#Reverb:Room:FileId_7501"
+      }
+     ],
+     "ganho_db": -4
+    }
+   ]
+  },
+  "sfx_click": {
+   "descricao": "Clique de baqueta afinado (Designer Drums 'Pitch Stick', Operator). Nota 60 = afinação original.",
+   "camadas": [
+    {
+     "preset": "Pitch Stick.adg",
+     "caminho": "drums/Drum Hits/Rim/Pitch Stick.adg",
+     "uri": "query:Drums#Drum%20Hits:Rim:FileId_9770",
+     "origem": "Designer Drums",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Reverb/Room/Wooden Room.adv",
+       "parametros": {
+        "Dry/Wet": 0.06
+       },
+       "uri": "query:AudioFx#Reverb:Room:FileId_7501"
+      }
+     ],
+     "ganho_db": -2
+    }
+   ]
+  },
+  "sfx_sino": {
+   "descricao": "Sininho FM de brinquedo (Operator 'Bells Tinkle Toy').",
+   "camadas": [
+    {
+     "preset": "Bells Tinkle Toy.adv",
+     "caminho": "sounds/Mallets/Bells Tinkle Toy.adv",
+     "uri": "query:Sounds#Mallets:FileId_6815",
+     "origem": "Core Library (Operator)",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Reverb/Hall/Medium Concert.adv",
+       "parametros": {
+        "Dry/Wet": 0.15
+       },
+       "uri": "query:AudioFx#Reverb:Hall:FileId_7519"
+      }
+     ],
+     "ganho_db": -4
+    }
+   ]
+  },
+  "sfx_grave": {
+   "descricao": "Impacto grave sintetizado (Designer Drums 'Thump', Operator) com saturação leve.",
+   "camadas": [
+    {
+     "preset": "Thump.adg",
+     "caminho": "drums/Drum Hits/Kick/Thump.adg",
+     "uri": "query:Drums#Drum%20Hits:Kick:FileId_9757",
+     "origem": "Designer Drums",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Saturator/A Bit Warmer.adv",
+       "parametros": {},
+       "uri": "query:AudioFx#Saturator:FileId_7361"
+      },
+      {
+       "caminho": "audio_effects/Reverb/Room/Wooden Room.adv",
+       "parametros": {
+        "Dry/Wet": 0.1
+       },
+       "uri": "query:AudioFx#Reverb:Room:FileId_7501"
+      }
+     ],
+     "ganho_db": 0.0
+    }
+   ]
+  }
+ }
+}

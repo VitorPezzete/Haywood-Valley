@@ -1,0 +1,51 @@
+{
+  "chave": "som.fogao_acende",
+  "titulo": "Fogão acende",
+  "bpm": 60,
+  "compasso": [1, 4],
+  "tom": "sem tom",
+  "compassos": 2,
+  "laco": false,
+  "cauda_s": 0.6,
+  "duracao_s": 2.0,
+  "trilhas": [
+    {
+      "papel": "sfx_ruido",
+      "notas": [
+        [86, 0, 0.12, 82],
+        [45, 0.18, 0.6, 72]
+      ]
+    },
+    {
+      "papel": "sfx_click",
+      "notas": [
+        [90, 0, 0.02, 60],
+        [88, 0.05, 0.02, 40]
+      ]
+    },
+    {
+      "papel": "sfx_fogo",
+      "notas": [
+        [50, 0.2, 1.0, 84],
+        [78, 0.472, 0.02, 29],
+        [79, 0.555, 0.02, 26],
+        [77, 0.579, 0.02, 54],
+        [87, 0.605, 0.02, 50],
+        [77, 0.662, 0.02, 44],
+        [82, 0.943, 0.02, 31],
+        [92, 0.986, 0.02, 55],
+        [48, 1.0, 0.8, 46],
+        [90, 1.035, 0.02, 34],
+        [77, 1.181, 0.02, 49],
+        [89, 1.335, 0.02, 56]
+      ]
+    },
+    {
+      "papel": "sfx_grave",
+      "notas": [
+        [33, 0.2, 0.15, 50]
+      ]
+    }
+  ],
+  "observacoes": "Fogão acendendo: o fósforo riscado (ruído agudo curto e dois cliques), o \"fuuf\" do fogo pegando (ruído grave abrindo e a chama crescendo no sfx_fogo, um grave curto por baixo), os primeiros estalos e a chama assentando, que emenda no laço da lareira (o fogão usa o som da lareira, PLACED.fogao). Uns 1,8 s.\nNo Live: o \"fuuf\" = Operator \"Noise Hit Attack\" com Auto Filter abrindo em 300 ms; a chama = ruído com filtro passa-banda e um pouco de Saturator; estalos = sfx_fogo de 20 ms (ou \"Crackle Vinyl Pop.wav\" recortado, em camada). Mono."
+}

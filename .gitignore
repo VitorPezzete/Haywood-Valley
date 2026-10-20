@@ -8,3 +8,12 @@
 /plugin/out
 /plugin/include
 __pycache__/
+
+# WAV dos sons do jogo cortados do export do Ableton (tools/som/cortar.py); o .ogg ao lado vai para o git
+/assets/sons/wav/
+/.claude/settings.local.json
+# Gravações inteiras do Arrangement (tools/som/gravar.py), centenas de MB
+/tools/som/gravacoes/
+# Estado do set aberto no Live (posições, cortes); traz caminhos de trabalhos fora do repositório
+/tools/som/mapa_do_set*.json
+/tools/som/cortes.json

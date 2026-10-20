@@ -1,0 +1,53 @@
+{
+  "chave": "som.passo_tabua",
+  "titulo": "Passo na tábua",
+  "bpm": 60,
+  "compasso": [1, 4],
+  "tom": "sem tom",
+  "compassos": 4,
+  "laco": false,
+  "cauda_s": 0.3,
+  "duracao_s": 4.0,
+  "trechos": [
+    {"nome": "passo_1", "inicio_s": 0.0, "fim_s": 0.175},
+    {"nome": "passo_2", "inicio_s": 1.0, "fim_s": 1.175},
+    {"nome": "passo_3", "inicio_s": 2.0, "fim_s": 2.175},
+    {"nome": "passo_4", "inicio_s": 3.0, "fim_s": 3.205}
+  ],
+  "trilhas": [
+    {
+      "papel": "sfx_madeira",
+      "notas": [
+        [50, 0.0, 0.06, 84],
+        [53, 0.035, 0.04, 42],
+        [52, 1.0, 0.06, 76],
+        [55, 1.035, 0.04, 38],
+        [49, 2.0, 0.06, 90],
+        [52, 2.035, 0.04, 45],
+        [53, 3.0, 0.06, 80],
+        [56, 3.035, 0.04, 40],
+        [70, 3.06, 0.03, 22],
+        [72, 3.075, 0.03, 18]
+      ]
+    },
+    {
+      "papel": "percussao_latina",
+      "notas": [
+        [62, 0.0, 0.06, 40],
+        [62, 1.0, 0.06, 34],
+        [62, 2.0, 0.06, 44],
+        [62, 3.0, 0.06, 38]
+      ]
+    },
+    {
+      "papel": "sfx_grave",
+      "notas": [
+        [36, 0.0, 0.07, 40],
+        [38, 1.0, 0.07, 40],
+        [35, 2.0, 0.07, 40],
+        [37, 3.0, 0.07, 40]
+      ]
+    }
+  ],
+  "observacoes": "Passo no piso de tábua (dentro de casa). Quatro variações em trechos (passo_1 a passo_4); o jogo ainda sorteia o tom em ±6%. Para usar as quatro, EFFECTS.passoTabua em shared/sounds.ts vira quatro SoundSpec com o `region` de cada trecho.\nCada passo: calcanhar e ponta (dois toques de madeira a 35 ms), conga abafada por baixo (o oco do assoalho) e um grave curto (peso). A variação 4 tem um rangido mínimo da tábua.\nNo Live: sfx_madeira = Designer Drums \"Kick Wood\" ou Operator de madeira, decay curto (60–90 ms), um pouco de ressonância em 200–400 Hz; sfx_grave = \"Low Floor\" (Designer Drums) bem baixo; conga abafada da Latin Percussion com o ataque amaciado. Mono, sem reverb (o jogo põe o lugar)."
+}
