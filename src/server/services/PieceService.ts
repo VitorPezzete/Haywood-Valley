@@ -19,7 +19,7 @@ import {
 } from "shared/pieces";
 import { worldToArtPx } from "shared/view";
 import { Events } from "server/network";
-import { RATE, RateLimiter } from "server/rateLimit";
+import { RATE, RateLimiter, READY_BURST } from "server/rateLimit";
 
 /**
  * Um mapa com as peças dele: cada mapa tem as suas, montadas quando o primeiro jogador chega. A casa de cada
@@ -48,6 +48,7 @@ export class PieceService implements OnStart {
 	private rooms = new Map<string, Room>();
 	private limit = new RateLimiter(RATE.pieces);
 	private actionLimit = new RateLimiter(RATE.setAction);
+	private readyLimit = new RateLimiter(RATE.ready, READY_BURST);
 	private created = new Array<(room: Room) => void>();
 	private nextDecor = 1;
 
@@ -73,6 +74,8 @@ export class PieceService implements OnStart {
 			});
 		});
 		Events.piecesReady.connect((player) => {
+			// Pedido além da cadência é ignorado: o cliente já pediu antes e recebeu o estado.
+			if (!this.readyLimit.allow(player)) return;
 			const room = this.roomOf(player);
 			if (!room) return;
 			for (const state of room.board.all()) {

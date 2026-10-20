@@ -11,7 +11,7 @@ import {
 	nearCells,
 } from "shared/fixtures";
 import { Events } from "server/network";
-import { RATE, RateLimiter } from "server/rateLimit";
+import { RATE, RateLimiter, READY_BURST } from "server/rateLimit";
 import { PieceService, Room } from "server/services/PieceService";
 import { PlayerDataService } from "server/services/PlayerDataService";
 
@@ -52,6 +52,8 @@ export class FixtureService implements OnStart {
 	private rooms = new Map<string, RoomFixtures>();
 	private limit = new RateLimiter(RATE.pieces);
 	private sleepLimit = new RateLimiter(1, 2);
+	/** O mesmo limite do `PieceService` para o `piecesReady`: os dois baldes andam juntos, então aceitam os mesmos pedidos. */
+	private readyLimit = new RateLimiter(RATE.ready, READY_BURST);
 	private sleeping = new Set<Player>();
 
 	constructor(
@@ -62,6 +64,8 @@ export class FixtureService implements OnStart {
 	onStart() {
 		this.pieces.onRoomCreated((room) => this.rooms.set(room.key, this.build(room)));
 		Events.piecesReady.connect((player) => {
+			// Pedido além da cadência é ignorado em silêncio, como no `PieceService`.
+			if (!this.readyLimit.allow(player)) return;
 			const room = this.pieces.roomOf(player);
 			const fixtures = room && this.fixturesOf(room);
 			if (!room || !fixtures) return;

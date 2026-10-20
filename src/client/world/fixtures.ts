@@ -3,6 +3,8 @@ import { PieceBoard } from "shared/pieces";
 import { createCard } from "./card";
 import { GroundLayer } from "./ground";
 import { INTERIOR_TILE, Interior, sheetRect } from "./interior";
+import { Occlusion } from "./occlusion";
+import { Sprite } from "./sprites";
 
 type Fixture = ReturnType<typeof findFixtures>[number];
 type FixtureCell = Fixture["cells"][number];
@@ -15,6 +17,8 @@ type Tile = FixtureCell["on"];
 interface Shown {
 	labels: ImageLabel[];
 	card?: Part;
+	/** Tira a tampa da oclusão; vem junto com o cartão. */
+	unocclude?: () => void;
 	cells: [number, number, Tile][];
 }
 
@@ -26,6 +30,7 @@ interface Shown {
  * O baú grande aberto tem a tampa em pé nas duas linhas acima dele: ela vai num cartão de frente para a câmera com
  * a base na borda de cima do baú (como a coberta da cama, `ActionController.coverCard`), e quem passa atrás do baú
  * fica atrás da tampa. As células dessas linhas no mapa não mudam: fechar tira o cartão e elas voltam a aparecer.
+ * A tampa (4 × 2 tiles) esconde o boneco inteiro, então entra na oclusão da cena (`occlusion.ts`) enquanto existe.
  */
 export class FixtureView {
 	private byId = new Map<string, Fixture>();
@@ -39,6 +44,7 @@ export class FixtureView {
 	constructor(
 		private board: PieceBoard,
 		private interior: Interior,
+		private occlusion: Occlusion,
 	) {
 		this.fixtures = findFixtures(board.map);
 		for (const fixture of this.fixtures) {
@@ -143,6 +149,7 @@ export class FixtureView {
 		const shown = this.shown.get(id);
 		if (!shown) return;
 		for (const label of shown.labels) label.Destroy();
+		shown.unocclude?.();
 		shown.card?.Destroy();
 		this.shown.delete(id);
 	}
@@ -183,7 +190,7 @@ export class FixtureView {
 			shown.labels.push(label);
 		}
 		if (lid.size() > 0) {
-			shown.card = this.lidCard(id, lid);
+			[shown.card, shown.unocclude] = this.lidCard(id, lid);
 			for (const cell of lid) shown.cells.push(cell);
 		}
 		this.shown.set(id, shown);
@@ -192,8 +199,9 @@ export class FixtureView {
 	/**
 	 * A tampa em pé: um cartão do tamanho das células, com a base na borda de baixo delas (a de cima do baú). Os
 	 * tiles ficam nos mesmos pixels da tela em que estariam no chão; o cartão só muda a ordem com os bonecos.
+	 * Devolve o cartão e a função que o tira da oclusão.
 	 */
-	private lidCard(id: string, cells: [number, number, Tile][]) {
+	private lidCard(id: string, cells: [number, number, Tile][]): [Part, () => void] {
 		let x0 = math.huge;
 		let y0 = math.huge;
 		let x1 = -math.huge;
@@ -205,14 +213,12 @@ export class FixtureView {
 			y1 = math.max(y1, y);
 		}
 		const size = new Vector2(x1 - x0 + 1, y1 - y0 + 1).mul(INTERIOR_TILE);
-		const card = createCard(
-			this.interior.folder,
-			`FixtureLid_${id}`,
-			{ image: "", size, anchor: new Vector2(0, size.Y), frames: [Vector2.zero] },
-			this.interior.cellCorner(x0, y1 + 1),
-		);
+		const sprite: Sprite = { image: "", size, anchor: new Vector2(0, size.Y), frames: [Vector2.zero] };
+		const base = this.interior.cellCorner(x0, y1 + 1);
+		const card = createCard(this.interior.folder, `FixtureLid_${id}`, sprite, base);
 		card.image.Visible = false;
 		const gui = card.image.Parent;
+		const labels = new Array<ImageLabel>();
 		for (const [x, y, tile] of cells) {
 			const rect = sheetRect(tile);
 			const label = new Instance("ImageLabel");
@@ -225,7 +231,9 @@ export class FixtureView {
 			label.Position = UDim2.fromOffset((x - x0) * INTERIOR_TILE, (y - y0) * INTERIOR_TILE);
 			label.Size = UDim2.fromOffset(INTERIOR_TILE, INTERIOR_TILE);
 			label.Parent = gui;
+			labels.push(label);
 		}
-		return card.part;
+		// A tampa é cheia de ponta a ponta, como o arbusto: fica meio transparente com o boneco atrás dela.
+		return [card.part, this.occlusion.add(labels, sprite, base, "block")];
 	}
 }

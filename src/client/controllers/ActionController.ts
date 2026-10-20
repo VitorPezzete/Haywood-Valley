@@ -250,7 +250,7 @@ export class ActionController implements OnStart {
 		this.board = new PieceBoard(map);
 		this.view = new PieceView(this.board, interior);
 		this.fixtures?.destroy();
-		this.fixtures = new FixtureView(this.board, interior);
+		this.fixtures = new FixtureView(this.board, interior, this.scene.occlusion);
 		this.corner = interior.cellCorner(0, 0);
 		Events.piecesReady.fire();
 	}

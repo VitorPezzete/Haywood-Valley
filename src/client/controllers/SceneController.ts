@@ -122,7 +122,8 @@ export class SceneController implements OnInit, OnStart, OnRender {
 	mapKey?: string;
 	mapSlot = 0;
 	private wind = new Wind();
-	private occlusion = new Occlusion();
+	/** O que fica meio transparente com o jogador atrás; o que é desenhado fora daqui (a tampa do baú) também registra. */
+	readonly occlusion = new Occlusion();
 	private listeners = new Array<() => void>();
 
 	onInit() {

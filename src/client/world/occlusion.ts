@@ -31,7 +31,8 @@ interface Box {
 }
 
 interface Occluder {
-	image: ImageLabel;
+	/** As imagens do objeto: uma só, ou várias quando o cartão é montado de tiles (a tampa do baú grande). */
+	images: ImageLabel[];
 	/**
 	 * Borda de baixo do cartão na tela. É ela que decide a ordem de desenho (ver card.ts), então o
 	 * objeto só cobre o jogador quando a dele está abaixo da do personagem.
@@ -64,14 +65,23 @@ function boxesOf(silhouette: Silhouette, corner: Vector2, base: Vector2, size: V
 export class Occlusion {
 	private occluders = new Array<Occluder>();
 
-	add(image: ImageLabel, sprite: Sprite, position: Vector3, silhouette: Silhouette) {
+	/**
+	 * Registra o objeto e devolve a função que tira o registro, para o que some antes da cena (a tampa do baú
+	 * grande, que fecha). O que fica a cena inteira pode ignorar o retorno.
+	 */
+	add(image: ImageLabel | ImageLabel[], sprite: Sprite, position: Vector3, silhouette: Silhouette) {
 		const base = worldToArtPx(position);
-		this.occluders.push({
-			image,
+		const item: Occluder = {
+			images: typeIs(image, "Instance") ? [image] : image,
 			bottomY: base.Y + sprite.size.Y - sprite.anchor.Y,
 			alpha: 0,
 			boxes: boxesOf(silhouette, base.sub(sprite.anchor), base, sprite.size),
-		});
+		};
+		this.occluders.push(item);
+		return () => {
+			const index = this.occluders.indexOf(item);
+			if (index >= 0) this.occluders.remove(index);
+		};
 	}
 
 	/** `player` é o ponto do chão onde o jogador está, ou `undefined` se ele não tem personagem. */
@@ -94,7 +104,7 @@ export class Occlusion {
 			const gap = target - item.alpha;
 			if (gap === 0) continue;
 			item.alpha = math.abs(gap) < 0.01 ? target : item.alpha + gap * blend;
-			item.image.ImageTransparency = item.alpha;
+			for (const image of item.images) image.ImageTransparency = item.alpha;
 		}
 	}
 }

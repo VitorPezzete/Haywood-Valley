@@ -34,8 +34,12 @@ export class RateLimiter {
 
 /**
  * Os limites de cada pedido, por segundo (seção 6.4 do plano). O `react` tem o intervalo das reações
- * (`REACTION_COOLDOWN`) e o `takeExit`, o dele (`MapService`).
+ * (`REACTION_COOLDOWN`) e o `takeExit`, o dele (`MapService`). O `piecesReady` devolve o estado inteiro do mapa
+ * (peças, torneiras, decoração, baús e fogões) e o cliente só pede ao entrar e ao trocar de mapa: `RATE.ready` por
+ * segundo, com rajada de `READY_BURST`.
  */
+export const READY_BURST = 3;
+
 export const RATE = {
 	setLook: 2,
 	setName: 1,
@@ -44,4 +48,5 @@ export const RATE = {
 	setAction: 10,
 	pieces: 20,
 	decor: 8,
+	ready: 2,
 };
