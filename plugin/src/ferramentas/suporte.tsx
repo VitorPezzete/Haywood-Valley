@@ -2,7 +2,7 @@
 import Vide, { For, mount, source } from "@rbxts/vide";
 import { COMO_LIGAR, lerDoc, listarDocs } from "../ponte";
 import { AreaTexto, Botao, Coluna, ESPACO, Lista, Painel, Rotulo, Titulo } from "../ui/kit";
-import { abrirWidget } from "../widget";
+import type { OpcoesWidget } from "../widget";
 
 /** Largura da coluna com a lista de documentos. */
 const LARGURA_LISTA = 170;
@@ -73,8 +73,8 @@ export function PainelSuporte() {
 	);
 }
 
-export function abrir(plugin: Plugin) {
-	return abrirWidget(plugin, { id: "suporte", titulo: "Suporte", largura: 720, altura: 520 }, (gui) =>
-		mount(() => <PainelSuporte />, gui),
-	);
+export const WIDGET: OpcoesWidget = { titulo: "Suporte", largura: 720, altura: 520 };
+
+export function montar(gui: DockWidgetPluginGui) {
+	return mount(() => <PainelSuporte />, gui);
 }

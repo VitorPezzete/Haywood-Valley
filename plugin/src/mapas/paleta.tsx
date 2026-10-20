@@ -6,6 +6,7 @@ import { Botao, cor, Linha, Rotulo } from "../ui/kit";
 import { Legenda } from "../ui/extras";
 import type { Imagens } from "./canvas";
 import { COLUNAS, DESCRICAO_ZONA, ehAnimado, FOLHAS_CONHECIDAS, LINHAS, METADE, TILE_PX, zonaDoTile } from "./zonas";
+import { conteudo } from "../folhasLocais";
 
 /** Um retângulo de tiles de uma folha (coluna, linha, largura, altura). */
 export interface SelecaoPaleta {
@@ -59,7 +60,7 @@ export function Paleta(props: PropsPaleta) {
 	effect(() => {
 		const par = props.imagens()[folha()];
 		metades.forEach((label, m) => {
-			label.Image = par ? par[m] : "";
+			label.ImageContent = conteudo(par ? par[m] : undefined);
 		});
 	});
 

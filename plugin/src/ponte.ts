@@ -125,7 +125,7 @@ export interface IdsGraal {
 	corpos: string[];
 }
 
-interface Resposta {
+export interface Resposta {
 	status: number;
 	corpo: string;
 	cabecalhos: Record<string, string>;
@@ -142,7 +142,8 @@ function mensagemAmigavel(erro: string): string {
 	return `Erro ao falar com a ponte: ${erro}`;
 }
 
-function pedir(metodo: "GET" | "PUT" | "POST" | "DELETE", rota: string, corpo?: string): Resultado<Resposta> {
+/** Um pedido cru à ponte (o canal do Studio usa para o long-poll, que responde 204 quando não há comando). */
+export function pedir(metodo: "GET" | "PUT" | "POST" | "DELETE", rota: string, corpo?: string): Resultado<Resposta> {
 	const [ok, resposta] = pcall(() =>
 		HttpService.RequestAsync({
 			Url: BASE + rota,
@@ -170,7 +171,7 @@ function pedir(metodo: "GET" | "PUT" | "POST" | "DELETE", rota: string, corpo?: 
 	return { ok: true, valor: { status: r.StatusCode, corpo: r.Body, cabecalhos: r.Headers } };
 }
 
-function pedirJson<T>(metodo: "GET" | "PUT" | "POST" | "DELETE", rota: string, corpo?: unknown): Resultado<T> {
+export function pedirJson<T>(metodo: "GET" | "PUT" | "POST" | "DELETE", rota: string, corpo?: unknown): Resultado<T> {
 	const texto = corpo !== undefined ? HttpService.JSONEncode(corpo) : undefined;
 	const r = pedir(metodo, rota, texto);
 	if (!r.ok) return r;
@@ -230,6 +231,11 @@ export function gravarBloco(id: string, bx: number, by: number, bloco: Bloco): R
 
 export function apagarBloco(id: string, bx: number, by: number): Resultado<{ ok: boolean; arquivo: string }> {
 	return pedirJson("DELETE", `/mapas/${id}/blocos/${bx}_${by}`);
+}
+
+/** Apaga o mapa inteiro (a pasta diorama/mapas/<id>). O autoteste usa para o mapa temporário. */
+export function apagarMapa(id: string): Resultado<{ ok: boolean; pasta: string }> {
+	return pedirJson("DELETE", `/mapas/${id}`);
 }
 
 export function lerCatalogo<T = unknown>(nome: string): Resultado<T> {

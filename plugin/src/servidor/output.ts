@@ -7,8 +7,11 @@
 // qual instância está à vista (não dá para saber de dentro; ver o relatório).
 import { LogService } from "@rbxts/services";
 import { source } from "@rbxts/vide";
+import { aoParar } from "../ambiente";
 
 export interface Mensagem {
+	/** Número de ordem desde que o plugin começou a ouvir (o comando `output` do canal pede `desde`). */
+	n: number;
 	texto: string;
 	tipo: Enum.MessageType;
 	/** "HH:MM:SS". */
@@ -48,8 +51,19 @@ function hora(carimbo?: number): string {
 	return os.date("%H:%M:%S", carimbo !== undefined ? math.floor(carimbo) : undefined);
 }
 
-function acrescentar(texto: string, tipo: Enum.MessageType, carimbo?: number) {
-	const nova: Mensagem = { texto, tipo, hora: hora(carimbo), prefixo: prefixoDe(texto) };
+let proximoNumero = 1;
+/** Quem quer cada mensagem nova (o autoteste, para pegar os erros durante a montagem). */
+const ouvintes = new Set<(m: Mensagem) => void>();
+
+/** Chama `f` a cada mensagem nova do Output até a função devolvida ser chamada. */
+export function ouvirOutput(f: (m: Mensagem) => void): () => void {
+	ouvintes.add(f);
+	return () => ouvintes.delete(f);
+}
+
+function acrescentar(texto: string, tipo: Enum.MessageType, carimbo?: number, avisar = true) {
+	const nova: Mensagem = { n: proximoNumero++, texto, tipo, hora: hora(carimbo), prefixo: prefixoDe(texto) };
+	if (avisar) for (const f of ouvintes) task.spawn(f, nova);
 	const atual = mensagens();
 	const lista = atual.size() >= LIMITE ? atual.filter((_, i) => i >= atual.size() - LIMITE + 1) : [...atual];
 	lista.push(nova);
@@ -58,15 +72,26 @@ function acrescentar(texto: string, tipo: Enum.MessageType, carimbo?: number) {
 
 let ligado = false;
 
-/** Começa a ouvir o Output (uma vez por sessão) e traz o histórico que já havia. */
+/**
+ * Começa a ouvir o Output (uma vez por pacote) e traz o histórico que já havia. A conexão sai quando o pacote para
+ * (ambiente.ts), para a versão velha não continuar ouvindo depois de uma recarga.
+ */
 export function ligarOutput() {
 	if (ligado) return;
 	ligado = true;
+	// Recomeça o buffer: o histórico do LogService já traz o que havia (uma volta ao pacote anterior não duplica).
+	mensagens([]);
+	proximoNumero = 1;
 	pcall(() => {
 		const historico = LogService.GetLogHistory();
-		for (const item of historico) acrescentar(item.message, item.messageType, item.timestamp);
+		for (const item of historico) acrescentar(item.message, item.messageType, item.timestamp, false);
 	});
-	pcall(() => LogService.MessageOut.Connect((texto, tipo) => acrescentar(texto, tipo)));
+	const [ok, conexao] = pcall(() => LogService.MessageOut.Connect((texto, tipo) => acrescentar(texto, tipo)));
+	if (ok) aoParar(conexao as RBXScriptConnection);
+	aoParar(() => {
+		ligado = false;
+		ouvintes.clear();
+	});
 }
 
 export function limparMensagens() {

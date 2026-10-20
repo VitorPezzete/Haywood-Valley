@@ -9,7 +9,7 @@ import { EntradaRegistro, idTexto, lerRegistro, recorteSugerido } from "../asset
 import { enviarAssets, lerAssets } from "../ponte";
 import { Alternar, CaixaTexto, Fileira, LinhaCampo, TextoCurto } from "../ui/kit";
 import { AreaTexto, Botao, Campo, cor, ESPACO, Lista, Painel, Rotulo, Separador, tema, TEXTO, Titulo } from "../ui/kit";
-import { abrirWidget } from "../widget";
+import type { OpcoesWidget } from "../widget";
 
 export const DESCRICAO =
 	"O registro de assets, o que ainda não tem id no Roblox, envio de imagens pelo Studio e importação dos ids para src/shared/assets.ts.";
@@ -517,8 +517,8 @@ function LinhaRegistro(props: { entrada: EntradaRegistro; revisao: () => number;
 	);
 }
 
-export function abrir(plugin: Plugin) {
-	return abrirWidget(plugin, { id: "assets", titulo: "Assets", largura: 900, altura: 620, larguraMinima: 560, alturaMinima: 360 }, (gui) =>
-		mount(() => <PainelAssets />, gui),
-	);
+export const WIDGET: OpcoesWidget = { titulo: "Assets", largura: 900, altura: 620, larguraMinima: 560, alturaMinima: 360 };
+
+export function montar(gui: DockWidgetPluginGui) {
+	return mount(() => <PainelAssets />, gui);
 }

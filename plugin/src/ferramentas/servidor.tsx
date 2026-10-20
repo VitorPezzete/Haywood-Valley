@@ -26,10 +26,7 @@ import { aplicarPendente, descartarPendente, pendente, teleportar } from "../ser
 import { copiarTexto } from "../ui/copiar";
 import { Abas, AreaTexto, Botao, Campo, Coluna, Lista, Painel, Rotulo, Separador, Titulo, Tom } from "../ui/kit";
 import { Aviso, Bloco, Etiqueta, Fileira, Interruptor, Preenche, TextoCurto } from "../ui/kit";
-import { abrirWidget, widgetVisivel } from "../widget";
-
-// O buffer do Output começa a encher quando o plugin carrega, não só quando o painel abre.
-ligarOutput();
+import { OpcoesWidget, widgetVisivel } from "../widget";
 
 export const DESCRICAO =
 	"Play e Stop, atributos de desenvolvimento do place, teleporte para um mapa ou célula e filtro do Output.";
@@ -419,8 +416,8 @@ export function PainelServidor(props: { plugin: Plugin }) {
 	);
 }
 
-export function abrir(plugin: Plugin) {
-	return abrirWidget(plugin, { id: "servidor", titulo: "Servidor", largura: 560, altura: 520 }, (gui) =>
-		mount(() => <PainelServidor plugin={plugin} />, gui),
-	);
+export const WIDGET: OpcoesWidget = { titulo: "Servidor", largura: 560, altura: 520 };
+
+export function montar(gui: DockWidgetPluginGui, plugin: Plugin) {
+	return mount(() => <PainelServidor plugin={plugin} />, gui);
 }

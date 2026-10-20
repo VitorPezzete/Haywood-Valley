@@ -72,7 +72,9 @@ import {
 	Titulo,
 } from "../ui/kit";
 import { Recorte } from "../ui/recorte";
-import { abrirWidget } from "../widget";
+import { AlternarFolhasLocais } from "../ui/alternarFolhas";
+import { imagensFolhas } from "../estado";
+import type { OpcoesWidget } from "../widget";
 
 export const DESCRICAO =
 	"As folhas do Aeko, as zonas e as peças com id, tipo, camada, ações e as formas do Decorar. Criar e editar peças e fundos e salvar em diorama/catalogo.";
@@ -182,6 +184,12 @@ function linhasDe(texto: string): string[] {
 export function PainelCatalogo() {
 	// Estado geral
 	const metades = source<Record<string, Metades>>({});
+	// As imagens seguem o estado compartilhado: "Folhas locais" e recarregar_folhas as trocam sem "Recarregar".
+	effect(() => {
+		const m: Record<string, Metades> = {};
+		for (const [f, par] of pairs(imagensFolhas())) if (par) m[f as string] = par;
+		metades(m);
+	});
 	const folha = source<string>(FOLHAS[0]);
 	const zoom = source(2);
 	const grade = source(true);
@@ -858,6 +866,7 @@ export function PainelCatalogo() {
 					<Botao texto="+" aoClicar={() => zoom(math.min(ZOOM_MAXIMO, zoom() + 1))} ordem={13} />
 					<Alternar texto="Grade" valor={grade} ordem={14} />
 					<Alternar texto="Zonas" valor={verZonas} ordem={15} />
+					<AlternarFolhasLocais ordem={16} />
 				</Fileira>
 				<Fileira ordem={1}>
 					<Botao texto="Recarregar" aoClicar={carregar} desligado={ocupado} ordem={0} />
@@ -1277,8 +1286,8 @@ function LinhaPeca(props: {
 	);
 }
 
-export function abrir(plugin: Plugin) {
-	return abrirWidget(plugin, { id: "catalogo", titulo: "Catálogo", largura: 1000, altura: 720, larguraMinima: 640, alturaMinima: 400 }, (gui) =>
-		mount(() => <PainelCatalogo />, gui),
-	);
+export const WIDGET: OpcoesWidget = { titulo: "Catálogo", largura: 1000, altura: 720, larguraMinima: 640, alturaMinima: 400 };
+
+export function montar(gui: DockWidgetPluginGui) {
+	return mount(() => <PainelCatalogo />, gui);
 }

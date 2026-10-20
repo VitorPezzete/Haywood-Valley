@@ -61,3 +61,19 @@ O plugin compila (`npm run plugin:build`) e a lógica pura passa nos ciclos de `
 26. **`RunService.Stop()`** de dentro de um plugin para parar a sessão de teste (`ferramentas/mapas.tsx`, `servidor/execucao.ts`): pode exigir permissão de plugin.
 27. **`JSONEncode` e tabelas vazias**: o Roblox manda `[]` para `props: {}`; a ponte desfaz. Se outra tabela vazia aparecer no bloco (por exemplo `bloqueios: {}`), conferir se o gerador a aceita.
 28. **Gerador com bloco sem `nascimento`**: o plugin avisa, mas salva; `tools/diorama_lib/gerar.mjs` lê `bloco.nascimento[0]` sem conferir e falha com um erro pouco claro. Decidir se o gerador assume `[0, 0]` com aviso (o jogo cai em [0, 0]) ou se a ponte recusa o bloco.
+
+### Conferido no Studio de teste (2026-10-20)
+
+O plugin rodou num Studio de teste (place local `teste_plugin.rbxl`) com a casca nova e o autoteste do canal (`plugin/README.md`, "Canal do Studio e autoteste"); as sete ferramentas montam sem erro no Output e passam nas conferências.
+
+- **20**: conferido em 2026-10-20 só em parte: o DockWidgetPluginGui tem `GetRelativeMousePosition`, mas o deslocamento da célula sob o mouse só se confere com o mouse de verdade (o MCP do Studio não move o mouse dentro de widgets). Continua aberto.
+- **21**: conferido em 2026-10-20: os `UIFlexItem` esticam (o `Preenche` do Servidor ficou com 430 px num widget de 496, o do Problemas com 350, a lista do Catálogo com 285 num de 665).
+- **22**: não conferido (precisa de teclado de verdade no widget).
+- **23**: conferido em 2026-10-20 só que `AssetService.CreateAssetAsync` existe nesta versão do Studio; o envio não foi feito (usa a conta do usuário).
+- **24**: conferido em 2026-10-20: o place local permite `EditableImage`; as duas metades de 1024×512 da casa montam (1 048 576 pixels), o pixel lido de volta bate com o do disco, e `ImageContent = Content.fromObject(imagem)` funciona no canvas de Mapas (as "Folhas locais" usam isso). Um place publicado pode exigir a permissão de APIs de imagem editável; aí a prévia cai no id do Roblox com aviso.
+- **25**: conferido em 2026-10-20: `setclipboard` não existe no Studio; o plugin mostra o texto para Ctrl+C, como previsto.
+- **26**: conferido em 2026-10-20 só que `RunService.Stop` existe para o plugin; não foi chamado durante um Play.
+- **27**: conferido em 2026-10-20: `JSONEncode({ props = {}, lista = {} })` dá `{"lista":[],"props":[]}`. O gerador aceita `bloqueios: []` (lê `bloco.bloqueios?.mais`, que fica `undefined`), e a ida e volta de `casa_teste_v2_l` pelo editor e pela ponte não muda o JSON.
+- **28**: não é do Studio e continua aberto (decisão do gerador).
+- Achado novo: `plugin:SetSetting` com `.` na chave não dá erro e não guarda nada; as chaves do plugin passaram a ser `Diorama_…`. O teleporte pendente do Servidor (`diorama.servidor.teleportePendente`) nunca tinha funcionado por isso.
+- Achado novo: na sessão do cliente do Play o Studio recusa HTTP ao plugin ("Http requests can only be executed by game server"); lá vale o pacote embutido e o canal não liga.

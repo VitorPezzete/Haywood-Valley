@@ -1,10 +1,12 @@
 // A lista de ferramentas da barra "Diorama", na ordem dos botões. Cada ferramenta mora em
-// plugin/src/ferramentas/<id>.tsx e exporta `abrir(plugin)`, que cria ou alterna o widget dela (ver ../widget.ts).
-// Para acrescentar uma ferramenta: criar o arquivo com o painel e `abrir`, e pôr uma entrada em FERRAMENTAS.
+// plugin/src/ferramentas/<id>.tsx e exporta `WIDGET` (título e tamanho do widget) e `montar(gui, plugin)`, que
+// monta o painel no widget e devolve a função que o desmonta (ver ../widget.ts).
+// Para acrescentar uma ferramenta: criar o arquivo com o painel, `WIDGET` e `montar`, e pôr uma entrada aqui.
 //
 // A lista fica em ferramentas/index.ts (e não em ferramentas.ts ao lado da pasta) porque o Rojo não aceita um
 // arquivo e uma pasta com o mesmo nome: viravam dois irmãos chamados "ferramentas" e o require pegava a pasta.
 // O roblox-ts compila index.ts para init.luau, e a pasta vira o ModuleScript "ferramentas" com os painéis dentro.
+import type { OpcoesWidget } from "../widget";
 import * as assets from "./assets";
 import * as catalogo from "./catalogo";
 import * as conexao from "./conexao";
@@ -22,28 +24,31 @@ export interface Ferramenta {
 	descricao: string;
 	/** Imagem do botão (`rbxassetid://...`); vazio mostra só o texto. */
 	icone: string;
-	/** Abre (ou alterna) o widget da ferramenta e o devolve. */
-	abrir: (plugin: Plugin) => DockWidgetPluginGui;
+	widget: OpcoesWidget;
+	/** Monta o painel no widget e devolve a função que o desmonta. */
+	montar: (gui: DockWidgetPluginGui, plugin: Plugin) => () => void;
 }
 
 export const FERRAMENTAS: Ferramenta[] = [
-	{ id: "mapas", nome: "Mapas", descricao: mapas.DESCRICAO, icone: "", abrir: mapas.abrir },
-	{ id: "catalogo", nome: "Catálogo", descricao: catalogo.DESCRICAO, icone: "", abrir: catalogo.abrir },
-	{ id: "assets", nome: "Assets", descricao: assets.DESCRICAO, icone: "", abrir: assets.abrir },
+	{ id: "mapas", nome: "Mapas", descricao: mapas.DESCRICAO, icone: "", widget: mapas.WIDGET, montar: mapas.montar },
+	{ id: "catalogo", nome: "Catálogo", descricao: catalogo.DESCRICAO, icone: "", widget: catalogo.WIDGET, montar: catalogo.montar },
+	{ id: "assets", nome: "Assets", descricao: assets.DESCRICAO, icone: "", widget: assets.WIDGET, montar: assets.montar },
 	{
 		id: "conexao",
 		nome: "Conexão",
-		descricao: "Estado da ponte (127.0.0.1:34873), do Rojo (34872) e das pastas do repositório.",
+		descricao: "Ponte (127.0.0.1:34873), recarga do plugin, canal do Studio, Aseprite, Rojo (34872) e pastas do repositório.",
 		icone: "",
-		abrir: conexao.abrir,
+		widget: conexao.WIDGET,
+		montar: conexao.montar,
 	},
-	{ id: "servidor", nome: "Servidor", descricao: servidor.DESCRICAO, icone: "", abrir: servidor.abrir },
-	{ id: "problemas", nome: "Problemas", descricao: problemas.DESCRICAO, icone: "", abrir: problemas.abrir },
+	{ id: "servidor", nome: "Servidor", descricao: servidor.DESCRICAO, icone: "", widget: servidor.WIDGET, montar: servidor.montar },
+	{ id: "problemas", nome: "Problemas", descricao: problemas.DESCRICAO, icone: "", widget: problemas.WIDGET, montar: problemas.montar },
 	{
 		id: "suporte",
 		nome: "Suporte",
 		descricao: "A especificação, o roteiro e os demais documentos de docs/diorama dentro do Studio.",
 		icone: "",
-		abrir: suporte.abrir,
+		widget: suporte.WIDGET,
+		montar: suporte.montar,
 	},
 ];

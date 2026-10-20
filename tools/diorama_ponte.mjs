@@ -2,8 +2,12 @@
 // Lê e grava `diorama/` (mapas, catálogo, folhas), `assets/` e `docs/diorama/`, e roda os geradores.
 // Só escuta em 127.0.0.1 e não tem autenticação. Rotas documentadas em docs/diorama/PONTE.md.
 //
-// Uso: npm run diorama:ponte            (ou: node tools/diorama_ponte.mjs [--porta 34873])
-// Só depende do Node e do pngjs (devDependency), que decodifica as folhas para GET /folhas/<nome>.rgba.
+// Uso: npm run diorama:ponte            (ou: node tools/diorama_ponte.mjs [--porta 34873] [--plugin-watch])
+// Depende do Node, do pngjs (decodifica as folhas para GET /folhas/<nome>.rgba) e do ws (o canal do Aseprite).
+//
+// Além do disco, a ponte é o centro das conexões (docs/diorama/CONEXOES.md): serve o pacote do plugin para a
+// recarga a quente (/plugin/*, diorama_lib/pacote.mjs), leva comandos ao Studio (/studio/*), fala com o Aseprite
+// por WebSocket (/ws, /aseprite/*) e anuncia eventos (/eventos); os canais moram em diorama_lib/canais.mjs.
 
 import http from "node:http";
 import fs from "node:fs";
@@ -11,8 +15,10 @@ import path from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { PNG } from "pngjs";
+import { criarCanais } from "./diorama_lib/canais.mjs";
+import { observarPacote } from "./diorama_lib/pacote.mjs";
 
-export const VERSAO = "0.2.0";
+export const VERSAO = "0.4.0";
 const HOST = "127.0.0.1";
 const PORTA_PADRAO = 34873;
 const PORTA_ROJO = 34872;
@@ -298,6 +304,14 @@ function apagarBloco(id, coordenadas) {
 	return { ok: true, arquivo: path.relative(RAIZ, caminho), mapa };
 }
 
+/** Apaga a pasta inteira do mapa (blocos e mapa.json). Usado pelo autoteste do plugin para o mapa temporário. */
+function apagarMapa(id) {
+	const pasta = pastaMapa(id);
+	if (!existe(pasta)) throw new ErroHttp(404, `mapa não encontrado: ${id}`);
+	fs.rmSync(pasta, { recursive: true, force: true });
+	return { ok: true, pasta: path.relative(RAIZ, pasta) };
+}
+
 // ---------------------------------------------------------------------------------------------------------------
 // Catálogo
 
@@ -519,6 +533,9 @@ async function status() {
 		mapas: listarMapas().length,
 		folhas: listarFolhas().length,
 		gerados: mapasGerados(),
+		plugin: estadoPacote(),
+		studios: canais.sessoesVivas(),
+		aseprite: canais.estadoAseprite(),
 	};
 }
 
@@ -542,20 +559,98 @@ function lerDoc(nome) {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
+// Pacote do plugin e canais (CONEXOES.md)
+
+const canais = criarCanais({ ErroHttp, lerJson });
+const PROJETO_PLUGIN = path.join(RAIZ, "plugin", "default.project.json");
+let observador;
+
+/** O observador do pacote, criado no primeiro uso (para quem importa este módulo sem subir a ponte). */
+function pacotes() {
+	if (!observador) {
+		observador = observarPacote({
+			arquivoProjeto: PROJETO_PLUGIN,
+			pastas: [path.join(RAIZ, "plugin", "out"), path.join(RAIZ, "plugin", "include")],
+			aoMudar: (p) => {
+				console.log(`[plugin] pacote ${p.versao} ${p.hash} (${p.arquivos.length} arquivos)`);
+				canais.emitir("pacote_novo", { hash: p.hash, versao: p.versao });
+			},
+		});
+	}
+	return observador;
+}
+
+function estadoPacote() {
+	try {
+		const p = pacotes().atual();
+		return { hash: p.hash, versao: p.versao, gerado_em: p.gerado_em, arquivos: p.arquivos.length };
+	} catch (erro) {
+		return { erro: erro.message };
+	}
+}
+
+function pacoteAtual() {
+	try {
+		return pacotes().atual();
+	} catch (erro) {
+		throw new ErroHttp(503, `o pacote do plugin não está pronto: ${erro.message}`);
+	}
+}
+
+// ---------------------------------------------------------------------------------------------------------------
 // Rotas
 
 /** Cada rota: método, expressão do caminho e função (grupos, pedido, busca) → { status?, json | texto | binario }. */
 const ROTAS = [
 	["GET", /^\/status$/, async () => ({ json: await status() })],
 
+	[
+		"GET",
+		/^\/plugin\/versao$/,
+		() => {
+			const p = pacoteAtual();
+			return { json: { hash: p.hash, gerado_em: p.gerado_em, versao: p.versao } };
+		},
+	],
+	[
+		"GET",
+		/^\/plugin\/pacote$/,
+		() => {
+			const p = pacoteAtual();
+			return { json: { hash: p.hash, versao: p.versao, arvore: p.arvore }, compacto: true };
+		},
+	],
+	...canais.rotas,
+
 	["GET", /^\/mapas$/, () => ({ json: listarMapas() })],
 	["GET", /^\/mapas\/([^/]+)$/, ([id]) => ({ json: lerMapa(id) })],
 	[
 		"PUT",
 		/^\/mapas\/([^/]+)\/blocos\/([^/]+)$/,
-		async ([id, bloco], req) => ({ json: gravarBloco(id, lerCoordenadas(bloco), await lerJson(req)) }),
+		async ([id, bloco], req) => {
+			const r = gravarBloco(id, lerCoordenadas(bloco), await lerJson(req));
+			canais.emitir("mapa_gravado", { mapa: id, bloco, arquivo: r.arquivo });
+			return { json: r };
+		},
 	],
-	["DELETE", /^\/mapas\/([^/]+)\/blocos\/([^/]+)$/, ([id, bloco]) => ({ json: apagarBloco(id, lerCoordenadas(bloco)) })],
+	[
+		"DELETE",
+		/^\/mapas\/([^/]+)\/blocos\/([^/]+)$/,
+		([id, bloco]) => {
+			const r = apagarBloco(id, lerCoordenadas(bloco));
+			canais.emitir("mapa_gravado", { mapa: id, bloco, apagado: true });
+			return { json: r };
+		},
+	],
+	[
+		"DELETE",
+		/^\/mapas\/([^/]+)$/,
+		([id]) => {
+			const r = apagarMapa(id);
+			canais.emitir("mapa_gravado", { mapa: id, apagado: true });
+			return { json: r };
+		},
+	],
 
 	[
 		"GET",
@@ -597,13 +692,23 @@ const ROTAS = [
 
 	["GET", /^\/graal\/ids$/, () => ({ json: idsGraal() })],
 
-	["POST", /^\/gerar\/decorar$/, async () => ({ json: await rodarNpm("diorama:jogo", ["--decorar"]) })],
+	[
+		"POST",
+		/^\/gerar\/decorar$/,
+		async () => {
+			const r = await rodarNpm("diorama:jogo", ["--decorar"]);
+			canais.emitir("gerado", { alvo: "decorar", ok: r.ok });
+			return { json: r };
+		},
+	],
 	[
 		"POST",
 		/^\/gerar\/([^/]+)$/,
 		async ([id]) => {
 			pastaMapa(id); // só valida o id
-			return { json: await rodarNpm("diorama:jogo", [id]) };
+			const r = await rodarNpm("diorama:jogo", [id]);
+			canais.emitir("gerado", { alvo: id, ok: r.ok });
+			return { json: r };
 		},
 	],
 
@@ -641,6 +746,7 @@ async function atender(req, res) {
 	const url = new URL(req.url, `http://${HOST}`);
 	const caminho = decodeURIComponent(url.pathname);
 	let statusFinal = 200;
+	let silenciosa = false;
 	try {
 		let rotaDoCaminho = false;
 		for (const [metodo, padrao, acao] of ROTAS) {
@@ -648,9 +754,18 @@ async function atender(req, res) {
 			if (!m) continue;
 			rotaDoCaminho = true;
 			if (metodo !== req.method) continue;
-			const resposta = await acao(m.slice(1), req, url.searchParams);
+			const resposta = await acao(m.slice(1), req, url.searchParams, res);
 			statusFinal = resposta.status ?? 200;
-			if (resposta.binario) {
+			silenciosa = statusFinal < 400 && canais.silenciosas.some((r) => r.test(caminho));
+			if (res.destroyed) return;
+			if (resposta.vazio) {
+				res.writeHead(statusFinal);
+				res.end();
+			} else if (resposta.compacto) {
+				const corpo = JSON.stringify(resposta.json);
+				res.writeHead(statusFinal, { "Content-Type": "application/json; charset=utf-8", "Content-Length": Buffer.byteLength(corpo) });
+				res.end(corpo);
+			} else if (resposta.binario) {
 				res.writeHead(statusFinal, {
 					"Content-Type": "application/octet-stream",
 					"Content-Length": resposta.binario.length,
@@ -668,9 +783,9 @@ async function atender(req, res) {
 	} catch (erro) {
 		statusFinal = erro instanceof ErroHttp ? erro.status : 500;
 		if (statusFinal === 500) console.error(erro);
-		json(res, statusFinal, { erro: erro.message });
+		if (!res.headersSent && !res.destroyed) json(res, statusFinal, { erro: erro.message });
 	} finally {
-		console.log(`${req.method} ${caminho} -> ${statusFinal} (${Date.now() - inicio} ms)`);
+		if (!silenciosa) console.log(`${req.method} ${caminho} -> ${statusFinal} (${Date.now() - inicio} ms)`);
 	}
 }
 
@@ -678,12 +793,37 @@ async function atender(req, res) {
 // Início
 
 export function criarServidor() {
-	return http.createServer((req, res) => {
+	const servidor = http.createServer((req, res) => {
 		atender(req, res).catch((erro) => {
 			console.error(erro);
 			if (!res.headersSent) json(res, 500, { erro: erro.message });
 		});
 	});
+	// O keep-alive precisa durar mais que o intervalo entre os pedidos do plugin (presença a cada 5 s).
+	servidor.keepAliveTimeout = 65_000;
+	servidor.headersTimeout = 66_000;
+	canais.aoAtualizar(servidor);
+	return servidor;
+}
+
+/** `--plugin-watch`: roda o `rbxtsc -w` do plugin junto, com a saída prefixada por [rbxtsc]. */
+function vigiarPlugin() {
+	const cli = path.join(RAIZ, "node_modules", "roblox-ts", "out", "CLI", "cli.js");
+	if (!existe(cli)) {
+		console.error("[rbxtsc] node_modules/roblox-ts não encontrado; --plugin-watch ignorado.");
+		return undefined;
+	}
+	const processo = spawn(process.execPath, [cli, "-w", "-p", "plugin/tsconfig.json", "--rojo", "plugin/default.project.json"], {
+		cwd: RAIZ,
+		windowsHide: true,
+	});
+	const repassar = (parte) => {
+		for (const linha of parte.toString().split(/\r?\n/)) if (linha.trim() !== "") console.log(`[rbxtsc] ${linha}`);
+	};
+	processo.stdout.on("data", repassar);
+	processo.stderr.on("data", repassar);
+	processo.on("close", (codigo) => console.log(`[rbxtsc] saiu com código ${codigo}`));
+	return processo;
 }
 
 function lerPorta() {
@@ -710,9 +850,16 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
 	});
 	servidor.listen(porta, HOST, () => {
 		console.log(`Ponte do Diorama ${VERSAO} em http://${HOST}:${porta} (raiz: ${RAIZ}). Ctrl+C encerra.`);
+		// Monta o pacote já (o observador anuncia a versão no terminal).
+		const p = estadoPacote();
+		if (p.erro) console.log(`[plugin] pacote indisponível: ${p.erro}`);
 	});
+	const rbxtsc = process.argv.includes("--plugin-watch") ? vigiarPlugin() : undefined;
 	const encerrar = () => {
 		console.log("\nEncerrando a ponte.");
+		rbxtsc?.kill();
+		canais.fechar();
+		observador?.fechar();
 		servidor.close(() => process.exit(0));
 		setTimeout(() => process.exit(0), 500).unref();
 	};

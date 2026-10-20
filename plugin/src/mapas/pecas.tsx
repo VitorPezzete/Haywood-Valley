@@ -7,6 +7,7 @@ import { Botao, Campo, Coluna, cor, Linha, Rotulo, TEXTO, tema } from "../ui/kit
 import type { Imagens } from "./canvas";
 import type { Catalogo, Peca } from "./regras";
 import { METADE, TILE_PX } from "./zonas";
+import { conteudo } from "../folhasLocais";
 
 export interface PropsPecas {
 	catalogo: () => Catalogo | undefined;
@@ -30,7 +31,7 @@ function Miniatura(props: { peca: Peca; imagens: () => Imagens }) {
 			Size={UDim2.fromOffset(MINIATURA, MINIATURA)}
 			BackgroundColor3={Color3.fromRGB(20, 20, 24)}
 			BorderSizePixel={0}
-			Image={() => props.imagens()[props.peca.folha]?.[metade] ?? ""}
+			ImageContent={() => conteudo(props.imagens()[props.peca.folha]?.[metade])}
 			ImageRectOffset={new Vector2((c % METADE) * TILE_PX, l * TILE_PX)}
 			ImageRectSize={new Vector2(math.max(1, largura) * TILE_PX, math.max(1, h) * TILE_PX)}
 			ResampleMode={Enum.ResamplerMode.Pixelated}

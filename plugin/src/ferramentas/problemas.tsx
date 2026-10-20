@@ -7,7 +7,7 @@ import { Gravidade, Grupo, Problema, TITULO_DO_GRUPO } from "../problemas/tipos"
 import { copiarTexto } from "../ui/copiar";
 import { AreaTexto, Botao, Coluna, Lista, Painel, Rotulo, Titulo, Tom } from "../ui/kit";
 import { Aviso, Bloco, Etiqueta, Fileira, Preenche, TextoCurto } from "../ui/kit";
-import { abrirWidget } from "../widget";
+import type { OpcoesWidget } from "../widget";
 
 export const DESCRICAO = "Diagnóstico dos mapas, do catálogo e dos assets: o que está inconsistente e onde.";
 
@@ -163,8 +163,8 @@ export function PainelProblemas() {
 	);
 }
 
-export function abrir(plugin: Plugin) {
-	return abrirWidget(plugin, { id: "problemas", titulo: "Problemas", largura: 640, altura: 520 }, (gui) =>
-		mount(() => <PainelProblemas />, gui),
-	);
+export const WIDGET: OpcoesWidget = { titulo: "Problemas", largura: 640, altura: 520 };
+
+export function montar(gui: DockWidgetPluginGui) {
+	return mount(() => <PainelProblemas />, gui);
 }

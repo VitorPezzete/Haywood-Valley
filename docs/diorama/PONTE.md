@@ -1,6 +1,8 @@
 # Ponte do Diorama
 
-`tools/diorama_ponte.mjs`, `npm run diorama:ponte`. Servidor HTTP em `http://127.0.0.1:34873` (`--porta N` muda), sem autenticação, que só escuta no 127.0.0.1. Lê e grava `diorama/`, `assets/` e `docs/diorama/` na raiz do repositório e roda os geradores por `npm run`. Cada pedido sai no terminal como `GET /status -> 200 (3 ms)`. O cliente do plugin é `plugin/src/ponte.ts`.
+`tools/diorama_ponte.mjs`, `npm run diorama:ponte`. Servidor HTTP em `http://127.0.0.1:34873` (`--porta N` muda), sem autenticação, que só escuta no 127.0.0.1. Lê e grava `diorama/`, `assets/` e `docs/diorama/` na raiz do repositório e roda os geradores por `npm run`. Cada pedido sai no terminal como `GET /status -> 200 (3 ms)`, menos os que se repetem a cada poucos segundos quando dão certo (`/plugin/versao`, `/studio/presenca`, `/studio/proximo`, `/eventos`). O cliente do plugin é `plugin/src/ponte.ts`.
+
+Além do disco, a ponte é o centro das conexões de `CONEXOES.md`: serve o pacote do plugin para a recarga a quente (`/plugin/*`, código em `tools/diorama_lib/pacote.mjs`), leva comandos aos Studios (`/studio/*`), fala com o Aseprite por WebSocket (`/ws`, `/aseprite/*`) e anuncia eventos (`/eventos`); os canais estão em `tools/diorama_lib/canais.mjs` e guardam tudo em memória (reiniciar a ponte esquece sessões, comandos e eventos; o plugin se apresenta de novo em até 5 s). `npm run diorama:ponte -- --plugin-watch` roda junto o `rbxtsc -w` do plugin, com a saída prefixada por `[rbxtsc]`.
 
 Convenções:
 
@@ -18,7 +20,7 @@ GET /status
 
 200
 {
-	"versao": "0.2.0",
+	"versao": "0.4.0",
 	"raiz": "C:\\Users\\Szortek\\Documents\\Haywood-Valley",
 	"pastas": {
 		"mapas":    { "caminho": "diorama\\mapas",    "existe": true },
@@ -30,9 +32,14 @@ GET /status
 	"rojo": { "ligado": false, "porta": 34872 },
 	"mapas": 14,
 	"folhas": 8,
-	"gerados": ["banheiro_equipe", "casa_teste_v2", "..."]
+	"gerados": ["banheiro_equipe", "casa_teste_v2", "..."],
+	"plugin": { "hash": "7bd368c97fc0a25d", "versao": "0.4.0", "gerado_em": "2026-10-20T13:40:00.000Z", "arquivos": 84 },
+	"studios": [{ "sessao": "480a4859-…", "place": "teste_plugin.rbxl", "placeId": 0, "versao": "0.4.0", "modo": "edicao", "origem": "ponte", "visto_ha_ms": 1200 }],
+	"aseprite": { "conectado": false, "versao": null, "aseprite": null, "sprite": null, "conectado_em": null }
 }
 ```
+
+`plugin` é o pacote que a ponte serve agora (ou `{ "erro": "..." }` se `plugin/out` não está compilado); `studios`, as sessões vivas do canal; `aseprite`, o mesmo de `GET /aseprite/estado`.
 
 ## Mapas
 
@@ -94,6 +101,17 @@ O formato do `mapa.json` (`versao`, `id`, `nome`, `blocos`) é palpite desta rec
 ### `DELETE /mapas/<id>/blocos/<bx>_<by>`
 
 Apaga o arquivo do bloco e o tira do `mapa.json`. `404` se o bloco não existe. Resposta igual à do `PUT`.
+
+### `DELETE /mapas/<id>`
+
+Apaga a pasta inteira `diorama/mapas/<id>` (blocos e `mapa.json`). O autoteste do plugin usa para o mapa temporário `zz_autoteste`. `404` se o mapa não existe.
+
+```
+200
+{ "ok": true, "pasta": "diorama\\mapas\\zz_autoteste" }
+```
+
+`PUT` e `DELETE` de bloco e de mapa soltam o evento `mapa_gravado` (`{ mapa, bloco?, arquivo?, apagado? }`); os geradores soltam `gerado` (`{ alvo, ok }`).
 
 ## Catálogo
 
@@ -207,3 +225,74 @@ Nomes (sem `.md`) dos arquivos em `docs/diorama/`.
 ### `GET /docs/<nome>`
 
 O texto de `docs/diorama/<nome>.md` (`text/plain; charset=utf-8`). Aceita o nome com ou sem `.md`.
+
+## Plugin (recarga a quente)
+
+O plugin instalado é uma casca que baixa o resto daqui (`CONEXOES.md`, seção 1).
+
+### `GET /plugin/versao`
+
+```
+200
+{ "hash": "7bd368c97fc0a25d", "gerado_em": "2026-10-20T13:40:00.000Z", "versao": "0.4.0" }
+```
+
+`503` se `plugin/out` ainda não foi compilado (`npm run plugin:compile`). O hash (16 hex) é o SHA-256 da árvore inteira (nomes, classes e fontes). A ponte observa `plugin/out` e `plugin/include` e refaz o pacote 300 ms depois da última mudança; um hash novo sai no terminal (`[plugin] pacote 0.4.0 <hash>`) e como o evento `pacote_novo`. A casca pergunta a cada 2 s.
+
+### `GET /plugin/pacote`
+
+`{ "hash", "versao", "arvore" }`, com `arvore` = `{ "nome", "classe": "Folder" | "ModuleScript", "fonte"?, "filhos"? }`. A raiz é a Folder `Diorama` com os filhos do Script raiz do `.rbxm` (`app`, `ferramentas`, `rbxts_include`…), montada a partir de `plugin/default.project.json` pelas regras do Rojo (pasta com `init.luau` vira ModuleScript, `globIgnorePaths` vale, `default.project.json` dentro de uma pasta é seguido). O `init.server.luau` (a casca) e qualquer Script que não seja ModuleScript ficam de fora. Uns 780 KB de JSON sem indentação.
+
+## Canal do Studio
+
+Cada plugin aberto se apresenta e busca comandos por long-poll; quem manda (MCP, Aseprite, curl) põe o comando numa fila e espera a resposta. Tabela dos comandos em `CONEXOES.md`, seção 2.
+
+### `POST /studio/presenca`
+
+`{ "sessao", "place", "placeId", "versao", "modo", "origem" }` → `{ "ok": true, "sessao", "fila": 0 }`. O plugin manda a cada 5 s. A primeira presença de uma sessão solta `studio_entrou`; uma sessão sem presença nem long-poll há 15 s sai (`studio_saiu`) e os comandos que ela não buscou falham.
+
+### `GET /studio/presenca`
+
+As sessões vivas: `[{ sessao, place, placeId, versao, modo, origem, visto_ha_ms }]`.
+
+### `GET /studio/proximo?sessao=<s>&espera=20`
+
+`200 { "id": "c17", "tipo": "…", "args": {…} }` ou `204` depois de `espera` segundos (máximo 55) sem comando. Um long-poll novo da mesma sessão encerra o anterior com `204`; se a conexão cai antes, o comando fica na fila.
+
+### `POST /studio/respostas/<id>`
+
+`{ "ok": true, "valor": … }` ou `{ "ok": false, "erro": "…" }`. `{ "devolver": true }` põe o comando de volta na frente da fila (o pacote do plugin parou enquanto ele chegava).
+
+### `POST /studio/comandos`
+
+`{ "tipo", "args"?, "sessao"? }` → `{ "id": "c17", "sessao": "…" }`. Sem `sessao`, vai para a sessão mais recente em modo `edicao` (ou, sem nenhuma, a mais recente viva). `503` se não há Studio conectado ou a sessão pedida não está. Um comando que ninguém buscou em 120 s falha.
+
+### `GET /studio/respostas/<id>?espera=30`
+
+A resposta (`{ ok, valor | erro }`) quando chega, ou `202 { "pendente": true, "entregue": bool }` depois de `espera` segundos. As respostas ficam guardadas 10 min. `404` para id desconhecido.
+
+```
+curl -s -X POST http://127.0.0.1:34873/studio/comandos -H "Content-Type: application/json" -d '{"tipo":"autoteste"}'
+{ "id": "c3", "sessao": "480a4859-…" }
+curl -s "http://127.0.0.1:34873/studio/respostas/c3?espera=50"
+```
+
+## Aseprite
+
+### `/ws?cliente=aseprite` (WebSocket)
+
+A extensão do Aseprite se conecta aqui (protocolo em `CONEXOES.md`, seção 3). Uma conexão nova do Aseprite derruba a anterior (código 4000). A ponte manda um ping a cada 20 s e corta quem não responde. O evento `folha_salva` vira `recarregar_folhas { folha }` para cada Studio vivo em modo `edicao` e o evento de mesmo nome em `/eventos`. Qualquer outro `?cliente=` é um observador: recebe cada evento como `{ "tipo": "evento", "nome", "n", "dados", "em" }`.
+
+### `GET /aseprite/estado`
+
+`{ "conectado", "versao", "aseprite", "sprite", "conectado_em" }`. `sprite` é o último que a extensão contou (no `ola`, num evento `sprite` ou na resposta de `sprite_atual`).
+
+### `POST /aseprite/comandos`
+
+`{ "nome", "args"? }` → espera a resposta até 30 s: `200 { "ok": true, "valor" }` ou `{ "ok": false, "erro" }`; `503` sem o Aseprite conectado; `504` sem resposta no tempo.
+
+## Eventos
+
+### `GET /eventos?desde=<n>&espera=25`
+
+`{ "proximo": n2, "eventos": [{ "n", "tipo", "dados", "em" }] }`, com os eventos de número `>= desde`; sem nenhum, espera até `espera` segundos (máximo 55). Na próxima chamada, `desde=proximo`. Sem `desde`, devolve na hora os guardados (os últimos 500). Tipos: `pacote_novo`, `mapa_gravado`, `gerado`, `studio_entrou`, `studio_saiu`, `aseprite_conectou`, `aseprite_saiu`, `folha_salva` e qualquer outro evento que a extensão do Aseprite mande.

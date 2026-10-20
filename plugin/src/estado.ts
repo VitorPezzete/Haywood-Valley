@@ -2,6 +2,7 @@
 // da ponte que mais de uma ferramenta faz (a lista de mapas, as imagens das folhas). Vivem no módulo (fora de
 // qualquer root do Vide), então sobrevivem a abrir e fechar widgets.
 import { source } from "@rbxts/vide";
+import { carregarFolha, folhasLocais, gravarConfigFolhas, idLocal } from "./folhasLocais";
 import * as ponte from "./ponte";
 import type { ResumoMapa, Status } from "./ponte";
 
@@ -42,7 +43,6 @@ export const avisoImagens = source("");
 /** Chave do registro de assets → `rbxassetid://`, da última carga (`GET /assets`). */
 export const idsAssets = source<Record<string, string>>({});
 
-
 /** Relê `GET /mapas` e atualiza `mapas`. Yielda: chamar de um task.spawn. Devolve o resultado da ponte. */
 export function recarregarMapas() {
 	const r = ponte.listarMapas();
@@ -69,11 +69,33 @@ export function carregarImagensFolhas() {
 	} else {
 		for (const folha of FOLHAS_DO_JOGO) faltando.push(folha);
 	}
+	const avisos = new Array<string>();
+	if (faltando.size() > 0) {
+		avisos.push(
+			`Sem id no registro para ${faltando.join(", ")} (${r.ok ? "chaves aeko.<folha>.<metade> ausentes" : r.erro}); valem os ids guardados no plugin.`,
+		);
+	}
+	// Folhas locais (seção 4 de CONEXOES.md): os pixels do disco no lugar dos ids; a folha que falhar fica com o id.
+	if (folhasLocais()) {
+		const falhas = new Array<string>();
+		for (const folha of FOLHAS_DO_JOGO) {
+			const carga = carregarFolha(folha);
+			if (carga.ok) novas[folha] = [idLocal(folha, 0), idLocal(folha, 1)];
+			else falhas.push(`${folha}: ${carga.erro}`);
+		}
+		if (falhas.size() > 0) {
+			const texto = `Folhas locais: não deu para montar a prévia (${falhas.join("; ")}); valem os ids do Roblox.`;
+			avisos.push(texto);
+			warn(`[Diorama] ${texto}`);
+		}
+	}
 	imagensFolhas(novas);
-	avisoImagens(
-		faltando.size() > 0
-			? `Sem id no registro para ${faltando.join(", ")} (${r.ok ? "chaves aeko.<folha>.<metade> ausentes" : r.erro}); valem os ids guardados no plugin.`
-			: "",
-	);
+	avisoImagens(avisos.join(" "));
 	return r;
+}
+
+/** Liga ou desliga "Folhas locais" (guardado entre as sessões) e recarrega as imagens. Yielda. */
+export function definirFolhasLocais(valor: boolean) {
+	gravarConfigFolhas(valor);
+	carregarImagensFolhas();
 }

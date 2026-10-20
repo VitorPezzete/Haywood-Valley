@@ -8,7 +8,8 @@
 import { gravarAtributo, ATRIBUTO_INTERIOR_CELULA, ATRIBUTO_INTERIOR_TESTE } from "./atributos";
 import { modoAtual } from "./execucao";
 
-const CHAVE = "diorama.servidor.teleportePendente";
+// Sem ponto: o plugin:SetSetting do Studio ignora em silêncio as chaves com "." (conferido em 2026-10-20).
+const CHAVE = "Diorama_servidor_teleportePendente";
 
 export interface Teleporte {
 	mapa: string;

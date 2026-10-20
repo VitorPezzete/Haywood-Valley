@@ -11,6 +11,7 @@ import { UserInputService } from "@rbxts/services";
 import { cor } from "../ui/kit";
 import { CAMADA_TERRENO, CELULAS, corDoTerreno, desempacotar, LADO, ModeloBloco } from "./bloco";
 import { METADE, Tile, TILE_PX } from "./zonas";
+import { conteudo } from "../folhasLocais";
 
 /** Ids das metades de cada folha (`rbxassetid://...`), pela chave `aeko.<folha>.<metade>` do registro de assets. */
 export type Imagens = Record<string, [string, string] | undefined>;
@@ -153,10 +154,12 @@ export function aplicarTile(label: ImageLabel, tile: Tile, imagens: Imagens) {
 	const par = imagens[tile[0]];
 	const id = par ? par[tile[1] >= METADE ? 1 : 0] : undefined;
 	if (id === undefined || id === "") {
-		label.Image = "";
+		label.ImageContent = Content.none;
+		label.SetAttribute("SemImagem", true);
 		label.BackgroundTransparency = 0.4;
 	} else {
-		label.Image = id;
+		label.ImageContent = conteudo(id);
+		label.SetAttribute("SemImagem", undefined);
 		label.BackgroundTransparency = 1;
 	}
 	label.ImageRectOffset = new Vector2((tile[1] % METADE) * TILE_PX, tile[2] * TILE_PX);
@@ -385,7 +388,8 @@ export function CanvasBloco(props: PropsCanvas) {
 				label.Position = UDim2.fromOffset(c.dx * TILE_PX, c.dy * TILE_PX);
 				if (c.tile) aplicarTile(label, c.tile, imagens);
 				else {
-					label.Image = "";
+					label.ImageContent = Content.none;
+					label.SetAttribute("SemImagem", true);
 					label.BackgroundTransparency = 0.4;
 					label.BackgroundColor3 = c.cor ?? COR_SEM_IMAGEM;
 				}
@@ -395,7 +399,7 @@ export function CanvasBloco(props: PropsCanvas) {
 		rotulosFantasma.forEach((label, i) => {
 			if (i < f.celulas.size()) {
 				label.ImageTransparency = f.transparencia;
-				if (label.Image === "") label.BackgroundTransparency = math.max(0.4, f.transparencia);
+				if (label.GetAttribute("SemImagem") === true) label.BackgroundTransparency = math.max(0.4, f.transparencia);
 			}
 		});
 	});

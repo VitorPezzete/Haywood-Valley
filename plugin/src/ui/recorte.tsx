@@ -5,6 +5,7 @@ import Vide from "@rbxts/vide";
 import type { Metades } from "../catalogo/folhas";
 import { COLUNAS_METADE, Retangulo, TILE } from "../catalogo/formato";
 import { cor } from "./kit";
+import { conteudo } from "../folhasLocais";
 
 /**
  * `caixa` é o tamanho em pixels da tela em que o recorte tem de caber; a escala é a maior que cabe (inteira quando
@@ -45,7 +46,7 @@ export function Recorte(props: {
 			Name={`Parte${indice}`}
 			BackgroundTransparency={1}
 			Visible={() => parte(indice) !== undefined}
-			Image={() => parte(indice)?.imagem ?? ""}
+			ImageContent={() => conteudo(parte(indice)?.imagem)}
 			ImageRectOffset={() => parte(indice)?.deslocamento ?? Vector2.zero}
 			ImageRectSize={() => parte(indice)?.tamanho ?? Vector2.zero}
 			ResampleMode={Enum.ResamplerMode.Pixelated}

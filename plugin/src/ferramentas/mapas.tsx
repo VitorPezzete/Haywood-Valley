@@ -13,9 +13,11 @@ import * as ponte from "../ponte";
 import { Abas, AreaTexto, Botao, Campo, Coluna, ESPACO, Linha, Lista, Painel, Rotulo, Separador, Titulo, Tom } from "../ui/kit";
 import { Alternar, Ciclo } from "../ui/kit";
 import { Amostra, Legenda } from "../ui/extras";
-import { abrirWidget } from "../widget";
+import { AlternarFolhasLocais } from "../ui/alternarFolhas";
+import type { OpcoesWidget } from "../widget";
 import { avisosDoBloco, CAMADA_TERRENO, desempacotar, empacotar, idValido, ModeloBloco, TERRENOS, TITULOS_CAMADA } from "../mapas/bloco";
 import { CanvasBloco, Fantasma, Imagens, Modificadores } from "../mapas/canvas";
+import { registrarControle, resumirModelo } from "../mapas/controle";
 import { Historico } from "../mapas/historico";
 import { PainelMarcadores, PedidoPosicao } from "../mapas/marcadores";
 import { Paleta, SelecaoPaleta } from "../mapas/paleta";
@@ -373,6 +375,29 @@ export function PainelMapas(props: { gui?: DockWidgetPluginGui }) {
 	};
 	atualizarTudo();
 
+	/** Lê o mapa pela ponte e o põe no editor. Yielda. Devolve o erro, se houve. */
+	const carregarMapa = (id: string): string | undefined => {
+		ocupado(true);
+		const r = ponte.lerMapa(id);
+		ocupado(false);
+		if (!r.ok) {
+			avisar(`Não abriu "${id}": ${r.erro}`, "erro");
+			return r.erro;
+		}
+		const bloco = r.valor.blocos.find((b) => typeIs(b.bloco, "table") && b.bloco[0] === 0 && b.bloco[1] === 0);
+		const novo = bloco ? ModeloBloco.deJson(bloco.conteudo) : ModeloBloco.novo(id);
+		novo.mapa = id;
+		trocarModelo(novo);
+		const ret = novo.retanguloPintado();
+		avisar(
+			bloco
+				? `"${id}" aberto: ${ret ? `${ret[2]} × ${ret[3]} células pintadas a partir de (${ret[0]}, ${ret[1]})` : "bloco vazio"}${novo.carimboLido ? `, carimbo ${novo.carimboLido}` : ""}.`
+				: `"${id}" não tem o bloco 0_0; começando um vazio.`,
+			"ok",
+		);
+		return undefined;
+	};
+
 	const abrirMapa = (id: string) => {
 		if (ocupado()) return;
 		if (sujo() && confirmarDescarte() !== id) {
@@ -380,24 +405,27 @@ export function PainelMapas(props: { gui?: DockWidgetPluginGui }) {
 			return avisar(`"${modelo.mapa}" tem mudanças não salvas. Clique de novo em "${id}" para descartá-las.`);
 		}
 		confirmarDescarte(undefined);
-		ocupado(true);
-		task.spawn(() => {
-			const r = ponte.lerMapa(id);
-			ocupado(false);
-			if (!r.ok) return avisar(`Não abriu "${id}": ${r.erro}`, "erro");
-			const bloco = r.valor.blocos.find((b) => typeIs(b.bloco, "table") && b.bloco[0] === 0 && b.bloco[1] === 0);
-			const novo = bloco ? ModeloBloco.deJson(bloco.conteudo) : ModeloBloco.novo(id);
-			novo.mapa = id;
-			trocarModelo(novo);
-			const ret = novo.retanguloPintado();
-			avisar(
-				bloco
-					? `"${id}" aberto: ${ret ? `${ret[2]} × ${ret[3]} células pintadas a partir de (${ret[0]}, ${ret[1]})` : "bloco vazio"}${novo.carimboLido ? `, carimbo ${novo.carimboLido}` : ""}.`
-					: `"${id}" não tem o bloco 0_0; começando um vazio.`,
-				"ok",
-			);
-		});
+		task.spawn(carregarMapa, id);
 	};
+
+	// O controle de fora (canal do Studio: abrir_mapa; autoteste).
+	cleanup(
+		registrarControle({
+			abrir: (id, descartar) => {
+				if (sujo() && !descartar) return { ok: false, erro: `o editor tem mudanças não salvas em "${modelo.mapa}"` };
+				// Espera outra leitura em andamento terminar (o botão Atualizar, por exemplo).
+				const limite = os.clock() + 10;
+				while (ocupado() && os.clock() < limite) task.wait();
+				confirmarDescarte(undefined);
+				const erro = carregarMapa(id);
+				if (erro !== undefined) return { ok: false, erro };
+				return { ok: true, resumo: resumirModelo(modelo, sujo()) };
+			},
+			modelo: () => modelo,
+			resumo: () => resumirModelo(modelo, sujo()),
+			sujo: () => sujo(),
+		}),
+	);
 
 	const criarMapa = () => {
 		const id = idNovo().gsub("%s", "")[0];
@@ -609,6 +637,7 @@ export function PainelMapas(props: { gui?: DockWidgetPluginGui }) {
 							<Botao texto="+" aoClicar={() => zoom(math.min(3, zoom() + 1))} ordem={2} />
 							<Alternar texto="Grade" valor={grade} ordem={3} />
 							<Ciclo rotulo="Outras camadas" opcoes={OPACIDADES} valor={opacidade} ordem={4} />
+							<AlternarFolhasLocais ordem={6} />
 							<frame Size={new UDim2(0, 0, 0, 24)} AutomaticSize={Enum.AutomaticSize.X} BackgroundTransparency={1} Visible={() => camada() === CAMADA_TERRENO} LayoutOrder={5}>
 								<Linha espaco={3}>
 									{TERRENOS.map((t, i) => (
@@ -683,8 +712,8 @@ export function PainelMapas(props: { gui?: DockWidgetPluginGui }) {
 	);
 }
 
-export function abrir(plugin: Plugin) {
-	return abrirWidget(plugin, { id: "mapas", titulo: "Mapas", largura: 1100, altura: 700, larguraMinima: 800, alturaMinima: 480 }, (gui) =>
-		mount(() => <PainelMapas gui={gui} />, gui),
-	);
+export const WIDGET: OpcoesWidget = { titulo: "Mapas", largura: 1100, altura: 700, larguraMinima: 800, alturaMinima: 480 };
+
+export function montar(gui: DockWidgetPluginGui) {
+	return mount(() => <PainelMapas gui={gui} />, gui);
 }

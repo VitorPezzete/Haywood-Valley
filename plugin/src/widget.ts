@@ -1,79 +1,127 @@
-// Um DockWidgetPluginGui por ferramenta: cria na primeira vez, reaproveita nas seguintes (o botão da barra
-// alterna entre mostrar e esconder) e guarda o tamanho em plugin:SetSetting. A posição e o encaixe (dock) o
-// próprio Studio guarda pelo id do widget; por isso o id precisa ser estável.
+// Os widgets das ferramentas. A casca cria cada DockWidgetPluginGui uma vez (pelo id) e o entrega de novo, vazio,
+// a cada pacote; aqui o pacote liga o botão da barra ao widget e monta o painel da ferramenta na primeira vez que o
+// widget fica à vista (montar o editor de Mapas é caro; não vale fazer para um widget fechado).
+//
+// O botão alterna o widget; fechar pelo X também desmarca o botão. A posição, o encaixe e o tamanho o próprio Studio
+// guarda pelo id do widget (`Diorama_<id>`), que por isso é estável.
+import { aoParar, ambiente } from "./ambiente";
+import type { Ferramenta } from "./ferramentas";
 
 export interface OpcoesWidget {
-	/** Id estável, só letras e números: vira o id do DockWidgetPluginGui e a chave da configuração. */
-	id: string;
 	titulo: string;
-	/** Tamanho inicial flutuante, usado só quando ainda não há tamanho guardado. */
 	largura?: number;
 	altura?: number;
 	larguraMinima?: number;
 	alturaMinima?: number;
 }
 
-interface Aberto {
+interface Registro {
+	ferramenta: Ferramenta;
 	gui: DockWidgetPluginGui;
-	desmontar: () => void;
+	botao: PluginToolbarButton;
+	desmontar?: () => void;
+	/** O erro da última montagem, se falhou. */
+	erro?: string;
 }
 
-const abertos = new Map<string, Aberto>();
+const registros = new Map<string, Registro>();
+/** Os ids na ordem da barra. */
+const ordem = new Array<string>();
 
-function chaveTamanho(id: string) {
-	return `diorama.widget.${id}.tamanho`;
+/** Desmonta o painel (o Vide só encerra os efeitos; as instâncias saem com ClearAllChildren). */
+function desmontarRegistro(r: Registro) {
+	if (r.desmontar) {
+		const [ok, erro] = pcall(r.desmontar);
+		if (!ok) warn(`[Diorama] erro ao desmontar ${r.ferramenta.nome}: ${tostring(erro)}`);
+		r.desmontar = undefined;
+	}
+	pcall(() => r.gui.ClearAllChildren());
 }
 
 /**
- * Abre o widget da ferramenta. `montar` recebe o widget e devolve a função que desmonta a interface (o retorno
- * de `Vide.mount`). Se o widget já existe, só alterna `Enabled` e devolve o mesmo widget.
+ * Monta o painel da ferramenta, se ainda não está montado. Devolve o erro, se a montagem falhou (o widget fica
+ * com uma mensagem no lugar do painel).
  */
-export function abrirWidget(
-	plugin: Plugin,
-	opcoes: OpcoesWidget,
-	montar: (gui: DockWidgetPluginGui) => () => void,
-): DockWidgetPluginGui {
-	const existente = abertos.get(opcoes.id);
-	if (existente) {
-		existente.gui.Enabled = !existente.gui.Enabled;
-		return existente.gui;
+export function garantirMontada(id: string): string | undefined {
+	const r = registros.get(id);
+	if (!r) return `ferramenta desconhecida: ${id}`;
+	if (r.desmontar) return undefined;
+	const [ok, resultado] = pcall(() => r.ferramenta.montar(r.gui, ambiente().plugin));
+	if (!ok || !typeIs(resultado, "function")) {
+		r.erro = ok ? "montar não devolveu a função de desmontar" : tostring(resultado);
+		warn(`[Diorama] a ferramenta ${r.ferramenta.nome} não montou: ${r.erro}`);
+		pcall(() => r.gui.ClearAllChildren());
+		const aviso = new Instance("TextLabel");
+		aviso.Size = UDim2.fromScale(1, 1);
+		aviso.TextWrapped = true;
+		aviso.TextXAlignment = Enum.TextXAlignment.Left;
+		aviso.TextYAlignment = Enum.TextYAlignment.Top;
+		aviso.Text = `A ferramenta ${r.ferramenta.nome} não montou:\n${r.erro}`;
+		aviso.Parent = r.gui;
+		return r.erro;
 	}
-
-	const guardado = plugin.GetSetting(chaveTamanho(opcoes.id)) as { largura?: number; altura?: number } | undefined;
-	const largura = guardado?.largura ?? opcoes.largura ?? 360;
-	const altura = guardado?.altura ?? opcoes.altura ?? 420;
-	const info = new DockWidgetPluginGuiInfo(
-		Enum.InitialDockState.Float,
-		true,
-		false,
-		largura,
-		altura,
-		opcoes.larguraMinima ?? 240,
-		opcoes.alturaMinima ?? 160,
-	);
-	const gui = plugin.CreateDockWidgetPluginGuiAsync(`Diorama_${opcoes.id}`, info);
-	gui.Name = `Diorama_${opcoes.id}`;
-	// `Title` existe no PluginGui, mas falta nos tipos do @rbxts/types.
-	(gui as unknown as { Title: string }).Title = `Diorama: ${opcoes.titulo}`;
-	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling;
-
-	const desmontar = montar(gui);
-
-	// Guarda o tamanho a cada mudança; o Studio chama isso também ao restaurar o widget, o que não faz mal.
-	gui.GetPropertyChangedSignal("AbsoluteSize").Connect(() => {
-		const tamanho = gui.AbsoluteSize;
-		if (tamanho.X > 0 && tamanho.Y > 0) {
-			plugin.SetSetting(chaveTamanho(opcoes.id), { largura: tamanho.X, altura: tamanho.Y });
-		}
-	});
-
-	abertos.set(opcoes.id, { gui, desmontar });
-	return gui;
+	r.erro = undefined;
+	r.desmontar = resultado as () => void;
+	return undefined;
 }
 
-/** O widget da ferramenta, se já foi criado nesta sessão. */
+/** Liga botões e widgets às ferramentas. Chamado por `app.iniciar`. */
+export function prepararFerramentas(lista: ReadonlyArray<Ferramenta>) {
+	const a = ambiente();
+	for (const ferramenta of lista) {
+		const gui = a.widget(`Diorama_${ferramenta.id}`, ferramenta.widget);
+		const botao = a.botao(`diorama_${ferramenta.id}`, ferramenta.nome, ferramenta.descricao, ferramenta.icone);
+		const r: Registro = { ferramenta, gui, botao };
+		registros.set(ferramenta.id, r);
+		ordem.push(ferramenta.id);
+		aoParar(botao.Click.Connect(() => alternar(ferramenta.id)));
+		aoParar(
+			gui.GetPropertyChangedSignal("Enabled").Connect(() => {
+				botao.SetActive(gui.Enabled);
+				if (gui.Enabled) garantirMontada(ferramenta.id);
+			}),
+		);
+		botao.SetActive(gui.Enabled);
+		// O Studio restaura o widget aberto da sessão anterior; e numa recarga o widget aberto continua aberto.
+		if (gui.Enabled) garantirMontada(ferramenta.id);
+	}
+}
+
+/** Mostra o widget da ferramenta (e monta o painel). Devolve o erro da montagem, se houve. */
+export function mostrar(id: string): string | undefined {
+	const r = registros.get(id);
+	if (!r) return `ferramenta desconhecida: ${id}`;
+	r.gui.Enabled = true;
+	return garantirMontada(id);
+}
+
+/** Abre o widget fechado ou fecha o aberto. */
+export function alternar(id: string) {
+	const r = registros.get(id);
+	if (!r) return;
+	if (r.gui.Enabled) r.gui.Enabled = false;
+	else mostrar(id);
+}
+
+/** O widget da ferramenta. */
 export function widget(id: string): DockWidgetPluginGui | undefined {
-	return abertos.get(id)?.gui;
+	return registros.get(id)?.gui;
+}
+
+/** O painel está montado? */
+export function montada(id: string): boolean {
+	return registros.get(id)?.desmontar !== undefined;
+}
+
+/** O erro da última montagem da ferramenta, se falhou. */
+export function erroDeMontagem(id: string): string | undefined {
+	return registros.get(id)?.erro;
+}
+
+/** Desmonta o painel da ferramenta (o widget continua; abrir de novo monta outra vez). */
+export function desmontar(id: string) {
+	const r = registros.get(id);
+	if (r) desmontarRegistro(r);
 }
 
 /**
@@ -81,16 +129,25 @@ export function widget(id: string): DockWidgetPluginGui | undefined {
  * e os jogadores de segundo em segundo) pararem de trabalhar enquanto o usuário fechou o widget.
  */
 export function widgetVisivel(id: string): boolean {
-	const gui = abertos.get(id)?.gui;
+	const gui = registros.get(id)?.gui;
 	return gui !== undefined && gui.Enabled;
 }
 
-/** Desmonta e destrói todos os widgets. Chamado quando o plugin descarrega (recarga ou fechamento do Studio). */
-export function fecharTodos() {
-	for (const [, aberto] of abertos) {
-		const [ok, erro] = pcall(aberto.desmontar);
-		if (!ok) warn(`[Diorama] erro ao desmontar ${aberto.gui.Name}: ${tostring(erro)}`);
-		aberto.gui.Destroy();
-	}
-	abertos.clear();
+/** Ids das ferramentas com o widget à vista. */
+export function ferramentasAbertas(): string[] {
+	const lista = new Array<string>();
+	for (const [id, r] of registros) if (r.gui.Enabled) lista.push(id);
+	return lista;
+}
+
+/** Desmonta todos os painéis e esquece os registros. Chamado quando o pacote para (recarga ou Studio fechando). */
+export function desmontarTodos() {
+	for (const [, r] of registros) desmontarRegistro(r);
+	registros.clear();
+	ordem.clear();
+}
+
+/** Os ids das ferramentas, na ordem da barra. */
+export function idsFerramentas(): string[] {
+	return [...ordem];
 }

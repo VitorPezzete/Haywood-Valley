@@ -1,4 +1,5 @@
-// Conexão: a versão do plugin, o GET /status da ponte (versão, pastas, Rojo em 34872, quantos mapas), o que dá
+// Conexão: a versão do plugin (e de onde veio o pacote: ponte ou embutido), o canal do Studio, o Aseprite, os
+// interruptores "Permitir executar Luau" e "Folhas locais", o GET /status da ponte (versão, pastas, Rojo em 34872, quantos mapas), o que dá
 // para dizer do MCP do Studio (nada de dentro: só o texto), o estado do place (servidor/place.ts) e os caminhos
 // do repositório e do plugin, com um botão que os copia (setclipboard por pcall; sem ela, o texto fica
 // selecionável para Ctrl+C).
@@ -10,7 +11,11 @@ import { copiarTexto } from "../ui/copiar";
 import { AreaTexto, Botao, Coluna, Lista, Painel, Rotulo, Separador, Titulo, Tom } from "../ui/kit";
 import { Aviso, Bloco, Etiqueta, Fileira, Preenche, TextoCurto } from "../ui/kit";
 import { DATA_VERSAO, VERSAO } from "../versao";
-import { abrirWidget } from "../widget";
+import { ambienteSeHouver } from "../ambiente";
+import { definirPermitirLuau, estadoCanal, permitirLuau } from "../canal";
+import { AlternarFolhasLocais } from "../ui/alternarFolhas";
+import { Alternar } from "../ui/kit";
+import type { OpcoesWidget } from "../widget";
 
 const PASTAS = ["mapas", "catalogo", "folhas", "assets", "docs"];
 /** Onde o .rbxm do plugin é gravado por npm run plugin:build (o Studio não deixa ler a variável de ambiente). */
@@ -30,6 +35,27 @@ export function PainelConexao() {
 	const resumoPlace = source("");
 	const mensagem = source("");
 	const copia = source("");
+	const amb = ambienteSeHouver();
+	const linhaPacote = amb
+		? `Pacote ${amb.versao}${amb.hash !== undefined ? ` (${amb.hash})` : ""}: ${amb.origem === "ponte" ? "carregado da ponte, recarga a quente ligada" : "o embutido no .rbxm (a ponte não respondeu ao abrir)"}. Sessão ${amb.sessao.sub(1, 8)}.`
+		: "";
+	const linhaCanal = () => {
+		const e = estadoCanal();
+		if (!e.ligado) return `Canal do Studio: desligado${e.erro !== undefined ? ` (${e.erro})` : ""}.`;
+		return `Canal do Studio: ligado; ${e.atendidos} comando(s) atendido(s)${e.ultimo !== undefined ? `, o último ${e.ultimo}` : ""}.`;
+	};
+	const linhaAseprite = () => {
+		const a = (statusPonte() as unknown as { aseprite?: { conectado: boolean; versao?: string; aseprite?: string } } | undefined)?.aseprite;
+		if (!a) return "Aseprite: sem informação (a ponte é anterior ao canal do Aseprite?).";
+		if (!a.conectado) return "Aseprite: desconectado (abra o Aseprite com a extensão Diorama).";
+		return `Aseprite: conectado (extensão ${a.versao ?? "?"}, Aseprite ${a.aseprite ?? "?"}).`;
+	};
+	// Fonte de fachada: escrever grava a configuração.
+	const luau = ((novo?: boolean) => {
+		if (novo === undefined) return permitirLuau();
+		definirPermitirLuau(novo);
+		return novo;
+	}) as Vide.Source<boolean>;
 
 	function verificar() {
 		if (verificando()) return;
@@ -99,13 +125,24 @@ export function PainelConexao() {
 		<Painel>
 			<Coluna tamanho={UDim2.fromScale(1, 1)}>
 				<Titulo texto="Conexão" ordem={0} />
-				<Rotulo texto={`Plugin Diorama ${VERSAO} (${DATA_VERSAO}).`} tom="fraco" ordem={1} />
+				<Rotulo texto={`Plugin Diorama ${VERSAO} (${DATA_VERSAO}). ${linhaPacote}`} tom="fraco" ordem={1} />
 				<Rotulo texto={linhaPonte} tom={() => (ponteLigada() ? "ok" : "erro")} ordem={2} />
 				<Rotulo texto={linhaRojo} tom={tomRojo} ordem={3} />
 				<Rotulo
 					texto="MCP do Studio: o plugin não tem como ver se o MCP está ligado (ele fala com o Studio por fora). O Claude confere pelo list_roblox_studios; o plugin só fala com a ponte."
 					tom="fraco"
 					ordem={4}
+				/>
+				<Rotulo texto={linhaCanal} tom={() => (estadoCanal().ligado ? "ok" : "aviso")} ordem={4.1} />
+				<Rotulo texto={linhaAseprite} tom="fraco" ordem={4.2} />
+				<Fileira ordem={4.3}>
+					<Alternar texto="Permitir executar Luau" valor={luau} ordem={0} />
+					<AlternarFolhasLocais ordem={1} />
+				</Fileira>
+				<Rotulo
+					texto="Executar Luau deixa o Claude (pelo MCP) rodar código neste Studio, com as permissões do plugin. Desligado, o comando executar_luau é recusado."
+					tom="fraco"
+					ordem={4.4}
 				/>
 				<Separador ordem={5} />
 				<Fileira ordem={6}>
@@ -158,8 +195,8 @@ export function PainelConexao() {
 	);
 }
 
-export function abrir(plugin: Plugin) {
-	return abrirWidget(plugin, { id: "conexao", titulo: "Conexão", largura: 480, altura: 440 }, (gui) =>
-		mount(() => <PainelConexao />, gui),
-	);
+export const WIDGET: OpcoesWidget = { titulo: "Conexão", largura: 480, altura: 440 };
+
+export function montar(gui: DockWidgetPluginGui) {
+	return mount(() => <PainelConexao />, gui);
 }

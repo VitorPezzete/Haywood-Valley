@@ -1,5 +1,16 @@
 # Conexões: Claude, Studio, Aseprite e o plugin (2026-10-20)
 
+> **O que mudou na implementação (2026-10-20, conferido no Studio de teste).** O contrato abaixo vale, com estes acréscimos e correções; cada um está também no lugar dele no texto.
+>
+> 1. `ambiente` tem também `hash` (do pacote da ponte) e `sessao`. A sessão é gerada pela **casca** ao carregar e é a mesma entre recargas, para o long-poll continuar a fila do pacote anterior (seção 2). Os widgets são criados todos no `iniciar` (fechados, com o estado que o Studio restaura) e o painel só é montado quando o widget fica à vista.
+> 2. Prévia local (seção 4): as metades vêm de `GET /folhas/<folha>.rgba?x=0|1024&y=0&w=1024&h=512`, recortes de `diorama/folhas/<folha>.png`, e não de `/imagens/diorama/folhas/<folha>_<metade>.png.rgba`. Motivo: o Aseprite (`salvar_regiao`) grava a folha inteira; os arquivos `<folha>_<metade>.png` são cópias da recuperação e não acompanhariam a edição.
+> 3. Canal do Studio: `POST /studio/respostas/<id>` aceita `{ "devolver": true }` (o pacote parou enquanto o comando chegava; ele volta para a frente da fila). `POST /studio/comandos` responde `503` quando não há Studio conectado (ou a sessão pedida não está). Um long-poll novo da mesma sessão encerra o anterior com `204`.
+> 4. Na sessão do **cliente** do Play o Studio recusa HTTP ("Http requests can only be executed by game server"): lá a casca fica com o pacote embutido e o canal não liga; o modo `cliente` nunca aparece na presença. A instância do servidor do Play se apresenta como `servidor`.
+> 5. Argumentos a mais: `abrir_mapa { descartar? }` (abre mesmo com mudança não salva), `autoteste { espera?, remontar? }`, `output { limite? }` (devolve `{ mensagens: [{ n, nivel, hora, texto }], proximo }`), `recarregar_folhas { ligar?, desligar?, pixel?: [x, y] }` (liga/desliga "Folhas locais"; `pixel` devolve esse pixel lido da EditableImage). O autoteste devolve ainda `studio`: as conferências dos itens 20–27 de `DUVIDAS.md`.
+> 6. Rota nova da ponte: `DELETE /mapas/<id>` (o autoteste apaga o mapa temporário `zz_autoteste`).
+> 7. `GET /eventos` sem `desde` devolve na hora tudo o que está guardado (os últimos 500). No `/ws`, um cliente que não é o Aseprite (`?cliente=observador`) recebe cada evento como `{ "tipo": "evento", "nome": "<tipo do evento>", "n": 41, "dados": {…}, "em": "…" }` (o formato do evento que o Aseprite manda). O `ola` do Aseprite pode trazer `sprite`, e um `{ "tipo": "evento", "nome": "sprite", "dados": {…} }` só atualiza o `sprite` de `/aseprite/estado`, sem virar evento.
+> 8. As configurações do plugin (`plugin:SetSetting`) não podem ter `.` na chave: o Studio aceita sem erro e não guarda nada. As chaves são `Diorama_folhasLocais`, `Diorama_permitirLuau`, `Diorama_servidor_teleportePendente`.
+
 Pedido do usuário em 2026-10-20: o plugin se atualiza sozinho, e Claude, Studio e Aseprite ficam ligados, com um MCP para o Claude e um plugin para o Aseprite. A ponte (`tools/diorama_ponte.mjs`, `127.0.0.1:34873`) é o centro: todo mundo fala com ela, ninguém fala direto com ninguém. Só escuta em 127.0.0.1.
 
 ```
@@ -13,7 +24,7 @@ Aseprite ──(extensão Lua, WebSocket /ws)───────────�
 O plugin instalado (`%LOCALAPPDATA%\Roblox\Plugins\Diorama.rbxm`) é uma **casca** estável: cria a barra, os botões e os widgets uma vez e nunca mais muda. O resto (as ferramentas) é um **pacote** que a casca carrega:
 
 - Ao abrir, a casca pede `GET /plugin/versao` à ponte. Com a ponte no ar, baixa `GET /plugin/pacote`, monta a árvore de ModuleScripts (com `Source`) dentro de uma pasta filha do próprio script do plugin e faz `require` de `app`. Sem a ponte, usa o pacote embutido no `.rbxm` (o que foi compilado junto).
-- `app` exporta `iniciar(ambiente) → parar()`. `ambiente` = `{ plugin, botao(id, nome, descricao, icone) → PluginToolbarButton, widget(id, opcoes) → DockWidgetPluginGui, versao, origem: "ponte" | "embutido" }`. Botões e widgets são criados pela casca e guardados por id entre recargas (o Studio não deixa criar dois widgets com o mesmo id nem apagar botão); a casca limpa os filhos do widget antes de entregar de novo.
+- `app` exporta `iniciar(ambiente) → parar()`. `ambiente` = `{ plugin, botao(id, nome, descricao, icone) → PluginToolbarButton, widget(id, opcoes) → DockWidgetPluginGui, versao, hash?, origem: "ponte" | "embutido", sessao }` (`hash` e `sessao`: item 1 da nota do topo). Botões e widgets são criados pela casca e guardados por id entre recargas (o Studio não deixa criar dois widgets com o mesmo id nem apagar botão); a casca limpa os filhos do widget antes de entregar de novo.
 - A casca consulta `GET /plugin/versao` a cada 2 s. Hash diferente: `parar()` do pacote velho, destrói a pasta dele, monta o novo, `iniciar` de novo. Erro no pacote novo: mostra no Output (`[Diorama]`) e volta ao anterior.
 - `ambiente.plugin` é o objeto `plugin` de verdade (os módulos não têm o global `plugin`).
 - A ponte monta o pacote de `plugin/out` + `plugin/include` + os módulos de `node_modules/@rbxts` que o `plugin/default.project.json` lista, e refaz o hash quando algum arquivo de `plugin/out` muda (com espera de 300 ms). `npm run diorama:ponte -- --plugin-watch` também roda o `rbxtsc -w` do plugin.
@@ -87,7 +98,7 @@ A ponte repassa `folha_salva` ao Studio como `recarregar_folhas` e aos ouvintes 
 
 ## 4. Prévia local das folhas no Studio
 
-Uma folha editada no Aseprite ainda não está no Roblox. As ferramentas Mapas e Catálogo ganham a opção "Folhas locais": em vez do `rbxassetid`, montam uma `EditableImage` com os pixels de `GET /imagens/diorama/folhas/<folha>_<metade>.png.rgba` e usam `ImageContent = Content.fromObject(...)`. `recarregar_folhas` refaz as imagens. Sem `EditableImage` (place sem permissão, memória), cai no id do Roblox com aviso.
+Uma folha editada no Aseprite ainda não está no Roblox. As ferramentas Mapas e Catálogo ganham a opção "Folhas locais": em vez do `rbxassetid`, montam uma `EditableImage` por metade com os pixels de `GET /folhas/<folha>.rgba?x=0|1024&y=0&w=1024&h=512` (item 2 da nota do topo) e usam `ImageContent = Content.fromObject(...)`. `recarregar_folhas` refaz as imagens. Sem `EditableImage` (place sem permissão, memória), cai no id do Roblox com aviso.
 
 ## 5. Eventos
 

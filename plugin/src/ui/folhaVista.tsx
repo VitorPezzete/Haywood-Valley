@@ -7,6 +7,7 @@ import Vide, { For, source } from "@rbxts/vide";
 import type { Metades } from "../catalogo/folhas";
 import { CatalogoZonas, COLUNAS, COLUNAS_METADE, COR_DA_ZONA, LINHAS, Retangulo, TILE } from "../catalogo/formato";
 import { cor } from "./kit";
+import { conteudo } from "../folhasLocais";
 
 type Derivable<T> = T | (() => T);
 
@@ -144,7 +145,7 @@ export function FolhaVista(props: {
 						BackgroundColor3={Color3.fromRGB(0, 0, 0)}
 						BackgroundTransparency={() => (props.metades() ? 1 : 0.5)}
 						BorderSizePixel={0}
-						Image={() => props.metades()?.[metade] ?? ""}
+						ImageContent={() => conteudo(props.metades()?.[metade])}
 						ResampleMode={Enum.ResamplerMode.Pixelated}
 						Position={() => UDim2.fromOffset(metade * COLUNAS_METADE * px(), 0)}
 						Size={() => UDim2.fromOffset(COLUNAS_METADE * px(), LINHAS * px())}

@@ -8,12 +8,18 @@
 // Abas), os campos (Campo, CampoMulti, CaixaTexto, AreaTexto, LinhaCampo). O que é só do editor de mapas (Quadro,
 // ListaSelecao, Amostra, Legenda) fica em extras.tsx.
 import Vide, { action, For, source } from "@rbxts/vide";
+import { aoParar } from "../ambiente";
 
 type Derivable<T> = T | (() => T);
 
 /** O tema atual do Studio, como fonte: muda quando o usuário troca o tema. */
 export const tema = source(settings().Studio.Theme);
-settings().Studio.ThemeChanged.Connect(() => tema(settings().Studio.Theme));
+
+/** Passa a acompanhar a troca de tema; a conexão sai quando o pacote para (`app.iniciar` chama). */
+export function ligarTema() {
+	tema(settings().Studio.Theme);
+	aoParar(settings().Studio.ThemeChanged.Connect(() => tema(settings().Studio.Theme)));
+}
 
 /** Cor do guia de estilo do Studio, reativa ao tema. */
 export function cor(
