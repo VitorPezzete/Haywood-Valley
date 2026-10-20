@@ -108,3 +108,11 @@ O original era "o hash de 12 hex do conteúdo do bloco"; o algoritmo se perdeu e
 5. O tipo 5 das camas vem de `pecas.json` (`acoes`), não da zona.
 6. O carimbo é novo (acima); os antigos ficam guardados e só mudam quando o conteúdo muda.
 7. `terreno` em 64 linhas de 64 caracteres em vez da lista de 4096 códigos de `ARQUITETURA.md` (o gerador aceita as duas; `ARQUITETURA.md` não foi alterado).
+
+## O que o plugin grava (2026-10-20, integração)
+
+O editor de Mapas do plugin (`plugin/src/mapas/bloco.ts`, `ModeloBloco.deJson`/`paraJson`) lê as duas formas de `exterior.terreno` e grava o bloco como o importador: `folhas` em ordem alfabética, listas vazias de fora, `decalques` e `formas` só quando há, `carimbo` e `carimbo_conteudo` como vieram (o gerador confere o hash e, se o conteúdo mudou, calcula o carimbo novo e regrava os dois), e preserva o que não edita (`bloqueios`, `acoes`, `formas` do exterior, `runs_importados`/`caixa_importada`, `nota`/`notas`). A única diferença é o terreno, que sai como a lista de 64 × 64 códigos com `""`: a ponte (`PUT /mapas/<id>/blocos/<bx>_<by>`, PONTE.md) o converte para as 64 linhas com `.` antes de gravar, e desfaz o `[]` que o `JSONEncode` do Roblox manda no lugar de `props: {}`. Um bloco novo sai sem `carimbo`: o gerador calcula e regrava. Os seis terrenos de `exterior.json` (`m r a c t g`) estão na barra do editor.
+
+O editor de Catálogo (`plugin/src/catalogo/formato.ts`) lê e grava exatamente o formato acima, preservando os campos que não edita (`movel`, `fixo`, `luz`, `noite` e o que mais houver) e a ordem das chaves; as células das variantes se editam em texto (`dx dy coluna linha camada acao livre|bloqueia [exatos:...] [fundos:...]`).
+
+`node plugin/teste/ciclos.mjs` (na raiz, com o Node no PATH) confere os dois ciclos: `pecas.json` e `fundos.json` lidos e gravados pelo código do plugin dão o mesmo `decorCatalog.ts` com `--decorar` (e saem byte a byte iguais), e cada um dos 14 blocos aberto e salvo pelo plugin, pela ponte, dá o mesmo `src/shared/interiors/<mapa>.ts`.

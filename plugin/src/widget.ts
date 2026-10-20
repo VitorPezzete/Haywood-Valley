@@ -76,6 +76,15 @@ export function widget(id: string): DockWidgetPluginGui | undefined {
 	return abertos.get(id)?.gui;
 }
 
+/**
+ * O widget da ferramenta está à vista (criado e com `Enabled`)? Para os laços dos painéis (o Servidor relê o modo
+ * e os jogadores de segundo em segundo) pararem de trabalhar enquanto o usuário fechou o widget.
+ */
+export function widgetVisivel(id: string): boolean {
+	const gui = abertos.get(id)?.gui;
+	return gui !== undefined && gui.Enabled;
+}
+
 /** Desmonta e destrói todos os widgets. Chamado quando o plugin descarrega (recarga ou fechamento do Studio). */
 export function fecharTodos() {
 	for (const [, aberto] of abertos) {

@@ -11,14 +11,14 @@ Convenções:
 
 ## `GET /status`
 
-Versão, pastas, Rojo e contagens. `rojo.ligado` é um ping em `http://127.0.0.1:34872/api/rojo` (700 ms); `projeto` vem do JSON do Rojo quando ele responde.
+Versão, pastas, Rojo, contagens e os mapas já gerados. `rojo.ligado` é um ping em `http://127.0.0.1:34872/api/rojo` (700 ms); `projeto` vem do JSON do Rojo quando ele responde. `gerados` são os ids dos módulos que `src/shared/interiors/index.ts` importa (os mapas que o jogo já recebe), para o plugin saber o que ainda falta gerar.
 
 ```
 GET /status
 
 200
 {
-	"versao": "0.1.0",
+	"versao": "0.2.0",
 	"raiz": "C:\\Users\\Szortek\\Documents\\Haywood-Valley",
 	"pastas": {
 		"mapas":    { "caminho": "diorama\\mapas",    "existe": true },
@@ -28,8 +28,9 @@ GET /status
 		"docs":     { "caminho": "docs\\diorama",     "existe": true }
 	},
 	"rojo": { "ligado": false, "porta": 34872 },
-	"mapas": 0,
-	"folhas": 2
+	"mapas": 14,
+	"folhas": 8,
+	"gerados": ["banheiro_equipe", "casa_teste_v2", "..."]
 }
 ```
 
@@ -65,7 +66,15 @@ GET /mapas/teste_d_destino
 
 ### `PUT /mapas/<id>/blocos/<bx>_<by>`
 
-Grava `diorama/mapas/<id>/blocos/<bx>_<by>.json`, criando as pastas, e anota o bloco em `mapa.json` (cria o arquivo se não existe). O corpo é o bloco no formato 1 (`docs/diorama/ARQUITETURA.md`). A validação é a mínima: `versao` 1, `mapa` igual ao id, `bloco` igual às coordenadas, `folhas` lista de nomes, `vazio` `[folha, coluna, linha]`, `camadas` só com `chao`, `objeto` e `frente`, cada célula `[x, y, folha, coluna, linha]` com x e y de 0 a 63. O resto do bloco passa sem conferir.
+Grava `diorama/mapas/<id>/blocos/<bx>_<by>.json`, criando as pastas, e anota o bloco em `mapa.json` (cria o arquivo se não existe). O corpo é o bloco no formato 1 (`docs/diorama/GERADOR.md`). A validação é a mínima: `versao` 1, `mapa` igual ao id, `bloco` igual às coordenadas, `folhas` lista de nomes, `vazio` `[folha, coluna, linha]`, `camadas` só com `chao`, `objeto` e `frente`, cada célula `[x, y, folha, coluna, linha]` com x e y de 0 a 63. O resto do bloco passa sem conferir.
+
+Antes de gravar, a ponte põe o bloco na forma em que o importador grava e o gerador faz o hash do carimbo (`normalizarBloco`), para um bloco aberto no plugin e salvo sem mudança ficar com o mesmo `carimbo`:
+
+- `exterior.terreno` como lista de 64 × 64 códigos (o que o plugin manda, `""` para nada) vira as 64 linhas de 64 caracteres com `.`;
+- `exterior.decalques` e `exterior.formas` vazios saem; um `exterior` sem terreno pintado, decalques, formas nem `runs_importados` sai inteiro;
+- `zonas[].props` que veio como `[]` (o `JSONEncode` do Roblox manda `[]` para toda tabela vazia) vira `{}`.
+
+O que mais vier (`carimbo`, `carimbo_conteudo`, `bloqueios`, `acoes`, `nota`...) é gravado como está. `plugin/teste/ciclos.mjs` confere que os 14 mapas importados, abertos e salvos pelo código do plugin por esta rota, geram o mesmo módulo.
 
 ```
 PUT /mapas/teste_d_destino/blocos/0_0
@@ -129,6 +138,16 @@ GET /folhas/casa.rgba?x=0&y=32&w=16&h=16
 <1024 bytes>
 ```
 
+### `GET /imagens/<caminho>.rgba?x=&y=&w=&h=`
+
+O mesmo recorte RGBA para qualquer PNG de `assets/` ou `diorama/folhas/`: `<caminho>` é o caminho relativo à raiz do repositório sem o `.png` (`assets/ui/atlas`, `assets/acoes/cacos_pote`, `diorama/folhas/casa`), com `/`. Serve para o envio pelo Studio (ferramenta Assets) cobrir o registro inteiro, não só as folhas do Aeko. `400` se o caminho sai dessas duas pastas (o caminho é conferido depois de resolvido: `..` não passa) ou se o recorte sai da imagem; `404` se o arquivo não existe. A imagem fica decodificada em memória e é relida quando o arquivo muda.
+
+```
+GET /imagens/assets/acoes/cacos_pote.rgba?x=0&y=0&w=8&h=4
+
+200  Content-Type: application/octet-stream  Content-Length: 128  X-Largura: 8  X-Altura: 4
+```
+
 ## Geradores
 
 ### `POST /gerar/<id>` e `POST /gerar/decorar`
@@ -156,14 +175,23 @@ O texto de `assets/registro.json`. `404` enquanto ele não existir.
 
 ### `POST /assets/enviadas`
 
-Grava o corpo em `assets/enviadas.json` e roda `npm run assets -- --importar`. Resposta como a dos geradores (`{ ok, codigo, log }`).
+Grava o corpo em `assets/enviadas.json` e roda `npm run assets -- --importar`. O corpo é um objeto `{ "<chave>": id }`: a chave do registro (`ui.atlas`), o caminho do arquivo (`assets/ui/atlas.png`) ou só o nome dele, como `tools/assets.mjs --importar` aceita; o id como número, `"123"` ou `"rbxassetid://123"`. `400` se não for um objeto ou se algum valor não for número nem texto. Resposta como a dos geradores (`{ ok, codigo, log }`); o log diz quais chaves o importador achou.
 
 ```
 POST /assets/enviadas
-[{ "chave": "ui/painel", "id": 123456789 }]
+{ "ui.atlas": 123456789, "assets/acoes/cacos_pote.png": "rbxassetid://987654321" }
 ```
 
-O formato das entradas é o que `tools/assets.mjs` definir; a ponte só repassa.
+## Jogo
+
+### `GET /graal/ids`
+
+Os ids de cabeças e corpos que o jogo conhece, lidos de `src/shared/graalData.ts` (`GRAAL_HEADS` e `GRAAL_BODIES`: o id é o texto antes do primeiro `|`). O diagnóstico do plugin confere o visual dos moradores com eles; sem a ponte, vale a cópia que o plugin carrega (`plugin/src/problemas/visual.ts`). `404` se o arquivo não existe.
+
+```
+200
+{ "cabecas": ["4alexxx", "alexxx1green", "..."], "corpos": ["bea-masc1p_2", "..."] }
+```
 
 ## Documentos
 

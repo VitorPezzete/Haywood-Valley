@@ -36,3 +36,17 @@ O que a reconstrução não conseguiu tirar do código. Responder aqui ou corrig
 
 18. Enviar a folha `acoes.carregaveis` (peça derivada, sem aval).
 19. Os ids que faltam no registro (o jogo avisa `[Som]`, `[Luz]`, `[Água]`, `[Pecas]` em tempo de jogo): conferir `assets/registro.json` depois de `npm run assets -- --importar`.
+
+## Plugin: o que não deu para conferir sem o Studio (2026-10-20)
+
+O plugin compila (`npm run plugin:build`) e a lógica pura passa nos ciclos de `plugin/teste/ciclos.mjs`, mas estes pontos só se conferem com o Studio aberto:
+
+20. **Coordenadas do mouse num DockWidgetPluginGui**: a folha do Catálogo (`ui/folhaVista.tsx`) e a paleta do editor (`mapas/paleta.tsx`) tiram a célula sob o mouse de `MouseMoved`/`InputChanged` menos o `AbsolutePosition` do elemento. Num widget flutuante, os dois podem estar em espaços diferentes (o plugin gui tem a própria origem); se a célula sair deslocada, trocar por `gui:GetRelativeMousePosition()` ou pelo `InputObject.Position` relativo ao `AbsolutePosition` do widget.
+21. **UIFlexItem em modo Fill** dentro de um `UIListLayout` vertical (`Preenche` no kit, as listas do Catálogo e do Servidor): precisa de uma versão do Studio com flex layouts; se o elemento não esticar, voltar ao tamanho em offset.
+22. **Atalhos de teclado** do editor de Mapas (`UserInputService.InputBegan` filtrado por `WindowFocused` do widget): conferir se o widget recebe foco ao clicar e se Ctrl+S/Ctrl+Z não disparam também os do Studio.
+23. **`AssetService:CreateAssetAsync`** (envio de imagem pelo Studio, `assets/enviar.ts`): a assinatura e os resultados (`Enum.CreateAssetResult`) foram tirados da documentação; o Studio pode pedir permissão na primeira chamada e a API é marcada como experimental. O envio usa a conta logada e só roda depois da confirmação no painel.
+24. **`EditableImage` e `Content.fromObject`** para a prévia da imagem preparada: dependem de o place permitir imagens editáveis.
+25. **`setclipboard`** (`ui/copiar.ts`) não existe no Studio; o botão de copiar caminhos cai na área de texto selecionável.
+26. **`RunService.Stop()`** de dentro de um plugin para parar a sessão de teste (`ferramentas/mapas.tsx`, `servidor/execucao.ts`): pode exigir permissão de plugin.
+27. **`JSONEncode` e tabelas vazias**: o Roblox manda `[]` para `props: {}`; a ponte desfaz. Se outra tabela vazia aparecer no bloco (por exemplo `bloqueios: {}`), conferir se o gerador a aceita.
+28. **Gerador com bloco sem `nascimento`**: o plugin avisa, mas salva; `tools/diorama_lib/gerar.mjs` lê `bloco.nascimento[0]` sem conferir e falha com um erro pouco claro. Decidir se o gerador assume `[0, 0]` com aviso (o jogo cai em [0, 0]) ou se a ponte recusa o bloco.

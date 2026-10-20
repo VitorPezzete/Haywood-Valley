@@ -1,7 +1,13 @@
 // Entrada do plugin Diorama. É o Script raiz do .rbxm (o Rojo transforma a pasta out/ no Script "Diorama"
-// porque este arquivo, index.server.ts, vira out/init.server.luau): cria a barra "Diorama" com um botão por ferramenta de ferramentas.ts.
+// porque este arquivo, index.server.ts, vira out/init.server.luau): cria a barra "Diorama" com um botão por ferramenta de ferramentas/index.ts.
 // Cada botão abre o widget da ferramenta ou o esconde se já estava aberto.
+//
+// Ao carregar na edição, liga o filtro do Output (para o painel Servidor já ter o histórico) e aplica o teleporte
+// que a instância do Play tenha deixado guardado (servidor/teleporte.ts); nas outras sessões, só a barra.
 import { FERRAMENTAS } from "./ferramentas";
+import { modoAtual } from "./servidor/execucao";
+import { ligarOutput } from "./servidor/output";
+import { aplicarPendente } from "./servidor/teleporte";
 import { fecharTodos } from "./widget";
 
 const barra = plugin.CreateToolbar("Diorama");
@@ -28,5 +34,11 @@ for (const ferramenta of FERRAMENTAS) {
 }
 
 plugin.Unloading.Connect(() => fecharTodos());
+
+if (modoAtual() === "edicao") {
+	ligarOutput();
+	const [ok, erro] = pcall(() => aplicarPendente(plugin));
+	if (!ok) warn(`[Diorama] teleporte pendente: ${tostring(erro)}`);
+}
 
 print("[Diorama] plugin carregado com", FERRAMENTAS.size(), "ferramentas");

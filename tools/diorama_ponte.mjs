@@ -12,7 +12,7 @@ import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { PNG } from "pngjs";
 
-export const VERSAO = "0.1.0";
+export const VERSAO = "0.2.0";
 const HOST = "127.0.0.1";
 const PORTA_PADRAO = 34873;
 const PORTA_ROJO = 34872;
@@ -20,6 +20,8 @@ const PORTA_ROJO = 34872;
 const CORPO_MAXIMO = 16 * 1024 * 1024;
 /** Tempo máximo de um gerador, em milissegundos. */
 const TEMPO_GERADOR = 120_000;
+/** Lado do bloco em células. */
+const LADO_BLOCO = 64;
 
 export const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 export const PASTAS = {
@@ -29,11 +31,18 @@ export const PASTAS = {
 	assets: path.join(RAIZ, "assets"),
 	docs: path.join(RAIZ, "docs", "diorama"),
 };
+/** As pastas de onde GET /imagens/<caminho>.rgba serve PNG (caminhos relativos à raiz). */
+const PASTAS_IMAGENS = ["assets", path.join("diorama", "folhas")];
+/** De onde GET /graal/ids e o `gerados` do status leem. */
+const ARQUIVO_GRAAL = path.join(RAIZ, "src", "shared", "graalData.ts");
+const ARQUIVO_INTERIORS = path.join(RAIZ, "src", "shared", "interiors", "index.ts");
 
 const ID_MAPA = /^[a-z0-9_]+$/;
 const NOME_ARQUIVO = /^[A-Za-z0-9_.-]+$/;
 const NOME_CATALOGO = /^[a-z0-9_]+$/;
 const BLOCO = /^(\d+)_(\d+)$/;
+/** Um caminho de imagem: segmentos de nome de arquivo separados por "/", sem "." nem ".." como segmento. */
+const CAMINHO_IMAGEM = /^(?:[A-Za-z0-9_-][A-Za-z0-9_.-]*\/)*[A-Za-z0-9_-][A-Za-z0-9_.-]*$/;
 
 // ---------------------------------------------------------------------------------------------------------------
 // Respostas e erros
@@ -233,12 +242,49 @@ function atualizarMapaJson(id, [bx, by], remover = false) {
 	return mapa;
 }
 
-function gravarBloco(id, coordenadas, bloco) {
+/**
+ * Põe o bloco na forma em que o importador grava e o gerador faz o hash do carimbo (GERADOR.md): o terreno do
+ * exterior em 64 linhas de 64 códigos com "." para nada (o plugin manda a lista de 64 × 64 códigos com ""), as
+ * listas vazias de decalques e formas de fora, um exterior sem nada de fora, e `props` de zona como objeto (o
+ * JSONEncode do Roblox manda `[]` quando a zona não tem propriedades). Assim um bloco aberto no plugin e salvo sem
+ * mudança continua com o mesmo carimbo. Devolve o bloco normalizado (não altera o recebido).
+ */
+export function normalizarBloco(bloco) {
+	const saida = { ...bloco };
+	if (saida.exterior && typeof saida.exterior === "object" && !Array.isArray(saida.exterior)) {
+		const exterior = { ...saida.exterior };
+		if (Array.isArray(exterior.terreno) && exterior.terreno.length === LADO_BLOCO * LADO_BLOCO) {
+			const linhas = [];
+			for (let y = 0; y < LADO_BLOCO; y++) {
+				linhas.push(
+					exterior.terreno
+						.slice(y * LADO_BLOCO, (y + 1) * LADO_BLOCO)
+						.map((c) => (typeof c === "string" && c !== "" ? c : "."))
+						.join(""),
+				);
+			}
+			exterior.terreno = linhas;
+		}
+		if (Array.isArray(exterior.decalques) && exterior.decalques.length === 0) delete exterior.decalques;
+		if (Array.isArray(exterior.formas) && exterior.formas.length === 0) delete exterior.formas;
+		const terrenoVazio = !Array.isArray(exterior.terreno) || exterior.terreno.every((linha) => /^\.*$/.test(linha));
+		if (terrenoVazio && !exterior.decalques && !exterior.formas && exterior.runs_importados === undefined) delete saida.exterior;
+		else saida.exterior = exterior;
+	}
+	if (Array.isArray(saida.zonas)) {
+		saida.zonas = saida.zonas.map((z) =>
+			z && typeof z === "object" && Array.isArray(z.props) && z.props.length === 0 ? { ...z, props: {} } : z,
+		);
+	}
+	return saida;
+}
+
+export function gravarBloco(id, coordenadas, bloco) {
 	const problemas = validarBloco(bloco, id, coordenadas);
 	if (problemas.length > 0) throw new ErroHttp(400, `bloco inválido: ${problemas.join("; ")}`);
 	const [bx, by] = coordenadas;
 	const caminho = path.join(pastaMapa(id), "blocos", `${bx}_${by}.json`);
-	gravarJson(caminho, bloco);
+	gravarJson(caminho, normalizarBloco(bloco));
 	const mapa = atualizarMapaJson(id, coordenadas);
 	return { ok: true, arquivo: path.relative(RAIZ, caminho), mapa };
 }
@@ -285,19 +331,43 @@ function listarFolhas() {
 		.map((nome) => ({ nome: nome.slice(0, -4), ...medirPng(path.join(PASTAS.folhas, nome)) }));
 }
 
-/** Folhas decodificadas, por nome, com a data do arquivo para reler quando ele mudar. */
-const folhasDecodificadas = new Map();
+/** Imagens decodificadas, pelo caminho, com a data do arquivo para reler quando ele mudar. */
+const imagensDecodificadas = new Map();
+
+function decodificarPng(caminho, nome) {
+	if (!existe(caminho)) throw new ErroHttp(404, `imagem não encontrada: ${nome}`);
+	const mtime = fs.statSync(caminho).mtimeMs;
+	const guardada = imagensDecodificadas.get(caminho);
+	if (guardada && guardada.mtime === mtime) return guardada.png;
+	let png;
+	try {
+		png = PNG.sync.read(fs.readFileSync(caminho));
+	} catch (erro) {
+		throw new ErroHttp(500, `não deu para decodificar ${nome}: ${erro.message}`);
+	}
+	imagensDecodificadas.set(caminho, { mtime, png });
+	return png;
+}
 
 function lerFolha(nome) {
 	if (!NOME_ARQUIVO.test(nome)) throw new ErroHttp(400, `nome de folha inválido: ${nome}`);
-	const caminho = path.join(PASTAS.folhas, `${nome}.png`);
-	if (!existe(caminho)) throw new ErroHttp(404, `folha não encontrada: ${nome}`);
-	const mtime = fs.statSync(caminho).mtimeMs;
-	const guardada = folhasDecodificadas.get(nome);
-	if (guardada && guardada.mtime === mtime) return guardada.png;
-	const png = PNG.sync.read(fs.readFileSync(caminho));
-	folhasDecodificadas.set(nome, { mtime, png });
-	return png;
+	return decodificarPng(path.join(PASTAS.folhas, `${nome}.png`), `folha ${nome}`);
+}
+
+/**
+ * Um PNG de `assets/` ou `diorama/folhas/` pelo caminho relativo à raiz sem o `.png` (`assets/ui/atlas`,
+ * `diorama/folhas/casa`). Só essas duas pastas, sem `..`; o caminho é conferido depois de resolvido.
+ */
+function lerImagem(caminho) {
+	const limpo = caminho.replaceAll("\\", "/").replace(/\.png$/i, "");
+	if (!CAMINHO_IMAGEM.test(limpo)) throw new ErroHttp(400, `caminho de imagem inválido: ${caminho}`);
+	const absoluto = path.resolve(RAIZ, `${limpo}.png`);
+	const dentro = PASTAS_IMAGENS.some((pasta) => {
+		const base = path.resolve(RAIZ, pasta) + path.sep;
+		return absoluto.startsWith(base);
+	});
+	if (!dentro) throw new ErroHttp(400, `a ponte só serve imagens de ${PASTAS_IMAGENS.join(" e ")}: ${caminho}`);
+	return decodificarPng(absoluto, limpo);
 }
 
 function numeroDaBusca(busca, chave, padrao) {
@@ -308,15 +378,14 @@ function numeroDaBusca(busca, chave, padrao) {
 	return n;
 }
 
-/** Recorte da folha em RGBA cru (4 bytes por pixel, linha a linha), do jeito que o `WritePixelsBuffer` espera. */
-function recortarFolha(nome, busca) {
-	const png = lerFolha(nome);
+/** Recorte de um PNG em RGBA cru (4 bytes por pixel, linha a linha), do jeito que o `WritePixelsBuffer` espera. */
+function recortar(png, nome, busca) {
 	const x = numeroDaBusca(busca, "x", 0);
 	const y = numeroDaBusca(busca, "y", 0);
 	const w = numeroDaBusca(busca, "w", png.width - x);
 	const h = numeroDaBusca(busca, "h", png.height - y);
 	if (w === 0 || h === 0 || x + w > png.width || y + h > png.height) {
-		throw new ErroHttp(400, `recorte fora da folha ${nome} (${png.width}×${png.height}): x=${x} y=${y} w=${w} h=${h}`);
+		throw new ErroHttp(400, `recorte fora de ${nome} (${png.width}×${png.height}): x=${x} y=${y} w=${w} h=${h}`);
 	}
 	const pixels = Buffer.alloc(w * h * 4);
 	for (let linha = 0; linha < h; linha++) {
@@ -324,6 +393,45 @@ function recortarFolha(nome, busca) {
 		png.data.copy(pixels, linha * w * 4, origem, origem + w * 4);
 	}
 	return { largura: w, altura: h, pixels };
+}
+
+function recortarFolha(nome, busca) {
+	return recortar(lerFolha(nome), `folha ${nome}`, busca);
+}
+
+function recortarImagem(caminho, busca) {
+	return recortar(lerImagem(caminho), caminho, busca);
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// O que vem do jogo: os ids do Graal e os mapas gerados
+
+/** Os ids (o texto antes do primeiro "|") de uma lista de textos em graalData.ts, como `GRAAL_HEADS`. */
+function idsDaLista(texto, nome) {
+	const inicio = texto.indexOf(`export const ${nome}`);
+	if (inicio < 0) throw new ErroHttp(500, `${nome} não está em src/shared/graalData.ts`);
+	const abre = texto.indexOf("[", inicio);
+	const fecha = texto.indexOf("];", abre);
+	if (abre < 0 || fecha < 0) throw new ErroHttp(500, `${nome}: literal sem fim em graalData.ts`);
+	const ids = [];
+	for (const m of texto.slice(abre, fecha).matchAll(/"([^"|]+)\|/g)) ids.push(m[1]);
+	return ids;
+}
+
+/** `GET /graal/ids`: as cabeças e os corpos que o jogo conhece (src/shared/graalData.ts). */
+function idsGraal() {
+	if (!existe(ARQUIVO_GRAAL)) throw new ErroHttp(404, "src/shared/graalData.ts não existe");
+	const texto = fs.readFileSync(ARQUIVO_GRAAL, "utf8");
+	return { cabecas: idsDaLista(texto, "GRAAL_HEADS"), corpos: idsDaLista(texto, "GRAAL_BODIES") };
+}
+
+/** Os ids dos mapas com módulo gerado (os `import ... from "./<id>"` de src/shared/interiors/index.ts). */
+function mapasGerados() {
+	if (!existe(ARQUIVO_INTERIORS)) return [];
+	const texto = fs.readFileSync(ARQUIVO_INTERIORS, "utf8");
+	const ids = [];
+	for (const m of texto.matchAll(/import \{ interior as map\d+ \} from "\.\/([a-z0-9_]+)";/g)) ids.push(m[1]);
+	return ids;
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -410,6 +518,7 @@ async function status() {
 		rojo: await pingRojo(),
 		mapas: listarMapas().length,
 		folhas: listarFolhas().length,
+		gerados: mapasGerados(),
 	};
 }
 
@@ -477,6 +586,17 @@ const ROTAS = [
 		},
 	],
 
+	[
+		"GET",
+		/^\/imagens\/(.+)\.rgba$/,
+		([caminho], _req, busca) => {
+			const { largura, altura, pixels } = recortarImagem(caminho, busca);
+			return { binario: pixels, cabecalhos: { "X-Largura": String(largura), "X-Altura": String(altura) } };
+		},
+	],
+
+	["GET", /^\/graal\/ids$/, () => ({ json: idsGraal() })],
+
 	["POST", /^\/gerar\/decorar$/, async () => ({ json: await rodarNpm("diorama:jogo", ["--decorar"]) })],
 	[
 		"POST",
@@ -501,6 +621,12 @@ const ROTAS = [
 		/^\/assets\/enviadas$/,
 		async (_grupos, req) => {
 			const enviadas = await lerJson(req);
+			// O formato de tools/assets.mjs --importar: { "<chave, caminho ou nome do arquivo>": id }.
+			if (typeof enviadas !== "object" || enviadas === null || Array.isArray(enviadas)) {
+				throw new ErroHttp(400, 'enviadas precisa ser um objeto { "<chave>": id }');
+			}
+			const ruim = Object.entries(enviadas).find(([, id]) => typeof id !== "number" && typeof id !== "string");
+			if (ruim) throw new ErroHttp(400, `enviadas: o id de "${ruim[0]}" precisa ser um número ou texto`);
 			gravarJson(path.join(PASTAS.assets, "enviadas.json"), enviadas);
 			return { json: await rodarNpm("assets", ["--importar"]) };
 		},

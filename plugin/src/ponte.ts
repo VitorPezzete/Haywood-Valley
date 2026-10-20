@@ -1,8 +1,17 @@
 // Cliente HTTP da ponte (tools/diorama_ponte.mjs). Uma função tipada por rota; todas devolvem um `Resultado`
-// em vez de lançar erro, e atualizam `ponteLigada` e `erroPonte` em `estado.ts`.
+// em vez de lançar erro (com o `status` HTTP quando a ponte respondeu com erro), e atualizam `ponteLigada` e
+// `erroPonte` em `estado.ts`.
 // Todas yieldam (RequestAsync): chamar de um `task.spawn`, nunca de dentro de um `effect` do Vide.
+//
+// As duas fontes do estado da conexão moram aqui (e `estado.ts` as reexporta) para `estado.ts` poder importar
+// este módulo sem ciclo: o roblox-ts não aceita dois módulos que se requerem um ao outro.
 import { HttpService } from "@rbxts/services";
-import { erroPonte, ponteLigada } from "./estado";
+import { source } from "@rbxts/vide";
+
+/** A última chamada à ponte respondeu? Atualizado a cada pedido. */
+export const ponteLigada = source(false);
+/** Mensagem amigável do último erro de conexão (ou `undefined` quando a ponte respondeu). */
+export const erroPonte = source<string | undefined>(undefined);
 
 export const PORTA = 34873;
 export const BASE = `http://127.0.0.1:${PORTA}`;
@@ -20,6 +29,8 @@ export interface Status {
 	rojo: { ligado: boolean; porta: number; projeto?: string };
 	mapas: number;
 	folhas: number;
+	/** Ids dos mapas que já têm módulo gerado (src/shared/interiors/index.ts). */
+	gerados: string[];
 }
 
 export interface ResumoMapa {
@@ -31,7 +42,19 @@ export interface ResumoMapa {
 /** Uma célula pintada: [x, y, folha, coluna, linha]. */
 export type Celula = [number, number, string, number, number];
 
-/** Bloco no formato 1 (docs/diorama/ARQUITETURA.md). Os campos opcionais são os que o autor pode não ter preenchido. */
+/** Onde uma saída leva: o nome de uma entrada do destino, uma célula [x, y] de lá, ou nada (o nascimento). */
+export type Chegada = string | [number, number];
+
+export interface Saida {
+	x: number;
+	y: number;
+	largura: number;
+	altura: number;
+	mapa: string;
+	chegada?: Chegada;
+}
+
+/** Bloco no formato 1 (docs/diorama/GERADOR.md). Os campos opcionais são os que o autor pode não ter preenchido. */
 export interface Bloco {
 	versao: 1;
 	mapa: string;
@@ -39,14 +62,26 @@ export interface Bloco {
 	folhas: string[];
 	vazio: [string, number, number];
 	camadas: { chao?: Celula[]; objeto?: Celula[]; frente?: Celula[] };
-	exterior?: { terreno: string[]; decalques: Array<{ x: number; y: number; id: string }> };
+	exterior?: {
+		/** 64 linhas de 64 códigos ("." = nada) ou a lista de 64 × 64 códigos ("" = nada). */
+		terreno?: string[];
+		decalques?: Array<{ x: number; y: number; id: string }>;
+		formas?: Array<{ x: number; y: number; painel: string; bx: number; by: number }>;
+		/** Recortes crus guardados pelo importador quando a grade dupla não explicou o mapa. */
+		runs_importados?: unknown;
+		caixa_importada?: unknown;
+	};
 	bloqueios?: { mais?: Array<[number, number]>; menos?: Array<[number, number]> };
+	acoes?: Array<[number, number, string]>;
 	nascimento?: [number, number];
 	entradas?: Array<{ nome: string; x: number; y: number }>;
-	saidas?: Array<{ x: number; y: number; largura: number; altura: number; mapa: string; chegada?: unknown }>;
+	saidas?: Saida[];
 	zonas?: Array<{ nome: string; areas: Array<[number, number, number, number]>; props?: Record<string, string> }>;
 	moradores?: Array<{ nome: string; x: number; y: number; olhando: number; visual: string; pose?: string }>;
 	carimbo?: string;
+	carimbo_conteudo?: string;
+	nota?: unknown;
+	notas?: unknown;
 }
 
 export interface Mapa {
@@ -62,7 +97,7 @@ export interface Folha {
 	altura: number;
 }
 
-/** Recorte de uma folha: RGBA cru, 4 bytes por pixel, pronto para `EditableImage:WritePixelsBuffer`. */
+/** Recorte de uma imagem: RGBA cru, 4 bytes por pixel, pronto para `EditableImage:WritePixelsBuffer`. */
 export interface Recorte {
 	largura: number;
 	altura: number;
@@ -74,6 +109,20 @@ export interface LogGerador {
 	ok: boolean;
 	codigo?: number;
 	log: string;
+}
+
+/** O registro de assets (assets/registro.json, formato 1 de tools/assets.mjs) e os ids prontos para `Image`. */
+export interface Assets<T = unknown> {
+	/** O registro como veio do disco. */
+	registro: T;
+	/** Chave do registro → `rbxassetid://<id>`, só das entradas de `assets` que já têm id. */
+	ids: Record<string, string>;
+}
+
+/** Os ids de cabeças e corpos de src/shared/graalData.ts. */
+export interface IdsGraal {
+	cabecas: string[];
+	corpos: string[];
 }
 
 interface Resposta {
@@ -135,10 +184,36 @@ function pedirTexto(rota: string): Resultado<string> {
 	return r.ok ? { ok: true, valor: r.valor.corpo } : r;
 }
 
+/** Um pedido de pixels crus: o corpo RGBA com `X-Largura` e `X-Altura`. */
+function pedirRecorte(rota: string): Resultado<Recorte> {
+	const r = pedir("GET", rota);
+	if (!r.ok) return r;
+	const largura = tonumber(r.valor.cabecalhos["X-Largura"] ?? r.valor.cabecalhos["x-largura"]);
+	const altura = tonumber(r.valor.cabecalhos["X-Altura"] ?? r.valor.cabecalhos["x-altura"]);
+	if (largura === undefined || altura === undefined) {
+		return { ok: false, erro: "a ponte não mandou X-Largura e X-Altura" };
+	}
+	if (r.valor.corpo.size() !== largura * altura * 4) {
+		return { ok: false, erro: `recorte com ${r.valor.corpo.size()} bytes; esperava ${largura * altura * 4}` };
+	}
+	return { ok: true, valor: { largura, altura, pixels: buffer.fromstring(r.valor.corpo) } };
+}
+
+function buscaRetangulo(x?: number, y?: number, w?: number, h?: number): string {
+	const partes = new Array<string>();
+	if (x !== undefined) partes.push(`x=${x}`);
+	if (y !== undefined) partes.push(`y=${y}`);
+	if (w !== undefined) partes.push(`w=${w}`);
+	if (h !== undefined) partes.push(`h=${h}`);
+	return partes.size() > 0 ? `?${partes.join("&")}` : "";
+}
+
 // Rotas
 
 export function status(): Resultado<Status> {
-	return pedirJson<Status>("GET", "/status");
+	const r = pedirJson<Status>("GET", "/status");
+	if (r.ok && !typeIs(r.valor.gerados, "table")) r.valor.gerados = [];
+	return r;
 }
 
 export function listarMapas(): Resultado<ResumoMapa[]> {
@@ -171,23 +246,16 @@ export function listarFolhas(): Resultado<Folha[]> {
 
 /** Recorte de `diorama/folhas/<nome>.png`. Sem retângulo, vem a folha inteira (2048×512×4 = 4 MB). */
 export function lerFolha(nome: string, x?: number, y?: number, w?: number, h?: number): Resultado<Recorte> {
-	const partes = new Array<string>();
-	if (x !== undefined) partes.push(`x=${x}`);
-	if (y !== undefined) partes.push(`y=${y}`);
-	if (w !== undefined) partes.push(`w=${w}`);
-	if (h !== undefined) partes.push(`h=${h}`);
-	const busca = partes.size() > 0 ? `?${partes.join("&")}` : "";
-	const r = pedir("GET", `/folhas/${nome}.rgba${busca}`);
-	if (!r.ok) return r;
-	const largura = tonumber(r.valor.cabecalhos["X-Largura"] ?? r.valor.cabecalhos["x-largura"]);
-	const altura = tonumber(r.valor.cabecalhos["X-Altura"] ?? r.valor.cabecalhos["x-altura"]);
-	if (largura === undefined || altura === undefined) {
-		return { ok: false, erro: "a ponte não mandou X-Largura e X-Altura" };
-	}
-	if (r.valor.corpo.size() !== largura * altura * 4) {
-		return { ok: false, erro: `recorte com ${r.valor.corpo.size()} bytes; esperava ${largura * altura * 4}` };
-	}
-	return { ok: true, valor: { largura, altura, pixels: buffer.fromstring(r.valor.corpo) } };
+	return pedirRecorte(`/folhas/${nome}.rgba${buscaRetangulo(x, y, w, h)}`);
+}
+
+/**
+ * Recorte de qualquer PNG de `assets/` ou `diorama/folhas/`: `caminho` é o caminho relativo à raiz do repositório
+ * sem o `.png` (`assets/ui/atlas`, `diorama/folhas/casa`). Sem retângulo, a imagem inteira.
+ */
+export function lerImagem(caminho: string, x?: number, y?: number, w?: number, h?: number): Resultado<Recorte> {
+	const semPng = caminho.gsub("\\", "/")[0].gsub("%.png$", "")[0];
+	return pedirRecorte(`/imagens/${semPng}.rgba${buscaRetangulo(x, y, w, h)}`);
 }
 
 /** Roda `npm run diorama:jogo -- <id>` e devolve o log. Demora: chamar de um `task.spawn`. */
@@ -200,14 +268,35 @@ export function gerarDecorar(): Resultado<LogGerador> {
 	return pedirJson<LogGerador>("POST", "/gerar/decorar");
 }
 
-/** O `assets/registro.json` como veio do disco. */
-export function lerAssets<T = unknown>(): Resultado<T> {
-	return pedirJson<T>("GET", "/assets");
+function idTexto(v: unknown): string | undefined {
+	if (typeIs(v, "number") && v > 0) return `rbxassetid://${v}`;
+	if (typeIs(v, "string") && v !== "") return v.sub(1, 13) === "rbxassetid://" ? v : `rbxassetid://${v}`;
+	return undefined;
 }
 
-/** Grava `assets/enviadas.json` e roda `npm run assets -- --importar`. */
-export function enviarAssets(enviadas: unknown): Resultado<LogGerador> {
+/** O `assets/registro.json` como veio do disco, mais o mapa chave → `rbxassetid://` das entradas com id. */
+export function lerAssets<T = unknown>(): Resultado<Assets<T>> {
+	const r = pedirJson<T>("GET", "/assets");
+	if (!r.ok) return r;
+	const ids: Record<string, string> = {};
+	const registro = r.valor as unknown as { assets?: Record<string, { id?: unknown }> } | undefined;
+	if (typeIs(registro, "table") && typeIs(registro.assets, "table")) {
+		for (const [chave, entrada] of pairs(registro.assets)) {
+			const id = typeIs(entrada, "table") ? idTexto(entrada.id) : undefined;
+			if (id !== undefined) ids[chave as string] = id;
+		}
+	}
+	return { ok: true, valor: { registro: r.valor, ids } };
+}
+
+/** Grava `assets/enviadas.json` (`{ "<chave>": id }`) e roda `npm run assets -- --importar`. */
+export function enviarAssets(enviadas: Record<string, number>): Resultado<LogGerador> {
 	return pedirJson<LogGerador>("POST", "/assets/enviadas", enviadas);
+}
+
+/** Os ids de cabeças e corpos do Graal que o jogo conhece (src/shared/graalData.ts). */
+export function lerIdsGraal(): Resultado<IdsGraal> {
+	return pedirJson<IdsGraal>("GET", "/graal/ids");
 }
 
 /** Nomes (sem `.md`) dos documentos em docs/diorama. */
