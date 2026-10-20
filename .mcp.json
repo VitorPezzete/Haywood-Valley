@@ -27,6 +27,12 @@
       "env": {
         "ABLETON_MCP_DISABLE_TELEMETRY": "true"
       }
+    },
+    "diorama": {
+      "command": "C:\\Program Files\\nodejs\\node.exe",
+      "args": [
+        "tools/diorama_mcp.mjs"
+      ]
     }
   }
 }

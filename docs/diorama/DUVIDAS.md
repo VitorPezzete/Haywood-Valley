@@ -2,6 +2,17 @@
 
 O que a reconstrução não conseguiu tirar do código. Responder aqui ou corrigir direto em `ESPECIFICACAO.md` e `ARQUITETURA.md`.
 
+## Respostas do usuário (2026-10-20)
+
+- **1 a 13**: não lembra. Os palpites ficam como estão até haver motivo para mudar.
+- **14**: depois da F vinha a **G: arrumar as folhas e os recortes**. Exemplo dado: o sofá veio da folha com a parte do fundo e do chão junto; a G separa a peça do fundo e permite **recolorir o sofá sem perder a textura**, "entre outros" (ver `ROTEIRO.md`).
+- **15**: o `mapa_folhas.json` não tem cópia.
+- **16**: não lembra; adivinhar ou refazer a folha de junção.
+- **17**: sim, os baús grandes do castelo abrem no lugar.
+- **18**: sim. A folha `acoes.carregaveis` já estava enviada (id 93474418849511 no registro), nada a fazer.
+- **19**: os sons e músicas sem id se perderam; serão refeitos (ver `docs/audio/ESTUDO_PACOTES_ABLETON.md`).
+- Pedido junto: o plugin se atualiza sozinho e as conexões vão além da ponte: Claude, Studio e Aseprite ligados, com um MCP para o Claude e um plugin para o Aseprite (`CONEXOES.md`).
+
 ## Formato do bloco (não mudei `ARQUITETURA.md`)
 
 1. **Mar raso no exterior**: o jogo distingue mar fundo (`~`, nada) de mar raso (`6`, os pés na água) em `actions` (`exterior_ilha`), mas o bloco de `ARQUITETURA.md` só tem o código `m` para mar. O raso era pintado (outro código) ou derivado da distância à terra?

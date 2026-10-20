@@ -13,13 +13,15 @@
     "plugin:watch": "rbxtsc -w -p plugin/tsconfig.json --rojo plugin/default.project.json",
     "diorama:ponte": "node tools/diorama_ponte.mjs",
     "diorama:jogo": "node tools/diorama_jogo.mjs",
-    "diorama:importar": "node tools/diorama_importar.mjs"
+    "diorama:importar": "node tools/diorama_importar.mjs",
+    "diorama:mcp": "node tools/diorama_mcp.mjs"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.1",
     "@rbxts/compiler-types": "^3.0.0-types.0",
     "@rbxts/types": "^1.0.957",
     "@typescript-eslint/eslint-plugin": "^8.71.1",
@@ -32,7 +34,9 @@
     "prettier": "^3.9.9",
     "rbxts-transformer-flamework": "^1.3.2",
     "roblox-ts": "^3.0.0",
-    "typescript": "^5.5.3"
+    "typescript": "^5.5.3",
+    "ws": "^8.22.0",
+    "zod": "^4.6.7"
   },
   "dependencies": {
     "@flamework/components": "^1.3.2",

@@ -34,6 +34,10 @@ Confirmado em `decor.ts` ("etapa E2 do roteiro do Diorama, aprovada pelo usuári
 
 Confirmado em `ResidentController` e `puppet.ts` ("etapa F do Diorama, seção 12.20"): o objeto `morador` no bloco, desenhado como um jogador, parado, sentado ou deitado, com bloqueio; o mapa `moradores_jogo`. As ligações e zonas (12.17, `MapService`, `MapController`, mapas `teste_d_*`, `exterior_ilha` ↔ `casa_teste_v2_l`) e o exterior (12.7, `exterior_32`, `exterior_ilha`) estão prontos no jogo; o código não diz se foram parte de E1, de F ou de uma etapa entre elas.
 
+## G. Folhas e recortes (dito pelo usuário em 2026-10-20)
+
+A etapa seguinte à F no roteiro original. As peças das folhas do Aeko vêm presas ao que estava atrás delas: o sofá traz pixels do fundo e do chão. A G arruma isso: separa cada peça do fundo (recorte com transparência, como a folha `acoes.carregaveis` já fez para as peças que se levantam) e prepara a peça para ser **recolorida sem perder a textura** (máscaras em cinza por parte, como as camadas das peças do Graal em `shared/graal.ts`), "entre outros". O resto do conteúdo da G o usuário não lembra; a reconstrução está em `docs/diorama/RECORTES.md`.
+
 ## O que vem depois (o que o código anuncia)
 
 - **Moradores vivos** (12.20, `ResidentController`): andar, falar (o nome já fica guardado para o diálogo, `DialogueController.say`), horários.

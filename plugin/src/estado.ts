@@ -29,6 +29,12 @@ export const IMAGENS_RESERVA: Readonly<Record<string, [string, string]>> = {
 	castelo: ["rbxassetid://71605882676787", "rbxassetid://115997821513657"],
 };
 
+function copiarReserva(): ImagensFolhas {
+	const saida: ImagensFolhas = {};
+	for (const folha of FOLHAS_DO_JOGO) saida[folha] = IMAGENS_RESERVA[folha];
+	return saida;
+}
+
 /** As imagens das folhas: começa com a reserva; `carregarImagensFolhas` troca pelo registro. */
 export const imagensFolhas = source<ImagensFolhas>(copiarReserva());
 /** Aviso da última carga das imagens ("" quando o registro tinha tudo). */
@@ -36,11 +42,6 @@ export const avisoImagens = source("");
 /** Chave do registro de assets → `rbxassetid://`, da última carga (`GET /assets`). */
 export const idsAssets = source<Record<string, string>>({});
 
-function copiarReserva(): ImagensFolhas {
-	const saida: ImagensFolhas = {};
-	for (const folha of FOLHAS_DO_JOGO) saida[folha] = IMAGENS_RESERVA[folha];
-	return saida;
-}
 
 /** Relê `GET /mapas` e atualiza `mapas`. Yielda: chamar de um task.spawn. Devolve o resultado da ponte. */
 export function recarregarMapas() {
