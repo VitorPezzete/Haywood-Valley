@@ -24,5 +24,7 @@
 		"baseUrl": "src",
 		"incremental": true,
 		"tsBuildInfoFile": "out/tsconfig.tsbuildinfo"
-	}
+	},
+	// O plugin Diorama é outro projeto (plugin/tsconfig.json); sem isto o rbxtsc da raiz o engole.
+	"include": ["src"]
 }

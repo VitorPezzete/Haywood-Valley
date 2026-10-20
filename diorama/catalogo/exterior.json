@@ -1,0 +1,44 @@
+{
+	"versao": 1,
+	"nota": "O layout das folhas do exterior (docs/diorama/EXTERIOR.md). Engenharia reversa de exterior_32, exterior_ilha e teste_d_ligacoes em 2026-10-20; o que não aparece nesses mapas está marcado como palpite.",
+	"imagens": ["folha_juncao", "forma_equipe_32"],
+	"tile": 16,
+	"terrenos": {
+		"m": { "nome": "mar fundo", "nivel": 0, "base": 36, "acao": "~" },
+		"r": { "nome": "mar raso", "nivel": 1, "base": 37, "acao": "6" },
+		"a": { "nome": "areia", "nivel": 2, "base": 38, "acao": "." },
+		"c": { "nome": "caminho", "nivel": 3, "base": 39, "acao": "." },
+		"t": { "nome": "terra", "nivel": 4, "base": 40, "acao": "." },
+		"g": { "nome": "grama", "nivel": 5, "base": 41, "acao": "." }
+	},
+	"nota_terrenos": "`base` é a linha da folha_juncao com o padrão de 2 × 2 tiles do terreno (colunas 0 a 3: a coluna é (y % 2) * 2 + (x % 2) na célula do bloco). As linhas 36 a 39 são de uma cor só (o jogo estica o miolo); 40 e 41 têm textura. `nivel` ordena quem fica por cima na junção; a ordem entre caminho, terra e grama só é certa onde os mapas mostram (grama sobre terra, terra e caminho sobre areia): palpite.",
+	"juncoes": [
+		{ "sobre": "g", "sob": "a", "linha": 0 },
+		{ "sobre": "g", "sob": "t", "linha": 4 },
+		{ "sobre": "a", "sob": "r", "linha": 8, "quadros": 4, "dy": 64 },
+		{ "sobre": "r", "sob": "m", "linha": 24 },
+		{ "sobre": "c", "sob": "a", "linha": 28 },
+		{ "sobre": "t", "sob": "a", "linha": 32 }
+	],
+	"nota_juncoes": "Cada junção ocupa 4 linhas da folha_juncao (as 4 variantes de um padrão de 2 × 2, escolhidas como a base) e 16 colunas: a coluna é a máscara dos quadrantes do tile que mostram o terreno de cima (bit 1 canto de cima à esquerda, 2 cima à direita, 4 baixo à esquerda, 8 baixo à direita); a coluna 0 é vazia e a 15 é o tile cheio. A junção animada (areia sobre mar raso: a espuma) tem 4 quadros, 64 px abaixo um do outro (linhas 8-11, 12-15, 16-19, 20-23). Par de terrenos sem junção aqui: o gerador avisa e não desenha o encontro.",
+	"decalques": {
+		"brilho_raso": { "sx": 0, "sy": 672, "w": 2, "h": 2, "quadros": 4, "dx": 32, "dy": 0, "nota": "palpite: 4 quadros de brilho da água rasa (linhas 42-43, colunas 0-7)" },
+		"espuma_1": { "sx": 128, "sy": 672, "w": 2, "h": 2, "quadros": 4, "dx": 32, "dy": 0, "nota": "palpite: 4 quadros de espuma (linhas 42-43, colunas 8-15)" },
+		"pedra_grande": { "sx": 0, "sy": 704, "w": 2, "h": 2 },
+		"pedras_pequenas": { "sx": 32, "sy": 704, "w": 2, "h": 2 },
+		"brilho_mar": { "sx": 64, "sy": 704, "w": 2, "h": 2, "quadros": 4, "dx": 32, "dy": 0, "nota": "o brilho do mar fundo (exterior_ilha)" },
+		"espuma_2": { "sx": 0, "sy": 736, "w": 2, "h": 2, "quadros": 4, "dx": 32, "dy": 0, "nota": "palpite: 4 quadros de espuma (linhas 46-47, colunas 0-7)" },
+		"flor_1": { "sx": 128, "sy": 736, "w": 2, "h": 2, "nota": "moita de flores vermelhas (exterior_32, exterior_ilha)" },
+		"flor_2": { "sx": 160, "sy": 736, "w": 2, "h": 2, "nota": "moita de flores vermelhas, outra (exterior_32)" },
+		"pedra_areia": { "sx": 192, "sy": 736, "w": 2, "h": 2 },
+		"pedrinhas": { "sx": 224, "sy": 736, "w": 2, "h": 2 }
+	},
+	"nota_decalques": "Recortes da folha_juncao (pixels) de w × h células, postos por cima da base e das junções da célula. `quadros`, `dx` e `dy`: a animação (o recorte anda dx, dy por quadro).",
+	"formas": {
+		"grama_areia": { "x": 0, "y": 0, "blocos": [5, 5], "nota": "painel A: grama sobre areia, com a placa HOME em (0,0) e um retalho de grama em (0,4)" },
+		"grama_terra": { "x": 168, "y": 0, "blocos": [5, 5], "nota": "painel B: grama sobre terra" },
+		"areia_mar": { "x": 336, "y": 0, "blocos": [6, 5], "nota": "painel C: areia sobre mar raso, com pedras" },
+		"raso_mar": { "x": 536, "y": 0, "blocos": [6, 5], "nota": "painel D: mar raso sobre mar fundo" }
+	},
+	"nota_formas": "A forma_equipe_32 tem quatro painéis desenhados pela equipe, cada um uma forma de exemplo em blocos de 32 × 32 px (o furo em cruz no meio é onde entra a textura da base). Um bloco [bx, by] do painel é carimbado inteiro numa célula de 2 × 2 do mapa (`exterior.formas` do bloco); a célula carimbada não entra na grade dupla. exterior_32 usa só o painel A."
+}

@@ -1,0 +1,11 @@
+{
+	"versao": 1,
+	"id": "casa_teste_v2",
+	"nome": "casa_teste_v2",
+	"folhas": ["casa"],
+	"blocos": [
+		[0, 0]
+	],
+	"data": "2026-10-20",
+	"origem": "importado de src/shared/interiors/casa_teste_v2.ts por tools/diorama_importar.mjs"
+}

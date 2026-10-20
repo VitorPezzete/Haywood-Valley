@@ -1,4 +1,4 @@
-import type { InteriorData, InteriorSheet } from "./types"; // Reconstruído em 2026-10-20 a partir do Luau compilado: o gerador (tools/diorama_jogo.mjs) se perdeu na formatação de out/2026.
+import type { InteriorData, InteriorSheet } from "./types";
 // Gerado por tools/diorama_jogo.mjs: os interiores que o jogo conhece e as folhas do Aeko no Roblox.
 // Não editar: cada `npm run diorama:jogo` refaz esta lista com os módulos da pasta.
 

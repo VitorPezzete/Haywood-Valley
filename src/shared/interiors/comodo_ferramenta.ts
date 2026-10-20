@@ -1,4 +1,4 @@
-import type { InteriorData } from "./types"; // Reconstruído em 2026-10-20 a partir do Luau compilado: o gerador (tools/diorama_jogo.mjs) se perdeu na formatação de out/2026.
+import type { InteriorData } from "./types";
 // Gerado por tools/diorama_jogo.mjs (npm run diorama:jogo -- comodo_ferramenta) a partir de
 // diorama/mapas/comodo_ferramenta/blocos/0_0.json. Não editar: pintar no Diorama e gerar de novo.
 

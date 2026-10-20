@@ -1,0 +1,142 @@
+{
+	"versao": 1,
+	"nota": "As zonas das folhas do Aeko, [c0, l0, c1, l1, zona]; vale a primeira (ZONES de src/shared/interiorMap.ts). `excecoes` vêm antes: a linha 0 das colunas 32 a 63 é chão no castelo, e as peças sob o rótulo \"non-blocking\" da folha do castelo não bloqueiam (palpite: o gabarito só usa as colunas 59 e 60). `bloqueiam` são as zonas que viram # em blocks (sem_pecas é palpite). `acoes` são os códigos do Graal por zona.",
+	"vazio": [
+		0,
+		2
+	],
+	"zonas": [
+		[
+			0,
+			0,
+			15,
+			3,
+			"animado"
+		],
+		[
+			0,
+			4,
+			15,
+			9,
+			"agua"
+		],
+		[
+			0,
+			10,
+			15,
+			11,
+			"agua_rasa"
+		],
+		[
+			0,
+			12,
+			15,
+			17,
+			"lava"
+		],
+		[
+			0,
+			18,
+			15,
+			19,
+			"fere"
+		],
+		[
+			0,
+			20,
+			15,
+			23,
+			"senta"
+		],
+		[
+			0,
+			24,
+			15,
+			25,
+			"deita"
+		],
+		[
+			0,
+			26,
+			15,
+			31,
+			"normal"
+		],
+		[
+			16,
+			0,
+			31,
+			31,
+			"sem_pecas"
+		],
+		[
+			32,
+			0,
+			63,
+			0,
+			"frente"
+		],
+		[
+			32,
+			1,
+			63,
+			19,
+			"chao"
+		],
+		[
+			32,
+			20,
+			63,
+			31,
+			"bloqueia"
+		],
+		[
+			64,
+			16,
+			127,
+			31,
+			"bloqueia"
+		],
+		[
+			64,
+			0,
+			127,
+			15,
+			"sem_pecas"
+		]
+	],
+	"excecoes": [
+		{
+			"folha": "castelo",
+			"area": [
+				32,
+				0,
+				63,
+				0
+			],
+			"zona": "chao",
+			"nota": "tileZone: a linha 0 é chão no castelo"
+		},
+		{
+			"folha": "castelo",
+			"area": [
+				57,
+				20,
+				60,
+				23
+			],
+			"zona": "normal",
+			"nota": "as peças sob o rótulo non-blocking da folha (estandarte, portal vermelho e azul); castelo_passagem usa 59-60 nas passagens"
+		}
+	],
+	"bloqueiam": [
+		"vazio",
+		"bloqueia",
+		"animado",
+		"sem_pecas"
+	],
+	"acoes": {
+		"senta": "3",
+		"deita": "4"
+	}
+}

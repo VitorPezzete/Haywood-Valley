@@ -1,0 +1,11 @@
+{
+	"versao": 1,
+	"id": "teste_d_destino",
+	"nome": "teste_d_destino",
+	"folhas": ["casa"],
+	"blocos": [
+		[0, 0]
+	],
+	"data": "2026-10-20",
+	"origem": "importado de src/shared/interiors/teste_d_destino.ts por tools/diorama_importar.mjs"
+}

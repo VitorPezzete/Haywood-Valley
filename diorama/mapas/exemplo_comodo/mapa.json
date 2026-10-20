@@ -1,0 +1,11 @@
+{
+	"versao": 1,
+	"id": "exemplo_comodo",
+	"nome": "exemplo_comodo",
+	"folhas": ["casa"],
+	"blocos": [
+		[0, 0]
+	],
+	"data": "2026-10-20",
+	"origem": "importado de src/shared/interiors/exemplo_comodo.ts por tools/diorama_importar.mjs"
+}

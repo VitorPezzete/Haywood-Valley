@@ -1,0 +1,11 @@
+{
+	"versao": 1,
+	"id": "exterior_32",
+	"nome": "exterior_32",
+	"folhas": ["casa"],
+	"blocos": [
+		[0, 0]
+	],
+	"data": "2026-10-20",
+	"origem": "importado de src/shared/interiors/exterior_32.ts por tools/diorama_importar.mjs"
+}

@@ -1,0 +1,2527 @@
+{
+	"versao": 1,
+	"nota": "As regiões das folhas que o jogo cita: id como o jogo usa (casa8, casa@56,25), folha, area [coluna, linha, largura, altura], tipo, camada sugerida (0 chão, 1 objeto, 2 frente), bloqueia, acao/acoes (códigos do Graal por célula, uma linha por linha da peça), decorar (as formas, variantes, fundos e encaixe do inventário do Decorar), movel, fixo, luz, noite. Semeado por tools/diorama_lib/semear_catalogo.mjs.",
+	"pecas": [
+		{
+			"id": "chair",
+			"nome": "cadeira",
+			"folha": "casa",
+			"area": [
+				0,
+				20,
+				2,
+				2
+			],
+			"tipo": "movel",
+			"camada": 0,
+			"decorar": {
+				"formas": [
+					{
+						"olhando": 2,
+						"variantes": [
+							{
+								"w": 2,
+								"h": 2,
+								"dx": 0,
+								"dy": 0,
+								"fundos": [],
+								"celulas": [
+									{
+										"dx": 0,
+										"dy": 0,
+										"coluna": 0,
+										"linha": 20,
+										"camada": 0,
+										"acao": "3",
+										"bloqueia": false
+									},
+									{
+										"dx": 1,
+										"dy": 0,
+										"coluna": 1,
+										"linha": 20,
+										"camada": 0,
+										"acao": "3",
+										"bloqueia": false
+									},
+									{
+										"dx": 0,
+										"dy": 1,
+										"coluna": 0,
+										"linha": 21,
+										"camada": 0,
+										"acao": "3",
+										"bloqueia": false
+									},
+									{
+										"dx": 1,
+										"dy": 1,
+										"coluna": 1,
+										"linha": 21,
+										"camada": 0,
+										"acao": "3",
+										"bloqueia": false
+									}
+								]
+							},
+							{
+								"w": 2,
+								"h": 2,
+								"dx": 0,
+								"dy": 0,
+								"fundos": [
+									"xadrez_claro",
+									"lajota_quase_branca",
+									"xadrez_escuro",
+									"lajota_oliva"
+								],
+								"celulas": [
+									{
+										"dx": 0,
+										"dy": 0,
+										"coluna": 0,
+										"linha": 20,
+										"camada": 0,
+										"acao": "3",
+										"bloqueia": false
+									},
+									{
+										"dx": 1,
+										"dy": 0,
+										"coluna": 1,
+										"linha": 20,
+										"camada": 0,
+										"acao": "3",
+										"bloqueia": false
+									},
+									{
+										"dx": 0,
+										"dy": 1,
+										"coluna": 0,
+										"linha": 22,
+										"camada": 0,
+										"exatos": [
+											1575,
+											1702
+										],
+										"fundos": [
+											"xadrez_claro",
+											"xadrez_escuro",
+											"lajota_quase_branca",
+											"lajota_oliva"
+										],
+										"acao": "3",
+										"bloqueia": false
+									},
+									{
+										"dx": 1,
+										"dy": 1,
+										"coluna": 1,
+										"linha": 22,
+										"camada": 0,
+										"exatos": [
+											1574,
+											1703
+										],
+										"fundos": [
+											"xadrez_claro",
+											"xadrez_escuro",
+											"lajota_quase_branca",
+											"lajota_oliva"
+										],
+										"acao": "3",
+										"bloqueia": false
+									}
+								]
+							},
+							{
+								"w": 2,
+								"h": 2,
+								"dx": 0,
+								"dy": 0,
+								"fundos": [
+									"xadrez_claro",
+									"lajota_quase_branca",
+									"xadrez_escuro",
+									"lajota_oliva"
+								],
+								"celulas": [
+									{
+										"dx": 0,
+										"dy": 0,
+										"coluna": 0,
+										"linha": 20,
+										"camada": 0,
+										"acao": "3",
+										"bloqueia": false
+									},
+									{
+										"dx": 1,
+										"dy": 0,
+										"coluna": 1,
+										"linha": 20,
+										"camada": 0,
+										"acao": "3",
+										"bloqueia": false
+									},
+									{
+										"dx": 0,
+										"dy": 1,
+										"coluna": 0,
+										"linha": 23,
+										"camada": 0,
+										"exatos": [
+											1574,
+											1703
+										],
+										"fundos": [
+											"xadrez_claro",
+											"xadrez_escuro",
+											"lajota_quase_branca",
+											"lajota_oliva"
+										],
+										"acao": "3",
+										"bloqueia": false
+									},
+									{
+										"dx": 1,
+										"dy": 1,
+										"coluna": 1,
+										"linha": 23,
+										"camada": 0,
+										"exatos": [
+											1575,
+											1702
+										],
+										"fundos": [
+											"xadrez_claro",
+											"xadrez_escuro",
+											"lajota_quase_branca",
+											"lajota_oliva"
+										],
+										"acao": "3",
+										"bloqueia": false
+									}
+								]
+							}
+						]
+					},
+					{
+						"olhando": 3,
+						"variantes": [
+							{
+								"w": 1,
+								"h": 2,
+								"dx": 0,
+								"dy": 0,
+								"fundos": [],
+								"celulas": [
+									{
+										"dx": 0,
+										"dy": 0,
+										"coluna": 2,
+										"linha": 20,
+										"camada": 0,
+										"acao": "3",
+										"bloqueia": false
+									},
+									{
+										"dx": 0,
+										"dy": 1,
+										"coluna": 2,
+										"linha": 21,
+										"camada": 0,
+										"acao": "3",
+										"bloqueia": false
+									}
+								]
+							}
+						]
+					},
+					{
+						"olhando": 1,
+						"variantes": [
+							{
+								"w": 1,
+								"h": 2,
+								"dx": 0,
+								"dy": 0,
+								"fundos": [],
+								"celulas": [
+									{
+										"dx": 0,
+										"dy": 0,
+										"coluna": 2,
+										"linha": 22,
+										"camada": 0,
+										"acao": "3",
+										"bloqueia": false
+									},
+									{
+										"dx": 0,
+										"dy": 1,
+										"coluna": 2,
+										"linha": 23,
+										"camada": 0,
+										"acao": "3",
+										"bloqueia": false
+									}
+								]
+							}
+						]
+					}
+				]
+			}
+		},
+		{
+			"id": "table",
+			"nome": "mesa",
+			"folha": "casa",
+			"area": [
+				51,
+				20,
+				3,
+				4
+			],
+			"tipo": "movel",
+			"camada": 1,
+			"decorar": {
+				"formas": [
+					{
+						"variantes": [
+							{
+								"w": 3,
+								"h": 4,
+								"dx": 0,
+								"dy": 0,
+								"fundos": [],
+								"celulas": [
+									{
+										"dx": 0,
+										"dy": 0,
+										"coluna": 51,
+										"linha": 20,
+										"camada": 1,
+										"acao": ".",
+										"bloqueia": true
+									},
+									{
+										"dx": 1,
+										"dy": 0,
+										"coluna": 52,
+										"linha": 20,
+										"camada": 1,
+										"acao": ".",
+										"bloqueia": true
+									},
+									{
+										"dx": 2,
+										"dy": 0,
+										"coluna": 53,
+										"linha": 20,
+										"camada": 1,
+										"acao": ".",
+										"bloqueia": true
+									},
+									{
+										"dx": 0,
+										"dy": 1,
+										"coluna": 51,
+										"linha": 21,
+										"camada": 1,
+										"acao": ".",
+										"bloqueia": true
+									},
+									{
+										"dx": 1,
+										"dy": 1,
+										"coluna": 52,
+										"linha": 21,
+										"camada": 1,
+										"acao": ".",
+										"bloqueia": true
+									},
+									{
+										"dx": 2,
+										"dy": 1,
+										"coluna": 53,
+										"linha": 21,
+										"camada": 1,
+										"acao": ".",
+										"bloqueia": true
+									},
+									{
+										"dx": 0,
+										"dy": 2,
+										"coluna": 51,
+										"linha": 22,
+										"camada": 1,
+										"acao": ".",
+										"bloqueia": true
+									},
+									{
+										"dx": 1,
+										"dy": 2,
+										"coluna": 52,
+										"linha": 22,
+										"camada": 1,
+										"acao": ".",
+										"bloqueia": true
+									},
+									{
+										"dx": 2,
+										"dy": 2,
+										"coluna": 53,
+										"linha": 22,
+										"camada": 1,
+										"acao": ".",
+										"bloqueia": true
+									},
+									{
+										"dx": 0,
+										"dy": 3,
+										"coluna": 51,
+										"linha": 23,
+										"camada": 1,
+										"acao": ".",
+										"bloqueia": true
+									},
+									{
+										"dx": 1,
+										"dy": 3,
+										"coluna": 52,
+										"linha": 23,
+										"camada": 1,
+										"acao": ".",
+										"bloqueia": true
+									},
+									{
+										"dx": 2,
+										"dy": 3,
+										"coluna": 53,
+										"linha": 23,
+										"camada": 1,
+										"acao": ".",
+										"bloqueia": true
+									}
+								]
+							}
+						]
+					}
+				]
+			}
+		},
+		{
+			"id": "pot",
+			"nome": "pote",
+			"folha": "casa",
+			"area": [
+				37,
+				20,
+				2,
+				2
+			],
+			"tipo": "movel",
+			"camada": 1,
+			"decorar": {
+				"formas": [
+					{
+						"variantes": [
+							{
+								"w": 2,
+								"h": 2,
+								"dx": 0,
+								"dy": 0,
+								"fundos": [
+									"diagonal_claro",
+									"tabua"
+								],
+								"celulas": [
+									{
+										"dx": 0,
+										"dy": 0,
+										"coluna": 37,
+										"linha": 20,
+										"camada": 1,
+										"exatos": [
+											1697,
+											2084,
+											2086,
+											2215,
+											2340,
+											2341,
+											2342,
+											2471
+										],
+										"fundos": [
+											"tabua",
+											"diagonal_claro"
+										],
+										"acao": ".",
+										"bloqueia": true
+									},
+									{
+										"dx": 1,
+										"dy": 0,
+										"coluna": 38,
+										"linha": 20,
+										"camada": 1,
+										"exatos": [
+											1698,
+											2084,
+											2086,
+											2215,
+											2340,
+											2341,
+											2342,
+											2343,
+											2471
+										],
+										"fundos": [
+											"tabua",
+											"diagonal_claro"
+										],
+										"acao": ".",
+										"bloqueia": true
+									},
+									{
+										"dx": 0,
+										"dy": 1,
+										"coluna": 37,
+										"linha": 21,
+										"camada": 1,
+										"exatos": [
+											2470
+										],
+										"fundos": [
+											"tabua",
+											"diagonal_claro"
+										],
+										"acao": ".",
+										"bloqueia": true
+									},
+									{
+										"dx": 1,
+										"dy": 1,
+										"coluna": 38,
+										"linha": 21,
+										"camada": 1,
+										"exatos": [
+											1568,
+											1569,
+											1570,
+											1696,
+											1698,
+											1824,
+											1825,
+											1826,
+											2084,
+											2085,
+											2086,
+											2087,
+											2212,
+											2214,
+											2215,
+											2340,
+											2341,
+											2342,
+											2343,
+											2468,
+											2470,
+											2471
+										],
+										"fundos": [
+											"tabua",
+											"diagonal_claro"
+										],
+										"acao": ".",
+										"bloqueia": true
+									}
+								]
+							},
+							{
+								"w": 2,
+								"h": 2,
+								"dx": 0,
+								"dy": 0,
+								"fundos": [
+									"diagonal_escuro"
+								],
+								"celulas": [
+									{
+										"dx": 0,
+										"dy": 0,
+										"coluna": 37,
+										"linha": 22,
+										"camada": 1,
+										"exatos": [],
+										"fundos": [
+											"diagonal_escuro"
+										],
+										"acao": ".",
+										"bloqueia": true
+									},
+									{
+										"dx": 1,
+										"dy": 0,
+										"coluna": 38,
+										"linha": 22,
+										"camada": 1,
+										"exatos": [],
+										"fundos": [
+											"diagonal_escuro"
+										],
+										"acao": ".",
+										"bloqueia": true
+									},
+									{
+										"dx": 0,
+										"dy": 1,
+										"coluna": 37,
+										"linha": 23,
+										"camada": 1,
+										"exatos": [],
+										"fundos": [
+											"diagonal_escuro"
+										],
+										"acao": ".",
+										"bloqueia": true
+									},
+									{
+										"dx": 1,
+										"dy": 1,
+										"coluna": 38,
+										"linha": 23,
+										"camada": 1,
+										"exatos": [],
+										"fundos": [
+											"diagonal_escuro"
+										],
+										"acao": ".",
+										"bloqueia": true
+									}
+								]
+							}
+						]
+					}
+				]
+			}
+		},
+		{
+			"id": "rug",
+			"nome": "tapete",
+			"folha": "casa",
+			"area": [
+				44,
+				14,
+				2,
+				2
+			],
+			"tipo": "tapete",
+			"camada": 0,
+			"decorar": {
+				"formas": [
+					{
+						"variantes": [
+							{
+								"w": 2,
+								"h": 2,
+								"dx": 0,
+								"dy": 0,
+								"fundos": [],
+								"celulas": [
+									{
+										"dx": 0,
+										"dy": 0,
+										"coluna": 44,
+										"linha": 14,
+										"camada": 0,
+										"acao": ".",
+										"bloqueia": false
+									},
+									{
+										"dx": 1,
+										"dy": 0,
+										"coluna": 45,
+										"linha": 14,
+										"camada": 0,
+										"acao": ".",
+										"bloqueia": false
+									},
+									{
+										"dx": 0,
+										"dy": 1,
+										"coluna": 44,
+										"linha": 15,
+										"camada": 0,
+										"acao": ".",
+										"bloqueia": false
+									},
+									{
+										"dx": 1,
+										"dy": 1,
+										"coluna": 45,
+										"linha": 15,
+										"camada": 0,
+										"acao": ".",
+										"bloqueia": false
+									}
+								]
+							}
+						]
+					}
+				]
+			}
+		},
+		{
+			"id": "picture",
+			"nome": "quadro",
+			"folha": "casa",
+			"area": [
+				75,
+				24,
+				3,
+				3
+			],
+			"tipo": "quadro",
+			"camada": 1,
+			"decorar": {
+				"formas": [
+					{
+						"variantes": [
+							{
+								"w": 3,
+								"h": 3,
+								"dx": 0,
+								"dy": 0,
+								"fundos": [
+									"papel_azul",
+									"poste"
+								],
+								"encaixe": {
+									"tipo": "quadro",
+									"linha": 2
+								},
+								"celulas": [
+									{
+										"dx": 0,
+										"dy": 0,
+										"coluna": 75,
+										"linha": 24,
+										"camada": 1,
+										"exatos": [
+											3491,
+											3494,
+											3495
+										],
+										"fundos": [
+											"papel_azul",
+											"poste"
+										],
+										"acao": ".",
+										"bloqueia": true
+									},
+									{
+										"dx": 1,
+										"dy": 0,
+										"coluna": 76,
+										"linha": 24,
+										"camada": 1,
+										"exatos": [
+											3490,
+											3491,
+											3492,
+											3494,
+											3495
+										],
+										"fundos": [
+											"papel_azul",
+											"poste"
+										],
+										"acao": ".",
+										"bloqueia": true
+									},
+									{
+										"dx": 2,
+										"dy": 0,
+										"coluna": 77,
+										"linha": 24,
+										"camada": 1,
+										"exatos": [
+											3491,
+											3494,
+											3495
+										],
+										"fundos": [
+											"papel_azul",
+											"poste"
+										],
+										"acao": ".",
+										"bloqueia": true
+									},
+									{
+										"dx": 0,
+										"dy": 1,
+										"coluna": 75,
+										"linha": 25,
+										"camada": 1,
+										"exatos": [
+											3621
+										],
+										"fundos": [
+											"papel_azul",
+											"poste"
+										],
+										"acao": ".",
+										"bloqueia": true
+									},
+									{
+										"dx": 1,
+										"dy": 1,
+										"coluna": 76,
+										"linha": 25,
+										"camada": 1,
+										"acao": ".",
+										"bloqueia": true
+									},
+									{
+										"dx": 2,
+										"dy": 1,
+										"coluna": 77,
+										"linha": 25,
+										"camada": 1,
+										"exatos": [
+											3621
+										],
+										"fundos": [
+											"papel_azul",
+											"poste"
+										],
+										"acao": ".",
+										"bloqueia": true
+									},
+									{
+										"dx": 0,
+										"dy": 2,
+										"coluna": 75,
+										"linha": 26,
+										"camada": 1,
+										"exatos": [
+											3619,
+											3747
+										],
+										"fundos": [
+											"papel_azul",
+											"poste"
+										],
+										"acao": ".",
+										"bloqueia": true
+									},
+									{
+										"dx": 1,
+										"dy": 2,
+										"coluna": 76,
+										"linha": 26,
+										"camada": 1,
+										"exatos": [
+											3491,
+											3494,
+											3495,
+											3619,
+											3747,
+											3751
+										],
+										"fundos": [
+											"papel_azul",
+											"poste"
+										],
+										"acao": ".",
+										"bloqueia": true
+									},
+									{
+										"dx": 2,
+										"dy": 2,
+										"coluna": 77,
+										"linha": 26,
+										"camada": 1,
+										"exatos": [
+											3619,
+											3747,
+											3751
+										],
+										"fundos": [
+											"papel_azul",
+											"poste"
+										],
+										"acao": ".",
+										"bloqueia": true
+									}
+								]
+							}
+						]
+					}
+				]
+			}
+		},
+		{
+			"id": "window",
+			"nome": "janela",
+			"folha": "casa",
+			"area": [
+				40,
+				25,
+				3,
+				3
+			],
+			"tipo": "janela",
+			"camada": 1,
+			"decorar": {
+				"formas": [
+					{
+						"variantes": [
+							{
+								"w": 3,
+								"h": 3,
+								"dx": 0,
+								"dy": 0,
+								"fundos": [
+									"papel_azul",
+									"poste"
+								],
+								"encaixe": {
+									"tipo": "janela",
+									"linha": 2,
+									"papel": "azul"
+								},
+								"celulas": [
+									{
+										"dx": 0,
+										"dy": 0,
+										"coluna": 40,
+										"linha": 25,
+										"camada": 1,
+										"exatos": [
+											3491,
+											3494,
+											3495
+										],
+										"fundos": [
+											"papel_azul",
+											"poste"
+										],
+										"acao": ".",
+										"bloqueia": true
+									},
+									{
+										"dx": 1,
+										"dy": 0,
+										"coluna": 41,
+										"linha": 25,
+										"camada": 1,
+										"exatos": [
+											3490,
+											3491,
+											3492,
+											3494,
+											3495
+										],
+										"fundos": [
+											"papel_azul",
+											"poste"
+										],
+										"acao": ".",
+										"bloqueia": true
+									},
+									{
+										"dx": 2,
+										"dy": 0,
+										"coluna": 42,
+										"linha": 25,
+										"camada": 1,
+										"exatos": [
+											3491,
+											3494,
+											3495
+										],
+										"fundos": [
+											"papel_azul",
+											"poste"
+										],
+										"acao": ".",
+										"bloqueia": true
+									},
+									{
+										"dx": 0,
+										"dy": 1,
+										"coluna": 40,
+										"linha": 26,
+										"camada": 1,
+										"exatos": [
+											3621
+										],
+										"fundos": [
+											"papel_azul",
+											"poste"
+										],
+										"acao": ".",
+										"bloqueia": true
+									},
+									{
+										"dx": 1,
+										"dy": 1,
+										"coluna": 41,
+										"linha": 26,
+										"camada": 1,
+										"exatos": [
+											3749
+										],
+										"fundos": [
+											"papel_azul",
+											"poste"
+										],
+										"acao": ".",
+										"bloqueia": true
+									},
+									{
+										"dx": 2,
+										"dy": 1,
+										"coluna": 42,
+										"linha": 26,
+										"camada": 1,
+										"exatos": [
+											3621
+										],
+										"fundos": [
+											"papel_azul",
+											"poste"
+										],
+										"acao": ".",
+										"bloqueia": true
+									},
+									{
+										"dx": 0,
+										"dy": 2,
+										"coluna": 40,
+										"linha": 27,
+										"camada": 1,
+										"exatos": [
+											3622
+										],
+										"fundos": [
+											"papel_azul",
+											"poste"
+										],
+										"acao": ".",
+										"bloqueia": true
+									},
+									{
+										"dx": 1,
+										"dy": 2,
+										"coluna": 41,
+										"linha": 27,
+										"camada": 1,
+										"exatos": [
+											3622
+										],
+										"fundos": [
+											"papel_azul",
+											"poste"
+										],
+										"acao": ".",
+										"bloqueia": true
+									},
+									{
+										"dx": 2,
+										"dy": 2,
+										"coluna": 42,
+										"linha": 27,
+										"camada": 1,
+										"exatos": [
+											3622
+										],
+										"fundos": [
+											"papel_azul",
+											"poste"
+										],
+										"acao": ".",
+										"bloqueia": true
+									}
+								]
+							},
+							{
+								"w": 3,
+								"h": 3,
+								"dx": 0,
+								"dy": 0,
+								"fundos": [
+									"papel_amarelo",
+									"poste",
+									"viga"
+								],
+								"encaixe": {
+									"tipo": "janela",
+									"linha": 2,
+									"papel": "amarelo"
+								},
+								"celulas": [
+									{
+										"dx": 0,
+										"dy": 0,
+										"coluna": 62,
+										"linha": 24,
+										"camada": 1,
+										"exatos": [
+											2742,
+											2743
+										],
+										"fundos": [
+											"poste",
+											"viga",
+											"papel_amarelo"
+										],
+										"acao": ".",
+										"bloqueia": true
+									},
+									{
+										"dx": 1,
+										"dy": 0,
+										"coluna": 63,
+										"linha": 24,
+										"camada": 1,
+										"exatos": [
+											2742,
+											2743
+										],
+										"fundos": [
+											"poste",
+											"viga",
+											"papel_amarelo"
+										],
+										"acao": ".",
+										"bloqueia": true
+									},
+									{
+										"dx": 2,
+										"dy": 0,
+										"coluna": 64,
+										"linha": 24,
+										"camada": 1,
+										"exatos": [
+											2742
+										],
+										"fundos": [
+											"poste",
+											"viga",
+											"papel_amarelo"
+										],
+										"acao": ".",
+										"bloqueia": true
+									},
+									{
+										"dx": 0,
+										"dy": 1,
+										"coluna": 62,
+										"linha": 25,
+										"camada": 1,
+										"exatos": [
+											3621
+										],
+										"fundos": [
+											"poste",
+											"viga",
+											"papel_amarelo"
+										],
+										"acao": ".",
+										"bloqueia": true
+									},
+									{
+										"dx": 1,
+										"dy": 1,
+										"coluna": 63,
+										"linha": 25,
+										"camada": 1,
+										"exatos": [
+											3749
+										],
+										"fundos": [
+											"poste",
+											"viga",
+											"papel_amarelo"
+										],
+										"acao": ".",
+										"bloqueia": true
+									},
+									{
+										"dx": 2,
+										"dy": 1,
+										"coluna": 64,
+										"linha": 25,
+										"camada": 1,
+										"exatos": [
+											3621
+										],
+										"fundos": [
+											"poste",
+											"viga",
+											"papel_amarelo"
+										],
+										"acao": ".",
+										"bloqueia": true
+									},
+									{
+										"dx": 0,
+										"dy": 2,
+										"coluna": 62,
+										"linha": 26,
+										"camada": 1,
+										"exatos": [
+											3363,
+											3364
+										],
+										"fundos": [
+											"poste",
+											"viga",
+											"papel_amarelo"
+										],
+										"acao": ".",
+										"bloqueia": true
+									},
+									{
+										"dx": 1,
+										"dy": 2,
+										"coluna": 63,
+										"linha": 26,
+										"camada": 1,
+										"exatos": [
+											2742
+										],
+										"fundos": [
+											"poste",
+											"viga",
+											"papel_amarelo"
+										],
+										"acao": ".",
+										"bloqueia": true
+									},
+									{
+										"dx": 2,
+										"dy": 2,
+										"coluna": 64,
+										"linha": 26,
+										"camada": 1,
+										"exatos": [
+											2742
+										],
+										"fundos": [
+											"poste",
+											"viga",
+											"papel_amarelo"
+										],
+										"acao": ".",
+										"bloqueia": true
+									}
+								]
+							}
+						]
+					}
+				]
+			}
+		},
+		{
+			"id": "shelf",
+			"nome": "estante",
+			"folha": "casa",
+			"area": [
+				51,
+				30,
+				4,
+				2
+			],
+			"tipo": "movel",
+			"camada": 1,
+			"decorar": {
+				"formas": [
+					{
+						"variantes": [
+							{
+								"w": 4,
+								"h": 2,
+								"dx": 0,
+								"dy": 0,
+								"fundos": [],
+								"celulas": [
+									{
+										"dx": 0,
+										"dy": 0,
+										"coluna": 51,
+										"linha": 30,
+										"camada": 1,
+										"acao": ".",
+										"bloqueia": true
+									},
+									{
+										"dx": 1,
+										"dy": 0,
+										"coluna": 52,
+										"linha": 30,
+										"camada": 1,
+										"acao": ".",
+										"bloqueia": true
+									},
+									{
+										"dx": 2,
+										"dy": 0,
+										"coluna": 53,
+										"linha": 30,
+										"camada": 1,
+										"acao": ".",
+										"bloqueia": true
+									},
+									{
+										"dx": 3,
+										"dy": 0,
+										"coluna": 54,
+										"linha": 30,
+										"camada": 1,
+										"acao": ".",
+										"bloqueia": true
+									},
+									{
+										"dx": 0,
+										"dy": 1,
+										"coluna": 51,
+										"linha": 31,
+										"camada": 1,
+										"acao": ".",
+										"bloqueia": true
+									},
+									{
+										"dx": 1,
+										"dy": 1,
+										"coluna": 52,
+										"linha": 31,
+										"camada": 1,
+										"acao": ".",
+										"bloqueia": true
+									},
+									{
+										"dx": 2,
+										"dy": 1,
+										"coluna": 53,
+										"linha": 31,
+										"camada": 1,
+										"acao": ".",
+										"bloqueia": true
+									},
+									{
+										"dx": 3,
+										"dy": 1,
+										"coluna": 54,
+										"linha": 31,
+										"camada": 1,
+										"acao": ".",
+										"bloqueia": true
+									}
+								]
+							}
+						]
+					}
+				]
+			}
+		},
+		{
+			"id": "bed",
+			"nome": "cama",
+			"folha": "casa",
+			"area": [
+				4,
+				24,
+				4,
+				6
+			],
+			"tipo": "cama",
+			"camada": 0,
+			"decorar": {
+				"formas": [
+					{
+						"variantes": [
+							{
+								"w": 4,
+								"h": 6,
+								"dx": 0,
+								"dy": 0,
+								"fundos": [
+									"lambri",
+									"tabua",
+									"viga",
+									"diagonal_claro"
+								],
+								"celulas": [
+									{
+										"dx": 0,
+										"dy": 0,
+										"coluna": 4,
+										"linha": 24,
+										"camada": 0,
+										"exatos": [
+											1697,
+											1698,
+											2084,
+											2086,
+											2215,
+											2340,
+											2341,
+											2342,
+											2343,
+											2471
+										],
+										"fundos": [
+											"tabua",
+											"diagonal_claro",
+											"viga",
+											"lambri"
+										],
+										"acao": "4",
+										"bloqueia": false
+									},
+									{
+										"dx": 1,
+										"dy": 0,
+										"coluna": 5,
+										"linha": 24,
+										"camada": 0,
+										"exatos": [
+											3875,
+											3878
+										],
+										"fundos": [
+											"tabua",
+											"diagonal_claro",
+											"viga",
+											"lambri"
+										],
+										"acao": "4",
+										"bloqueia": false
+									},
+									{
+										"dx": 2,
+										"dy": 0,
+										"coluna": 6,
+										"linha": 24,
+										"camada": 0,
+										"exatos": [
+											3875,
+											3878
+										],
+										"fundos": [
+											"tabua",
+											"diagonal_claro",
+											"viga",
+											"lambri"
+										],
+										"acao": "4",
+										"bloqueia": false
+									},
+									{
+										"dx": 3,
+										"dy": 0,
+										"coluna": 7,
+										"linha": 24,
+										"camada": 0,
+										"exatos": [
+											1697,
+											1698,
+											2084,
+											2086,
+											2215,
+											2340,
+											2342,
+											2471
+										],
+										"fundos": [
+											"tabua",
+											"diagonal_claro",
+											"viga",
+											"lambri"
+										],
+										"acao": "4",
+										"bloqueia": false
+									},
+									{
+										"dx": 0,
+										"dy": 1,
+										"coluna": 4,
+										"linha": 25,
+										"camada": 0,
+										"exatos": [
+											3874
+										],
+										"fundos": [
+											"tabua",
+											"diagonal_claro",
+											"viga",
+											"lambri"
+										],
+										"acao": "4",
+										"bloqueia": false
+									},
+									{
+										"dx": 1,
+										"dy": 1,
+										"coluna": 5,
+										"linha": 25,
+										"camada": 0,
+										"acao": "4",
+										"bloqueia": false
+									},
+									{
+										"dx": 2,
+										"dy": 1,
+										"coluna": 6,
+										"linha": 25,
+										"camada": 0,
+										"acao": "4",
+										"bloqueia": false
+									},
+									{
+										"dx": 3,
+										"dy": 1,
+										"coluna": 7,
+										"linha": 25,
+										"camada": 0,
+										"exatos": [
+											3878
+										],
+										"fundos": [
+											"tabua",
+											"diagonal_claro",
+											"viga",
+											"lambri"
+										],
+										"acao": "4",
+										"bloqueia": false
+									},
+									{
+										"dx": 0,
+										"dy": 2,
+										"coluna": 4,
+										"linha": 26,
+										"camada": 0,
+										"acao": "5",
+										"bloqueia": false
+									},
+									{
+										"dx": 1,
+										"dy": 2,
+										"coluna": 5,
+										"linha": 26,
+										"camada": 0,
+										"acao": "5",
+										"bloqueia": false
+									},
+									{
+										"dx": 2,
+										"dy": 2,
+										"coluna": 6,
+										"linha": 26,
+										"camada": 0,
+										"acao": "5",
+										"bloqueia": false
+									},
+									{
+										"dx": 3,
+										"dy": 2,
+										"coluna": 7,
+										"linha": 26,
+										"camada": 0,
+										"acao": "5",
+										"bloqueia": false
+									},
+									{
+										"dx": 0,
+										"dy": 3,
+										"coluna": 4,
+										"linha": 27,
+										"camada": 0,
+										"acao": "5",
+										"bloqueia": false
+									},
+									{
+										"dx": 1,
+										"dy": 3,
+										"coluna": 5,
+										"linha": 27,
+										"camada": 0,
+										"acao": "5",
+										"bloqueia": false
+									},
+									{
+										"dx": 2,
+										"dy": 3,
+										"coluna": 6,
+										"linha": 27,
+										"camada": 0,
+										"acao": "5",
+										"bloqueia": false
+									},
+									{
+										"dx": 3,
+										"dy": 3,
+										"coluna": 7,
+										"linha": 27,
+										"camada": 0,
+										"acao": "5",
+										"bloqueia": false
+									},
+									{
+										"dx": 0,
+										"dy": 4,
+										"coluna": 4,
+										"linha": 28,
+										"camada": 0,
+										"exatos": [
+											3874,
+											3876,
+											3878
+										],
+										"fundos": [
+											"tabua",
+											"diagonal_claro",
+											"viga",
+											"lambri"
+										],
+										"acao": "5",
+										"bloqueia": false
+									},
+									{
+										"dx": 1,
+										"dy": 4,
+										"coluna": 5,
+										"linha": 28,
+										"camada": 0,
+										"exatos": [
+											3875,
+											3877,
+											3879
+										],
+										"fundos": [
+											"tabua",
+											"diagonal_claro",
+											"viga",
+											"lambri"
+										],
+										"acao": "5",
+										"bloqueia": false
+									},
+									{
+										"dx": 2,
+										"dy": 4,
+										"coluna": 6,
+										"linha": 28,
+										"camada": 0,
+										"exatos": [
+											3875,
+											3877,
+											3879
+										],
+										"fundos": [
+											"tabua",
+											"diagonal_claro",
+											"viga",
+											"lambri"
+										],
+										"acao": "5",
+										"bloqueia": false
+									},
+									{
+										"dx": 3,
+										"dy": 4,
+										"coluna": 7,
+										"linha": 28,
+										"camada": 0,
+										"exatos": [
+											3875,
+											3877,
+											3879
+										],
+										"fundos": [
+											"tabua",
+											"diagonal_claro",
+											"viga",
+											"lambri"
+										],
+										"acao": "5",
+										"bloqueia": false
+									},
+									{
+										"dx": 0,
+										"dy": 5,
+										"coluna": 4,
+										"linha": 29,
+										"camada": 0,
+										"exatos": [
+											3367
+										],
+										"fundos": [
+											"tabua",
+											"diagonal_claro",
+											"viga",
+											"lambri"
+										],
+										"acao": "5",
+										"bloqueia": false
+									},
+									{
+										"dx": 1,
+										"dy": 5,
+										"coluna": 5,
+										"linha": 29,
+										"camada": 0,
+										"exatos": [
+											3367
+										],
+										"fundos": [
+											"tabua",
+											"diagonal_claro",
+											"viga",
+											"lambri"
+										],
+										"acao": "5",
+										"bloqueia": false
+									},
+									{
+										"dx": 2,
+										"dy": 5,
+										"coluna": 6,
+										"linha": 29,
+										"camada": 0,
+										"exatos": [
+											3362
+										],
+										"fundos": [
+											"tabua",
+											"diagonal_claro",
+											"viga",
+											"lambri"
+										],
+										"acao": "5",
+										"bloqueia": false
+									},
+									{
+										"dx": 3,
+										"dy": 5,
+										"coluna": 7,
+										"linha": 29,
+										"camada": 0,
+										"exatos": [
+											3362
+										],
+										"fundos": [
+											"tabua",
+											"diagonal_claro",
+											"viga",
+											"lambri"
+										],
+										"acao": "5",
+										"bloqueia": false
+									}
+								]
+							}
+						]
+					}
+				]
+			}
+		},
+		{
+			"id": "torch",
+			"nome": "tocha",
+			"folha": "casa",
+			"area": [
+				1,
+				0,
+				1,
+				1
+			],
+			"tipo": "parede",
+			"camada": 1,
+			"decorar": {
+				"formas": [
+					{
+						"variantes": [
+							{
+								"w": 1,
+								"h": 2,
+								"dx": 0,
+								"dy": 0,
+								"fundos": [],
+								"encaixe": {
+									"tipo": "quadro",
+									"linha": 3
+								},
+								"celulas": [
+									{
+										"dx": 0,
+										"dy": 0,
+										"coluna": 1,
+										"linha": 0,
+										"camada": 1,
+										"acao": ".",
+										"bloqueia": true
+									},
+									{
+										"dx": 0,
+										"dy": 1,
+										"coluna": 41,
+										"linha": 30,
+										"camada": 1,
+										"acao": ".",
+										"bloqueia": true
+									}
+								]
+							}
+						]
+					}
+				]
+			}
+		},
+		{
+			"id": "lamp",
+			"nome": "abajur",
+			"folha": "casa",
+			"area": [
+				64,
+				31,
+				1,
+				1
+			],
+			"tipo": "parede",
+			"camada": 1,
+			"decorar": {
+				"formas": [
+					{
+						"variantes": [
+							{
+								"w": 1,
+								"h": 1,
+								"dx": 0,
+								"dy": 0,
+								"fundos": [
+									"papel_amarelo"
+								],
+								"celulas": [
+									{
+										"dx": 0,
+										"dy": 0,
+										"coluna": 64,
+										"linha": 31,
+										"camada": 1,
+										"exatos": [
+											2870
+										],
+										"fundos": [
+											"papel_amarelo"
+										],
+										"acao": ".",
+										"bloqueia": true
+									}
+								]
+							}
+						]
+					}
+				]
+			}
+		},
+		{
+			"id": "casa@0,24",
+			"nome": "cama verde",
+			"folha": "casa",
+			"area": [
+				0,
+				24,
+				4,
+				6
+			],
+			"tipo": "cama",
+			"camada": 0,
+			"acoes": [
+				"4444",
+				"4444",
+				"5555",
+				"5555",
+				"5555",
+				"5555"
+			],
+			"bloqueia": false
+		},
+		{
+			"id": "casa@4,24",
+			"nome": "cama roxa",
+			"folha": "casa",
+			"area": [
+				4,
+				24,
+				4,
+				6
+			],
+			"tipo": "cama",
+			"camada": 0,
+			"acoes": [
+				"4444",
+				"4444",
+				"5555",
+				"5555",
+				"5555",
+				"5555"
+			],
+			"bloqueia": false
+		},
+		{
+			"id": "casa8",
+			"nome": "cadeira",
+			"folha": "casa",
+			"area": [
+				0,
+				20,
+				2,
+				2
+			],
+			"tipo": "movel",
+			"camada": 1,
+			"bloqueia": false,
+			"movel": {
+				"tipo": "chair",
+				"levanta": false,
+				"quebra": false,
+				"peso": 1
+			}
+		},
+		{
+			"id": "casa9",
+			"nome": "cadeira",
+			"folha": "casa",
+			"area": [
+				2,
+				20,
+				1,
+				2
+			],
+			"tipo": "movel",
+			"camada": 1,
+			"bloqueia": false,
+			"movel": {
+				"tipo": "chair",
+				"levanta": false,
+				"quebra": false,
+				"peso": 1
+			}
+		},
+		{
+			"id": "casa10a",
+			"nome": "cadeira",
+			"folha": "casa",
+			"area": [
+				0,
+				22,
+				2,
+				1
+			],
+			"tipo": "movel",
+			"camada": 1,
+			"bloqueia": false,
+			"movel": {
+				"tipo": "chair",
+				"levanta": false,
+				"quebra": false,
+				"peso": 1
+			}
+		},
+		{
+			"id": "casa10b",
+			"nome": "cadeira",
+			"folha": "casa",
+			"area": [
+				0,
+				23,
+				2,
+				1
+			],
+			"tipo": "movel",
+			"camada": 1,
+			"bloqueia": false,
+			"movel": {
+				"tipo": "chair",
+				"levanta": false,
+				"quebra": false,
+				"peso": 1
+			}
+		},
+		{
+			"id": "casa11",
+			"nome": "cadeira",
+			"folha": "casa",
+			"area": [
+				2,
+				22,
+				1,
+				2
+			],
+			"tipo": "movel",
+			"camada": 1,
+			"bloqueia": false,
+			"movel": {
+				"tipo": "chair",
+				"levanta": false,
+				"quebra": false,
+				"peso": 1
+			}
+		},
+		{
+			"id": "castelo14",
+			"nome": "cadeira",
+			"folha": "castelo",
+			"area": [
+				0,
+				20,
+				2,
+				3
+			],
+			"tipo": "movel",
+			"camada": 1,
+			"bloqueia": false,
+			"movel": {
+				"tipo": "chair",
+				"levanta": false,
+				"quebra": false,
+				"peso": 1
+			}
+		},
+		{
+			"id": "casa42",
+			"nome": "pote",
+			"folha": "casa",
+			"area": [
+				37,
+				20,
+				2,
+				2
+			],
+			"tipo": "movel",
+			"camada": 1,
+			"bloqueia": true,
+			"movel": {
+				"tipo": "pot",
+				"levanta": true,
+				"quebra": true,
+				"peso": 1,
+				"familia": "pot",
+				"variante": 0
+			}
+		},
+		{
+			"id": "casa43",
+			"nome": "pote",
+			"folha": "casa",
+			"area": [
+				37,
+				22,
+				2,
+				2
+			],
+			"tipo": "movel",
+			"camada": 1,
+			"bloqueia": true,
+			"movel": {
+				"tipo": "pot",
+				"levanta": true,
+				"quebra": true,
+				"peso": 1,
+				"familia": "pot",
+				"variante": 1
+			}
+		},
+		{
+			"id": "casa67",
+			"nome": "caixote",
+			"folha": "casa",
+			"area": [
+				54,
+				20,
+				2,
+				1
+			],
+			"tipo": "movel",
+			"camada": 1,
+			"bloqueia": true,
+			"movel": {
+				"tipo": "crate",
+				"levanta": true,
+				"quebra": false,
+				"peso": 1
+			}
+		},
+		{
+			"id": "casa46",
+			"nome": "baú",
+			"folha": "casa",
+			"area": [
+				45,
+				20,
+				2,
+				2
+			],
+			"tipo": "movel",
+			"camada": 1,
+			"bloqueia": true,
+			"movel": {
+				"tipo": "chest",
+				"levanta": false,
+				"quebra": false,
+				"peso": 2
+			}
+		},
+		{
+			"id": "casa47",
+			"nome": "baú",
+			"folha": "casa",
+			"area": [
+				45,
+				22,
+				2,
+				2
+			],
+			"tipo": "movel",
+			"camada": 1,
+			"bloqueia": true,
+			"movel": {
+				"tipo": "chest",
+				"levanta": false,
+				"quebra": false,
+				"peso": 2
+			}
+		},
+		{
+			"id": "casa64",
+			"nome": "baú",
+			"folha": "casa",
+			"area": [
+				47,
+				22,
+				2,
+				2
+			],
+			"tipo": "movel",
+			"camada": 1,
+			"bloqueia": true,
+			"movel": {
+				"tipo": "chest",
+				"levanta": false,
+				"quebra": false,
+				"peso": 2
+			}
+		},
+		{
+			"id": "castelo68",
+			"nome": "barril",
+			"folha": "castelo",
+			"area": [
+				61,
+				20,
+				2,
+				3
+			],
+			"tipo": "movel",
+			"camada": 1,
+			"bloqueia": true,
+			"movel": {
+				"tipo": "barrel",
+				"levanta": false,
+				"quebra": false,
+				"peso": 2
+			}
+		},
+		{
+			"id": "casa@45,20",
+			"nome": "baú 1 (fechado)",
+			"folha": "casa",
+			"area": [
+				45,
+				20,
+				2,
+				2
+			],
+			"tipo": "bau",
+			"camada": 1,
+			"bloqueia": true,
+			"fixo": {
+				"tipo": "bau",
+				"aberto": [
+					[
+						47,
+						22
+					],
+					[
+						48,
+						22
+					],
+					[
+						45,
+						24
+					],
+					[
+						46,
+						24
+					]
+				]
+			}
+		},
+		{
+			"id": "casa@45,22",
+			"nome": "baú 2 (fechado)",
+			"folha": "casa",
+			"area": [
+				45,
+				22,
+				2,
+				2
+			],
+			"tipo": "bau",
+			"camada": 1,
+			"bloqueia": true,
+			"fixo": {
+				"tipo": "bau",
+				"aberto": [
+					[
+						47,
+						22
+					],
+					[
+						48,
+						22
+					],
+					[
+						47,
+						23
+					],
+					[
+						48,
+						23
+					]
+				]
+			}
+		},
+		{
+			"id": "castelo@64,16",
+			"nome": "baú 3 (fechado)",
+			"folha": "castelo",
+			"area": [
+				64,
+				16,
+				2,
+				2
+			],
+			"tipo": "bau",
+			"camada": 1,
+			"bloqueia": true,
+			"fixo": {
+				"tipo": "bau",
+				"aberto": [
+					[
+						66,
+						18
+					],
+					[
+						67,
+						18
+					],
+					[
+						64,
+						20
+					],
+					[
+						65,
+						20
+					]
+				]
+			}
+		},
+		{
+			"id": "castelo@64,18",
+			"nome": "baú 4 (fechado)",
+			"folha": "castelo",
+			"area": [
+				64,
+				18,
+				2,
+				2
+			],
+			"tipo": "bau",
+			"camada": 1,
+			"bloqueia": true,
+			"fixo": {
+				"tipo": "bau",
+				"aberto": [
+					[
+						66,
+						18
+					],
+					[
+						67,
+						18
+					],
+					[
+						66,
+						19
+					],
+					[
+						67,
+						19
+					]
+				]
+			}
+		},
+		{
+			"id": "casa79",
+			"nome": "fogão",
+			"folha": "casa",
+			"area": [
+				61,
+				27,
+				3,
+				5
+			],
+			"tipo": "fogao",
+			"camada": 1,
+			"bloqueia": true,
+			"fixo": {
+				"tipo": "fogao",
+				"coluna_apagada": 63,
+				"coluna_acesa": 64,
+				"linhas": [
+					27,
+					28,
+					29,
+					30
+				]
+			}
+		},
+		{
+			"id": "casa@1,0",
+			"nome": "luz tocha",
+			"folha": "casa",
+			"area": [
+				1,
+				0,
+				1,
+				4
+			],
+			"tipo": "luz",
+			"camada": 1,
+			"luz": {
+				"tipo": "tocha",
+				"centro": [
+					8,
+					10
+				],
+				"chao": true
+			}
+		},
+		{
+			"id": "casa@64,31",
+			"nome": "luz abajur",
+			"folha": "casa",
+			"area": [
+				64,
+				31,
+				1,
+				1
+			],
+			"tipo": "luz",
+			"camada": 1,
+			"luz": {
+				"tipo": "abajur",
+				"centro": [
+					8,
+					10
+				],
+				"chao": true
+			}
+		},
+		{
+			"id": "castelo@8,0",
+			"nome": "luz tocha",
+			"folha": "castelo",
+			"area": [
+				8,
+				0,
+				2,
+				4
+			],
+			"tipo": "luz",
+			"camada": 1,
+			"luz": {
+				"tipo": "tocha",
+				"centro": [
+					16,
+					8
+				],
+				"coluna": 8,
+				"chao": true
+			}
+		},
+		{
+			"id": "castelo@10,0",
+			"nome": "luz lareira",
+			"folha": "castelo",
+			"area": [
+				10,
+				0,
+				2,
+				4
+			],
+			"tipo": "luz",
+			"camada": 1,
+			"luz": {
+				"tipo": "lareira",
+				"centro": [
+					16,
+					8
+				],
+				"coluna": 10
+			}
+		},
+		{
+			"id": "casa@58,31",
+			"nome": "luz lareira",
+			"folha": "casa",
+			"area": [
+				58,
+				31,
+				1,
+				1
+			],
+			"tipo": "luz",
+			"camada": 1,
+			"luz": {
+				"tipo": "lareira",
+				"centro": [
+					8,
+					8
+				]
+			}
+		},
+		{
+			"id": "casa@64,28",
+			"nome": "luz tocha",
+			"folha": "casa",
+			"area": [
+				64,
+				28,
+				1,
+				1
+			],
+			"tipo": "luz",
+			"camada": 1,
+			"luz": {
+				"tipo": "tocha",
+				"centro": [
+					8,
+					4
+				]
+			}
+		},
+		{
+			"id": "castelo@56,31",
+			"nome": "luz janela_noite",
+			"folha": "castelo",
+			"area": [
+				56,
+				31,
+				1,
+				1
+			],
+			"tipo": "luz",
+			"camada": 1,
+			"luz": {
+				"tipo": "janela_noite",
+				"centro": [
+					8,
+					16
+				],
+				"so_noite": true,
+				"pendurada": true
+			}
+		},
+		{
+			"id": "casa@40,25",
+			"nome": "janela 1",
+			"folha": "casa",
+			"area": [
+				40,
+				25,
+				3,
+				3
+			],
+			"tipo": "janela",
+			"camada": 1,
+			"bloqueia": true,
+			"noite": {
+				"coluna": 78,
+				"linha": 19
+			}
+		},
+		{
+			"id": "casa@62,24",
+			"nome": "janela 2",
+			"folha": "casa",
+			"area": [
+				62,
+				24,
+				3,
+				3
+			],
+			"tipo": "janela",
+			"camada": 1,
+			"bloqueia": true,
+			"noite": {
+				"coluna": 78,
+				"linha": 22
+			}
+		},
+		{
+			"id": "casa@43,25",
+			"nome": "janela 3",
+			"folha": "casa",
+			"area": [
+				43,
+				25,
+				4,
+				3
+			],
+			"tipo": "janela",
+			"camada": 1,
+			"bloqueia": true,
+			"noite": {
+				"coluna": 81,
+				"linha": 19
+			}
+		},
+		{
+			"id": "casa@44,28",
+			"nome": "janela 4",
+			"folha": "casa",
+			"area": [
+				44,
+				28,
+				4,
+				3
+			],
+			"tipo": "janela",
+			"camada": 1,
+			"bloqueia": true,
+			"noite": {
+				"coluna": 81,
+				"linha": 22
+			}
+		}
+	]
+}

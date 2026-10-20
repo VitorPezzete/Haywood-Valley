@@ -1,0 +1,11 @@
+{
+	"versao": 1,
+	"id": "exterior_ilha",
+	"nome": "exterior_ilha",
+	"folhas": ["casa"],
+	"blocos": [
+		[0, 0]
+	],
+	"data": "2026-10-20",
+	"origem": "importado de src/shared/interiors/exterior_ilha.ts por tools/diorama_importar.mjs"
+}
