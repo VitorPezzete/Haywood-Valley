@@ -52,6 +52,36 @@
 				"Health": {
 					"$path": "luau/StarterCharacterScripts/Health.server.luau"
 				}
+			},
+			"$properties": {
+				"LoadCharacterAppearance": false
+			},
+			"StarterCharacter": {
+				"$className": "Model",
+				"$properties": {
+					"Attributes": {
+						"Rojo_Target_PrimaryPart": { "String": "hv_root" }
+					}
+				},
+				"HumanoidRootPart": {
+					"$className": "Part",
+					"$properties": {
+						"Size": [2, 2, 1],
+						"Transparency": 1,
+						"CanCollide": true,
+						"Attributes": {
+							"Rojo_Id": { "String": "hv_root" }
+						}
+					}
+				},
+				"Humanoid": {
+					"$className": "Humanoid",
+					"$properties": {
+						"RigType": "R15",
+						"HipHeight": 2,
+						"DisplayDistanceType": "None"
+					}
+				}
 			}
 		},
 		"Players": {
@@ -69,7 +99,15 @@
 		"Workspace": {
 			"$className": "Workspace",
 			"$properties": {
-				"FilteringEnabled": true
+				"FilteringEnabled": true,
+				"StreamingEnabled": true,
+				"StreamingTargetRadius": 192
+			}
+		},
+		"TextChatService": {
+			"$className": "TextChatService",
+			"$properties": {
+				"ChatVersion": "TextChatService"
 			}
 		},
 		"HttpService": {
