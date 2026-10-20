@@ -2,14 +2,15 @@
 
 Jogo de fazenda em pixel art no Roblox, visto de cima em 3/4. Núcleo de Hay Day (produção em tempo real), com camadas de Stardew Valley (estações, moradores, mina, pesca, casa) e Moonstone Island (ilhas, alquimia). O usuário escreve em português.
 
-O jogo se chamava Haystack Valley até 2026-10-09. A pasta do repositório (`Documents\HaystackValley`), o place do Studio e a logo que está no ar ainda usam o nome antigo. As iniciais continuam HV, então `hv_paint.lua` e `hv_trees.lua` não mudam.
+O jogo se chamava Haystack Valley até 2026-10-09. O place do Studio e a logo que está no ar ainda usam o nome antigo. As iniciais continuam HV, então `hv_paint.lua` e `hv_trees.lua` não mudam.
 
 ## Onde está cada coisa
 
 - **Planos e decisões**: Notion, página "Haywood Valley" (https://app.notion.com/p/3f338d12f8c3815380b6d46b8e15043a), pelo MCP `notion`. Ler "Decisões" e "Visão do jogo" antes de propor arquitetura; elas valem sobre os planos antigos. Decisão nova do usuário vai para "Decisões" com a data.
 - **Tarefas e assets**: bancos "Tarefas" e "Assets" na mesma página. Atualizar o status ao terminar algo.
 - **Código**: este repositório.
-- **Arte**: `C:\Users\szort\Documents\Aseprite`, gerada por scripts Lua (`draw_*.lua`, motor `hv_paint.lua`), pelo MCP `aseprite`.
+- **Arte**: `C:\Users\Szortek\Documents\Aseprite`, gerada por scripts Lua (`draw_*.lua`, motor `hv_paint.lua`), pelo MCP `aseprite` (servidor em `Aseprite\aseprite-mcp`, ambiente criado com `uv sync`).
+- **Música**: Ableton Live 12 Suite, pelo MCP `ableton` (servidor em `Documents\MCP\ableton-mcp`, telemetria desligada no `.mcp.json`). O Live só atende se o Remote Script `AbletonMCP` estiver escolhido como Control Surface nas preferências.
 - **Studio**: place "Haystack Valley" (o nome antigo, até o usuário renomear no painel do Roblox), pelo MCP `Roblox_Studio`. O Studio só recebe código pelo Rojo; não editar scripts lá.
 
 ## Stack

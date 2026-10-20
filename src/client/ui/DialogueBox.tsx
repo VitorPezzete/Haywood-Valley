@@ -1,18 +1,19 @@
 import Vide, { cleanup, Show, source } from "@rbxts/vide";
 import { RunService } from "@rbxts/services";
-import { Slice, UiArt } from "./art";
-import { BODY, INK, LABEL, px, screenScale, sliced, WHITE } from "./kit";
+import { BODY, LABEL, px, screenScale } from "./kit";
+import { themeColor, themed } from "./theme";
 
 export interface DialogueLine {
-	/** Quem fala; aparece na etiqueta roxa. */
-	name: string;
-	text: string;
+	/** Quem fala; aparece na plaquinha. Numa função, para trocar de idioma na hora. */
+	name: () => string;
+	text: () => string;
 }
 
 // Medidas em pixels de arte.
 const BOX = new Vector2(420, 64);
 const MARGIN_BOTTOM = 14;
-const RIBBON = new Vector2(104, 16);
+/** A plaquinha do nome: altura e largura mínima; ela cresce com o nome. */
+const NAME_TAG = new Vector2(40, 13);
 
 interface Props {
 	line: () => DialogueLine | undefined;
@@ -22,18 +23,18 @@ interface Props {
 	waiting: () => boolean;
 }
 
-/** Caixa de diálogo: pergaminho embaixo da tela, fala letra a letra e etiqueta com o nome de quem fala. */
+/** Caixa de diálogo no kit do tema: embaixo da tela, fala letra a letra e a plaquinha com o nome de quem fala. */
 export function DialogueBox({ line, shown, waiting }: Props) {
 	const { k } = screenScale();
 	const clock = source(os.clock());
 	cleanup(RunService.RenderStepped.Connect(() => clock(os.clock())));
 
 	return (
-		<screengui Name="Dialogue" IgnoreGuiInset={true} ResetOnSpawn={false} DisplayOrder={50}>
+		<screengui Name="Dialogue" IgnoreGuiInset={true} ResetOnSpawn={false} DisplayOrder={50} AutoLocalize={false}>
 			<Show when={() => line() !== undefined}>
 				{() => (
 					<imagelabel
-						{...sliced(UiArt.parchment, Slice.parchment, k)}
+						{...themed("dialog", k)}
 						Name="Box"
 						AnchorPoint={new Vector2(0.5, 1)}
 						Position={() => new UDim2(0.5, 0, 1, -MARGIN_BOTTOM * k())}
@@ -42,12 +43,12 @@ export function DialogueBox({ line, shown, waiting }: Props) {
 						<textlabel
 							Name="Text"
 							BackgroundTransparency={1}
-							Position={() => UDim2.fromOffset(12 * k(), 9 * k())}
-							Size={() => new UDim2(1, -24 * k(), 1, -22 * k())}
+							Position={() => UDim2.fromOffset(12 * k(), 11 * k())}
+							Size={() => new UDim2(1, -24 * k(), 1, -24 * k())}
 							FontFace={BODY}
-							Text={() => line()?.text ?? ""}
+							Text={() => line()?.text() ?? ""}
 							MaxVisibleGraphemes={shown}
-							TextColor3={INK}
+							TextColor3={() => themeColor("text")}
 							TextSize={() => 9 * k()}
 							TextWrapped={true}
 							TextXAlignment="Left"
@@ -62,26 +63,31 @@ export function DialogueBox({ line, shown, waiting }: Props) {
 							AutomaticSize="XY"
 							FontFace={LABEL}
 							Text="▼"
-							TextColor3={INK}
+							TextColor3={() => themeColor("accent")}
 							TextSize={() => 5 * k()}
 							// Pisca quando a fala terminou e espera o jogador.
 							TextTransparency={() => (waiting() && clock() % 0.8 < 0.5 ? 0.2 : 1)}
 						/>
 						<imagelabel
-							{...sliced(UiArt.ribbon, Slice.ribbon, k)}
+							{...themed("nameTag", k)}
 							Name="Name"
-							AnchorPoint={new Vector2(1, 0.5)}
-							Position={() => new UDim2(1, 4 * k(), 1, -8 * k())}
-							Size={px(k, RIBBON.X, RIBBON.Y)}
+							AnchorPoint={new Vector2(0, 0.5)}
+							Position={() => UDim2.fromOffset(10 * k(), 0)}
+							Size={px(k, NAME_TAG.X, NAME_TAG.Y)}
+							AutomaticSize="X"
 							ZIndex={2}
 						>
+							<uipadding
+								PaddingLeft={() => new UDim(0, 10 * k())}
+								PaddingRight={() => new UDim(0, 6 * k())}
+							/>
 							<textlabel
 								BackgroundTransparency={1}
-								Position={() => UDim2.fromOffset(10 * k(), 0)}
-								Size={() => new UDim2(1, -12 * k(), 1, 0)}
+								Size={() => new UDim2(0, 0, 1, 0)}
+								AutomaticSize="X"
 								FontFace={LABEL}
-								Text={() => line()?.name ?? ""}
-								TextColor3={WHITE}
+								Text={() => line()?.name() ?? ""}
+								TextColor3={() => themeColor("textOnTitle")}
 								TextSize={() => 6 * k()}
 								ZIndex={3}
 							/>

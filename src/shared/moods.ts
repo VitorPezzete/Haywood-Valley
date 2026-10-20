@@ -18,19 +18,19 @@ function mood(id: string, bubble: boolean): Mood {
 
 export const Moods = {
 	/** Entrou no jogo, ou outro jogador chegou perto. */
-	greet: mood("smile", false),
+	greet: mood("sorriso", false),
 	/** Andou contra uma árvore ou pedra. */
-	bump: mood("bump", false),
+	bump: mood("ai", false),
 	/** Parado há um bom tempo: os olhos pesam. */
-	drowsy: mood("drowsy", false),
+	drowsy: mood("tedio", false),
 	/** Parado há muito tempo: dormiu. */
-	sleep: mood("sleep", true),
+	sleep: mood("dormindo", true),
 	/** Falou no chat. */
-	talk: mood("talk", false),
+	talk: mood("falando", false),
 	/** Andando há um tempo sem parar. */
-	stroll: mood("music", true),
+	stroll: mood("cantando", true),
 	/** Acabou de trocar uma peça na tela de personalizar. */
-	pleased: mood("smile", false),
+	pleased: mood("sorriso", false),
 };
 
 /** Segundos parado até os olhos pesarem e até dormir. Todo cliente conta isso para todo jogador. */
@@ -49,19 +49,21 @@ export function isReaction(value: unknown): value is number {
  * O que o jogador escreve no chat também mexe no rosto. `has` são trechos que podem estar em
  * qualquer lugar do texto (carinhas, risada comprida); `words` são palavras inteiras. Vale a
  * primeira linha que casar, então as mais específicas vêm antes.
+ *
+ * As palavras valem em qualquer idioma da interface: cada jogador escreve na língua dele, então
+ * cada linha junta português e inglês.
  */
 const CHAT: { reaction: string; has?: string[]; words?: string[] }[] = [
-	{ reaction: "cry", has: [":'(", "t_t", ";-;", ";_;"], words: ["buaa", "chorando"] },
-	{ reaction: "angry", has: [">:("], words: ["grr", "aff", "raiva"] },
-	{ reaction: "heart", has: ["<3"], words: ["s2", "amo", "amei"] },
-	{ reaction: "laugh", has: ["kkk", "haha", "hehe", "rsrs", ":d"], words: ["lol", "xd"] },
-	{ reaction: "wink", has: [";)", ";d"] },
-	{ reaction: "tongue", has: [":p"] },
-	{ reaction: "sad", has: [":(", ":/"], words: ["poxa", "triste"] },
-	{ reaction: "surprised", has: [":o", "!!"], words: ["nossa", "eita", "uau"] },
-	{ reaction: "sleep", has: ["zzz"], words: ["sono"] },
-	{ reaction: "question", has: ["??"], words: ["hein"] },
-	{ reaction: "smile", has: [":)", "(:", "=)", "^^"], words: ["oi", "olá", "ola", "opa"] },
+	{ reaction: "choro", has: [":'(", "t_t", ";-;", ";_;"], words: ["buaa", "chorando", "cry", "crying"] },
+	{ reaction: "bravo", has: [">:("], words: ["grr", "aff", "raiva", "ugh", "angry"] },
+	{ reaction: "apaixonado", has: ["<3"], words: ["s2", "amo", "amei", "love", "luv"] },
+	{ reaction: "risada", has: ["kkk", "haha", "hehe", "rsrs", ":d", "lmao", "rofl"], words: ["lol", "xd"] },
+	{ reaction: "piscadinha", has: [";)", ";d", ";-)"] },
+	{ reaction: "triste", has: [":(", ":/"], words: ["poxa", "triste", "sad"] },
+	{ reaction: "surpresa", has: [":o", "!!"], words: ["nossa", "eita", "uau", "wow", "whoa", "woah", "omg"] },
+	{ reaction: "dormindo", has: ["zzz"], words: ["sono", "sleepy"] },
+	{ reaction: "duvida", has: ["??"], words: ["hein", "huh"] },
+	{ reaction: "sorriso", has: [":)", "(:", "=)", "^^"], words: ["oi", "olá", "ola", "opa", "hi", "hello", "hey"] },
 ];
 
 const CHAT_MOODS = CHAT.map((entry) => ({

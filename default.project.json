@@ -30,12 +30,27 @@
 				"$path": "out/shared"
 			}
 		},
+		"ReplicatedFirst": {
+			"$className": "ReplicatedFirst",
+			"Abertura": {
+				"$path": "luau/ReplicatedFirst/Abertura.client.luau"
+			}
+		},
 		"StarterPlayer": {
 			"$className": "StarterPlayer",
 			"StarterPlayerScripts": {
 				"$className": "StarterPlayerScripts",
 				"TS": {
 					"$path": "out/client"
+				}
+			},
+			"StarterCharacterScripts": {
+				"$className": "StarterCharacterScripts",
+				"Animate": {
+					"$path": "luau/StarterCharacterScripts/Animate.client.luau"
+				},
+				"Health": {
+					"$path": "luau/StarterCharacterScripts/Health.server.luau"
 				}
 			}
 		},

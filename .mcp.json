@@ -12,13 +12,20 @@
       "url": "https://mcp.notion.com/mcp"
     },
     "aseprite": {
-      "command": "C:\\Users\\szort\\Documents\\Aseprite\\aseprite-mcp\\.venv\\Scripts\\python.exe",
+      "command": "C:\\Users\\Szortek\\Documents\\Aseprite\\aseprite-mcp\\.venv\\Scripts\\python.exe",
       "args": [
         "-m",
         "aseprite_mcp"
       ],
       "env": {
+        "PYTHONPATH": "C:\\Users\\Szortek\\Documents\\Aseprite\\aseprite-mcp",
         "ASEPRITE_PATH": "C:\\Program Files (x86)\\Steam\\steamapps\\common\\Aseprite\\Aseprite.exe"
+      }
+    },
+    "ableton": {
+      "command": "C:\\Users\\Szortek\\Documents\\MCP\\ableton-mcp\\.venv\\Scripts\\ableton-mcp.exe",
+      "env": {
+        "ABLETON_MCP_DISABLE_TELEMETRY": "true"
       }
     }
   }

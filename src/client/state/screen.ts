@@ -8,3 +8,6 @@ export const screen = atom<Screen>("loading");
 
 /** O visual montado na tela de personalizar. */
 export const look = atom<Look>(DEFAULT_LOOK);
+
+/** O nome escrito na tela de personalizar, ainda sem filtro; vazio quando o jogador não escreveu. */
+export const characterName = atom("");

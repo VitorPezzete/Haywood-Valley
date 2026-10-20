@@ -4,6 +4,7 @@ import { Players, RunService, TextChatService } from "@rbxts/services";
 import { WALK_SPEED } from "shared/character";
 import { chatMood, isReaction, Mood, Moods, REACTION_COOLDOWN } from "shared/moods";
 import { Events } from "client/network";
+import { perfBegin, perfEnd } from "client/perf";
 import { screen } from "client/state/screen";
 import { CharacterController } from "./CharacterController";
 import { MovementController } from "./MovementController";
@@ -21,6 +22,8 @@ const MEET_EVERY = 0.25;
 /** Andando sem parar por um tempo sorteado neste intervalo, em segundos, o boneco se anima. */
 const STROLL_MIN = 40;
 const STROLL_MAX = 80;
+/** De quanto em quanto tempo o rosto confere o esbarrão, o passeio e o encontro, em segundos. */
+const WATCH_EVERY = 0.1;
 
 /**
  * Faz o rosto do jogador reagir ao que acontece com ele, sem ele escolher nada: cumprimenta ao
@@ -39,6 +42,7 @@ export class MoodController implements OnStart {
 	private nextMeet = 0;
 	/** Quando cada jogador foi cumprimentado pela última vez. */
 	private met = new Map<Player, number>();
+	private nextWatch = 0;
 
 	constructor(
 		private characters: CharacterController,
@@ -61,7 +65,15 @@ export class MoodController implements OnStart {
 
 		TextChatService.SendingMessage.Connect((message) => this.feel(chatMood(message.Text)));
 		Players.PlayerRemoving.Connect((player) => this.met.delete(player));
-		RunService.Heartbeat.Connect(() => this.watch());
+		RunService.Heartbeat.Connect(() => {
+			// 10 vezes por segundo bastam: o esbarrão e o passeio contam segundos (seção 5.1 do `PLANO_OTIMIZACAO.md`).
+			const now = os.clock();
+			if (now < this.nextWatch) return;
+			this.nextWatch = now + WATCH_EVERY;
+			const started = perfBegin("Humor");
+			this.watch();
+			perfEnd("Humor", started);
+		});
 	}
 
 	/**

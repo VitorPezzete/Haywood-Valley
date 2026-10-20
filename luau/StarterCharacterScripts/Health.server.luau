@@ -1,0 +1,2 @@
+-- Health vazio (fase 1 do PLANO_OTIMIZACAO.md): o jogo não usa a vida do personagem, então o script de
+-- regenerar que o Roblox põe em todo personagem não roda.

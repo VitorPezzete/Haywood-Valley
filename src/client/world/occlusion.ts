@@ -1,9 +1,9 @@
 import { worldToArtPx } from "shared/view";
-import { CHARACTER_ANCHOR, CHARACTER_FRAME } from "./characterArt";
+import { FEET, FIGURE } from "./graalArt";
 import { Sprite } from "./sprites";
 
 /** Da sola dos pés até a borda de baixo do cartão do personagem. */
-const FEET_TO_BOTTOM = CHARACTER_FRAME.Y - CHARACTER_ANCHOR.Y;
+const FEET_TO_BOTTOM = FIGURE.Y - FEET.Y;
 
 /** Transparência de um objeto quando o jogador está atrás dele. */
 const FADED = 0.55;
@@ -11,9 +11,9 @@ const FADED = 0.55;
 const FADE_RATE = 10;
 
 // Corpo do personagem na tela, em pixels de arte a partir dos pés.
-const BODY_HALF_WIDTH = 5;
-const BODY_TOP = 20;
-const BODY_BOTTOM = 3;
+const BODY_HALF_WIDTH = 10;
+const BODY_TOP = 40;
+const BODY_BOTTOM = 2;
 
 // Árvore dentro do recorte: copa em cima, tronco estreito embaixo.
 const CANOPY_HEIGHT = 0.62;

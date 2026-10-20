@@ -1,44 +1,60 @@
-import Vide, { cleanup, Show, source, spring } from "@rbxts/vide";
+import Vide, { cleanup, derive, Show, source, spring } from "@rbxts/vide";
+import { subscribe } from "@rbxts/charm";
 import { RunService, UserInputService } from "@rbxts/services";
+import { TextKey } from "shared/i18n/en";
+import { decodeSavedLook } from "shared/playerData";
+import { playerData } from "client/state/playerData";
 import { Screen } from "client/state/screen";
-import { LOGO, TITLE, TITLE_CLOUDS, UiArt } from "./art";
+import { LOGO, TITLE, TITLE_SHADOW_SLOPE, TITLE_SHADOWS, TITLE_WATER, TITLE_WATER_FPS, WaterStrip } from "./art";
+import { CreditsPanel } from "./CreditsPanel";
 import { CustomizeScreen } from "./CustomizeScreen";
-import { art, BODY, Hints, INK, px, screenScale, SERIF, WHITE } from "./kit";
+import { t } from "./i18n";
+import { art, BODY, Hints, INK, px, screenScale, SERIF, ThemeButton, WHITE } from "./kit";
+import { SettingsPanel } from "./SettingsPanel";
+import { pieceSize, themed } from "./theme";
+import { ThemePieceName } from "./themes/types";
 
-const SKY_TOP = Color3.fromRGB(46, 150, 236);
-const SKY_BOTTOM = Color3.fromRGB(120, 200, 250);
+/** O fundo enquanto a cena não carrega: o verde da grama. */
+const GRASS = Color3.fromRGB(86, 150, 62);
+/** A cor das sombras de nuvem e o quanto elas deixam ver. */
+const SHADOW = Color3.fromRGB(12, 34, 30);
+const SHADOW_TRANSPARENCY = 0.8;
 
 /** Segundos que a tela leva para sumir depois de o jogo começar. */
 export const OPEN_SECONDS = 1;
-const VERSION = "Versão 0.1";
+/** Número da versão; o texto em volta vem da tradução. */
+const VERSION = "0.1";
 
 type Panel = "settings" | "credits";
 
 interface Entry {
-	label: string;
-	action: "new" | "quit" | Panel;
+	label: TextKey;
+	action: "play" | "edit" | "quit" | Panel;
+	icon: ThemePieceName;
 }
 
+/**
+ * As opções do menu. Cada jogador tem um personagem só (decisão do usuário em 2026-10-17): a primeira
+ * opção é Começar para quem é novo (abre a tela de personalizar) e Continuar para quem já tem
+ * personagem salvo (entra direto). Quem já tem personagem também vê Editar personagem, que abre a tela
+ * de personalizar a partir dele.
+ */
 const MENU: Entry[] = [
-	{ label: "Começar novo jogo", action: "new" },
-	{ label: "Configurações", action: "settings" },
-	{ label: "Créditos", action: "credits" },
-	{ label: "Sair", action: "quit" },
+	{ label: "menu.start", action: "play", icon: "iconNext" },
+	{ label: "menu.editCharacter", action: "edit", icon: "iconHead" },
+	{ label: "menu.settings", action: "settings", icon: "iconSettings" },
+	{ label: "menu.credits", action: "credits", icon: "iconCredits" },
+	{ label: "menu.quit", action: "quit", icon: "iconBack" },
 ];
 
-const PANELS: Record<Panel, { title: string; body: string }> = {
-	settings: {
-		title: "Configurações",
-		body: "Ainda não há o que ajustar.\nSom e controles chegam nas próximas versões.",
-	},
-	credits: {
-		title: "Créditos",
-		body: "Haywood Valley\n\nCriação e direção: VitorPezzete\n\nPersonagens: Cozy People Asset Pack, de shubibubi.\n\nFeito no Roblox com roblox-ts, Flamework, Vide e Charm.",
-	},
-};
+/** O painel do menu, no canto de baixo à direita, em pixels de arte. */
+const MENU_PANEL = { w: 136, inner: 10, button: 22, step: 26, right: 12, bottom: 30 };
 
 interface Props {
 	stage: () => Screen;
+	/** Entrar no jogo com o personagem salvo. */
+	onContinue: () => void;
+	/** Abrir a tela de personalizar. */
 	onNewGame: () => void;
 	onQuit: () => void;
 	/** Chamado ao sair da tela de personalizar: `true` para começar o jogo, `false` para voltar ao menu. */
@@ -46,16 +62,18 @@ interface Props {
 }
 
 /**
- * Tela de título: uma cena ilustrada com nuvens passando, a logo no alto e o menu no canto de
- * baixo. Mostra "Carregando" até as imagens chegarem, abre a personalização do personagem e some
- * quando o jogo começa.
+ * Tela de título: a vila com a fazenda vista na diagonal (pedido do usuário em 2026-10-17), com a
+ * câmera passeando devagar, a água do rio correndo e sombras de nuvem passando; a logo no alto e o
+ * menu num painel do tema no canto de baixo à direita. Mostra "Carregando" até as imagens chegarem,
+ * abre a personalização do personagem e some quando o jogo começa.
  */
-export function StartScreen({ stage, onNewGame, onQuit, onCustomized }: Props) {
+export function StartScreen({ stage, onContinue, onNewGame, onQuit, onCustomized }: Props) {
 	const { viewport, k } = screenScale();
 
-	// A cena cobre a tela inteira com ampliação inteira; o que sobra é cortado à direita e em cima.
-	const cover = () => math.max(1, math.ceil(math.max(viewport().X / TITLE.size.X, viewport().Y / TITLE.size.Y)));
+	// A vista de 480×270 cobre a tela inteira com ampliação inteira; o que sobra é cortado nas bordas.
+	const cover = () => math.max(1, math.ceil(math.max(viewport().X / TITLE.view.X, viewport().Y / TITLE.view.Y)));
 
+	const opened = os.clock();
 	const clock = source(os.clock());
 	cleanup(RunService.RenderStepped.Connect(() => clock(os.clock())));
 
@@ -65,108 +83,169 @@ export function StartScreen({ stage, onNewGame, onQuit, onCustomized }: Props) {
 	// O título some de uma vez ao começar o jogo: nessa hora o véu ainda cobre a tela.
 	const gone = () => (stage() === "playing" ? 1 : 0);
 
+	// O que está salvo do jogador: com personagem, o menu mostra Continuar e Editar personagem.
+	const saved = source(playerData());
+	cleanup(subscribe(playerData, (value) => saved(value)));
+	const savedLook = derive(() => decodeSavedLook(saved().character));
+	const entries = derive(() => MENU.filter((entry) => entry.action !== "edit" || savedLook() !== undefined));
+	/** O texto de uma opção: a primeira diz Continuar para quem já tem personagem. */
+	const labelOf = (item: Entry): TextKey =>
+		item.action === "play" && savedLook() !== undefined ? "menu.continue" : item.label;
+
 	const selected = source(0);
 	const panel = source<Panel | undefined>(undefined);
+	// Fecha no fim do quadro: a mesma tecla não chega ao menu e não reabre o painel.
+	const close = () => task.defer(() => panel(undefined));
 
 	const choose = (index: number) => {
-		const { action } = MENU[index];
-		if (action === "new") onNewGame();
+		const entry = entries()[index];
+		if (!entry) return;
+		const { action } = entry;
+		if (action === "play") {
+			if (savedLook() !== undefined) onContinue();
+			else onNewGame();
+		} else if (action === "edit") onNewGame();
 		else if (action === "quit") onQuit();
 		else panel(action);
 	};
 
 	cleanup(
 		UserInputService.InputBegan.Connect((input, processed) => {
-			if (processed || stage() !== "menu") return;
+			// Com um painel aberto, as teclas são dele.
+			if (processed || stage() !== "menu" || panel() !== undefined) return;
 			const key = input.KeyCode;
-			if (panel() !== undefined) {
-				if (key === Enum.KeyCode.Escape || key === Enum.KeyCode.Backspace || key === Enum.KeyCode.Space || key === Enum.KeyCode.Return) {
-					panel(undefined);
-				}
-			} else if (key === Enum.KeyCode.W || key === Enum.KeyCode.Up) {
-				selected((selected() - 1 + MENU.size()) % MENU.size());
+			const count = entries().size();
+			if (key === Enum.KeyCode.W || key === Enum.KeyCode.Up) {
+				selected((selected() - 1 + count) % count);
 			} else if (key === Enum.KeyCode.S || key === Enum.KeyCode.Down) {
-				selected((selected() + 1) % MENU.size());
+				selected((selected() + 1) % count);
 			} else if (key === Enum.KeyCode.Space || key === Enum.KeyCode.Return) {
 				choose(selected());
 			}
 		}),
 	);
 
-	const ROW = 21;
+	/**
+     * Onde a câmera está: o canto de cima à esquerda do que a tela mostra, em pixels da cena. Ela vai de
+     * `panFrom` a `panTo` e volta, mais devagar nas pontas; a tela pode mostrar menos que 480×270, e
+     * aí o recorte fica no meio da vista.
+     */
+	const camera = () => {
+		const phase = ((clock() - opened) / TITLE.panSeconds) % 2;
+		const along = (1 - math.cos(math.pi * (phase > 1 ? 2 - phase : phase))) / 2;
+		const view = TITLE.panFrom.Lerp(TITLE.panTo, along);
+		const shown = viewport().div(cover());
+		const corner = view.add(TITLE.view.sub(shown).div(2));
+		return new Vector2(
+			math.clamp(corner.X, 0, math.max(TITLE.size.X - shown.X, 0)),
+			math.clamp(corner.Y, 0, math.max(TITLE.size.Y - shown.Y, 0)),
+		);
+	};
 
-	const cloud = (spot: (typeof TITLE_CLOUDS)[number]) => {
+	/** Uma faixa do rio: os quadros da água trocam por cima da que está desenhada na cena. */
+	const water = (strip: WaterStrip) => (
+		<imagelabel
+			Name="Water"
+			BackgroundTransparency={1}
+			Position={() => UDim2.fromOffset(strip.at.X * cover(), strip.at.Y * cover())}
+			Size={() => UDim2.fromOffset(strip.size.X * cover(), strip.size.Y * cover())}
+			Image={strip.image}
+			ImageRectSize={strip.size}
+			ImageRectOffset={() => strip.frames[math.floor(clock() * TITLE_WATER_FPS) % strip.frames.size()]}
+			ResampleMode="Pixelated"
+			ImageTransparency={gone}
+			ZIndex={2}
+		/>
+	);
+
+	const shadow = (spot: (typeof TITLE_SHADOWS)[number]) => {
 		const width = spot.piece.size.X;
 		const lap = TITLE.size.X + width;
 		return (
 			<imagelabel
 				{...art(spot.piece)}
-				Name="Cloud"
-				ZIndex={2}
-				ImageTransparency={gone}
+				Name="CloudShadow"
+				ZIndex={3}
+				ImageColor3={SHADOW}
+				ImageTransparency={() => math.max(gone(), SHADOW_TRANSPARENCY)}
 				Size={() => UDim2.fromOffset(width * cover(), spot.piece.size.Y * cover())}
 				Position={() => {
-					// Atravessa a cena da esquerda para a direita e volta a entrar pelo outro lado.
+					// Atravessa a cena da esquerda para a direita, descendo um pouco, e volta a entrar pelo outro lado.
 					const x = ((spot.start + clock() * spot.speed) % lap) - width;
-					return UDim2.fromOffset(math.round(x * cover()), spot.y * cover());
+					const y = spot.y + (x + width) * TITLE_SHADOW_SLOPE;
+					return UDim2.fromOffset(math.round(x * cover()), math.round(y * cover()));
 				}}
 			/>
 		);
 	};
 
-	const entry = (item: Entry, index: number) => (
-		<textbutton
-			Name={item.label}
-			BackgroundTransparency={1}
-			LayoutOrder={index}
-			AutomaticSize="X"
-			Size={() => UDim2.fromOffset(0, ROW * k())}
-			FontFace={SERIF}
-			Text={item.label}
-			TextColor3={WHITE}
-			TextSize={() => 12 * k()}
-			TextXAlignment="Left"
-			TextTransparency={() => math.max(gone(), selected() === index ? 0 : 0.1)}
-			MouseEnter={() => selected(index)}
-			Activated={() => choose(index)}
-		>
-			<uistroke Color={INK} Thickness={k} Transparency={() => math.max(gone(), 0.45)} />
-		</textbutton>
-	);
+	/** Um botão do menu, na posição `index` da lista que aparece agora. */
+	const entry = (item: Entry) => {
+		const index = () => entries().indexOf(item);
+		return (
+			<frame BackgroundTransparency={1} Size={UDim2.fromScale(1, 1)} Visible={() => index() >= 0} ZIndex={6}>
+				<ThemeButton
+					k={k}
+					kind={() => (index() === 0 ? "primary" : "secondary")}
+					position={() =>
+						UDim2.fromOffset(
+							MENU_PANEL.inner * k(),
+							(MENU_PANEL.inner + math.max(index(), 0) * MENU_PANEL.step) * k(),
+						)
+					}
+					size={px(k, MENU_PANEL.w - MENU_PANEL.inner * 2, MENU_PANEL.button)}
+					icon={() => item.icon}
+					text={() => t(labelOf(item))}
+					font={SERIF}
+					textSize={9}
+					chosen={() => selected() === index()}
+					fade={gone}
+					zIndex={7}
+					onHover={(hovered) => {
+						// O Roblox avisa a entrada do mouse mesmo com o painel por cima: com um painel aberto, o menu
+						// guarda o item que o abriu.
+						if (hovered && panel() === undefined) selected(index());
+					}}
+					onPress={() => choose(index())}
+				/>
+			</frame>
+		);
+	};
+
+	const panelHeight = () =>
+		MENU_PANEL.inner * 2 + entries().size() * MENU_PANEL.step - (MENU_PANEL.step - MENU_PANEL.button);
 
 	const gui = (
-		<screengui Name="StartScreen" IgnoreGuiInset={true} ResetOnSpawn={false} DisplayOrder={100}>
-			<frame Name="Sky" Size={UDim2.fromScale(1, 1)} BorderSizePixel={0} BackgroundColor3={WHITE} BackgroundTransparency={gone}>
-				<uigradient Rotation={90} Color={new ColorSequence(SKY_TOP, SKY_BOTTOM)} />
-			</frame>
-
+		<screengui Name="StartScreen" IgnoreGuiInset={true} ResetOnSpawn={false} DisplayOrder={100} AutoLocalize={false}>
 			<frame
 				Name="Scene"
-				BackgroundTransparency={1}
+				Size={UDim2.fromScale(1, 1)}
+				BorderSizePixel={0}
+				BackgroundColor3={GRASS}
+				BackgroundTransparency={gone}
 				ClipsDescendants={true}
-				AnchorPoint={new Vector2(0, 1)}
-				Position={UDim2.fromScale(0, 1)}
-				Size={() => UDim2.fromOffset(TITLE.size.X * cover(), TITLE.size.Y * cover())}
 			>
-				<imagelabel
-					Name="Back"
+				<frame
+					Name="World"
 					BackgroundTransparency={1}
-					Size={UDim2.fromScale(1, 1)}
-					Image={TITLE.back}
-					ResampleMode="Pixelated"
-					ZIndex={1}
-					ImageTransparency={gone}
-				/>
-				{TITLE_CLOUDS.map(cloud)}
-				<imagelabel
-					Name="Front"
-					BackgroundTransparency={1}
-					Size={UDim2.fromScale(1, 1)}
-					Image={TITLE.front}
-					ResampleMode="Pixelated"
-					ZIndex={3}
-					ImageTransparency={gone}
-				/>
+					Position={() => {
+						const at = camera().mul(-cover());
+						return UDim2.fromOffset(math.round(at.X), math.round(at.Y));
+					}}
+					Size={() => UDim2.fromOffset(TITLE.size.X * cover(), TITLE.size.Y * cover())}
+				>
+					<imagelabel
+						Name="Village"
+						BackgroundTransparency={1}
+						Size={UDim2.fromScale(1, 1)}
+						Image={TITLE.image}
+						ResampleMode="Pixelated"
+						ZIndex={1}
+						ImageTransparency={gone}
+					/>
+					{TITLE_WATER.map(water)}
+					{TITLE_SHADOWS.map(shadow)}
+				</frame>
 			</frame>
 
 			<imagelabel
@@ -190,7 +269,7 @@ export function StartScreen({ stage, onNewGame, onQuit, onCustomized }: Props) {
 						Position={() => new UDim2(0, 26 * k(), 1, -30 * k())}
 						AutomaticSize="XY"
 						FontFace={SERIF}
-						Text="Carregando..."
+						Text={() => t("title.loading")}
 						TextColor3={WHITE}
 						TextSize={() => 12 * k()}
 						ZIndex={5}
@@ -202,30 +281,34 @@ export function StartScreen({ stage, onNewGame, onQuit, onCustomized }: Props) {
 
 			<Show when={() => stage() === "menu"}>
 				{() => (
-					<frame
+					<imagelabel
+						{...themed("panel", k)}
 						Name="Menu"
-						BackgroundTransparency={1}
-						AnchorPoint={new Vector2(0, 1)}
-						Position={() => new UDim2(0, 26 * k(), 1, -22 * k())}
-						AutomaticSize="XY"
+						AnchorPoint={new Vector2(1, 1)}
+						Position={() => new UDim2(1, -MENU_PANEL.right * k(), 1, -MENU_PANEL.bottom * k())}
+						Size={() => UDim2.fromOffset(MENU_PANEL.w * k(), panelHeight() * k())}
+						ImageTransparency={gone}
 						ZIndex={5}
 					>
-						<uilistlayout SortOrder="LayoutOrder" />
 						{MENU.map(entry)}
-						<frame Name="Cursor" BackgroundTransparency={1} LayoutOrder={-1} Size={UDim2.fromOffset(0, 0)}>
-							<imagelabel
-								{...art(UiArt.cursorHand)}
-								AnchorPoint={new Vector2(1, 0.5)}
-								ImageTransparency={gone}
-								Size={px(k, UiArt.cursorHand.size.X, UiArt.cursorHand.size.Y)}
-								Position={() => {
-									// A mãozinha balança de leve ao lado do item escolhido.
-									const sway = math.round(math.sin(clock() * 5) * 1.5) * k();
-									return UDim2.fromOffset(-3 * k() + sway, math.round((selected() + 0.5) * ROW) * k());
-								}}
-							/>
-						</frame>
-					</frame>
+						<imagelabel
+							{...themed("menuPointer", k)}
+							Name="Pointer"
+							AnchorPoint={new Vector2(1, 0.5)}
+							ImageTransparency={() => (panel() !== undefined ? 1 : gone())}
+							Size={() => {
+								const size = pieceSize("menuPointer");
+								return UDim2.fromOffset(size.X * k(), size.Y * k());
+							}}
+							Position={() => {
+								// A mãozinha balança de leve ao lado do botão escolhido.
+								const sway = math.round(math.sin(clock() * 5) * 1.5) * k();
+								const y = MENU_PANEL.inner + selected() * MENU_PANEL.step + MENU_PANEL.button / 2;
+								return UDim2.fromOffset(2 * k() + sway, y * k());
+							}}
+							ZIndex={9}
+						/>
+					</imagelabel>
 				)}
 			</Show>
 
@@ -236,20 +319,20 @@ export function StartScreen({ stage, onNewGame, onQuit, onCustomized }: Props) {
 				Position={() => new UDim2(0, 24 * k(), 1, -6 * k())}
 				AutomaticSize="XY"
 				FontFace={BODY}
-				Text={VERSION}
+				Text={() => t("title.version", { version: VERSION })}
 				TextColor3={WHITE}
 				TextSize={() => 6 * k()}
 				TextTransparency={() => math.max(gone(), 0.1)}
 				ZIndex={5}
 			/>
 
-			<Show when={() => stage() === "menu"}>
+			<Show when={() => stage() === "menu" && panel() === undefined}>
 				{() => (
 					<Hints
 						k={k}
 						hints={[
-							{ keys: ["W", "S"], label: "Navegar" },
-							{ keys: ["Espaço"], label: "Selecionar" },
+							{ keys: [Enum.KeyCode.W, Enum.KeyCode.S], label: "hint.navigate" },
+							{ keys: [Enum.KeyCode.Space], label: "hint.select" },
 						]}
 					/>
 				)}
@@ -266,71 +349,12 @@ export function StartScreen({ stage, onNewGame, onQuit, onCustomized }: Props) {
 
 			<Show when={() => stage() === "customize"}>{() => <CustomizeScreen k={k} onDone={onCustomized} />}</Show>
 
-			<Show when={() => panel() !== undefined && stage() === "menu"}>
-				{() => (
-					<textbutton
-						Name="Panel"
-						AutoButtonColor={false}
-						Text=""
-						Size={UDim2.fromScale(1, 1)}
-						BackgroundColor3={INK}
-						BackgroundTransparency={0.45}
-						ZIndex={30}
-						Activated={() => panel(undefined)}
-					>
-						<frame
-							AnchorPoint={new Vector2(0.5, 0.5)}
-							Position={UDim2.fromScale(0.5, 0.5)}
-							Size={px(k, 230, 130)}
-							BackgroundColor3={INK}
-							BackgroundTransparency={0.08}
-							ZIndex={31}
-						>
-							<uicorner CornerRadius={() => new UDim(0, 4 * k())} />
-							<uipadding
-								PaddingTop={() => new UDim(0, 12 * k())}
-								PaddingLeft={() => new UDim(0, 14 * k())}
-								PaddingRight={() => new UDim(0, 14 * k())}
-								PaddingBottom={() => new UDim(0, 10 * k())}
-							/>
-							<textlabel
-								BackgroundTransparency={1}
-								Size={() => new UDim2(1, 0, 0, 18 * k())}
-								FontFace={SERIF}
-								Text={() => PANELS[panel() ?? "credits"].title}
-								TextColor3={WHITE}
-								TextSize={() => 12 * k()}
-								TextXAlignment="Left"
-								ZIndex={32}
-							/>
-							<textlabel
-								BackgroundTransparency={1}
-								Position={() => UDim2.fromOffset(0, 24 * k())}
-								Size={() => new UDim2(1, 0, 1, -42 * k())}
-								FontFace={BODY}
-								Text={() => PANELS[panel() ?? "credits"].body}
-								TextColor3={WHITE}
-								TextSize={() => 8 * k()}
-								TextWrapped={true}
-								TextXAlignment="Left"
-								TextYAlignment="Top"
-								ZIndex={32}
-							/>
-							<textlabel
-								BackgroundTransparency={1}
-								AnchorPoint={new Vector2(1, 1)}
-								Position={UDim2.fromScale(1, 1)}
-								AutomaticSize="XY"
-								FontFace={BODY}
-								Text="Clique ou Espaço para voltar"
-								TextColor3={WHITE}
-								TextTransparency={0.3}
-								TextSize={() => 6 * k()}
-								ZIndex={32}
-							/>
-						</frame>
-					</textbutton>
-				)}
+			<Show when={() => stage() === "menu" && panel() === "settings"}>
+				{() => <SettingsPanel k={k} onClose={close} />}
+			</Show>
+
+			<Show when={() => stage() === "menu" && panel() === "credits"}>
+				{() => <CreditsPanel k={k} onClose={close} />}
 			</Show>
 		</screengui>
 	) as ScreenGui;

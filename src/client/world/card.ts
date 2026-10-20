@@ -1,4 +1,4 @@
-import { ART_PX_PER_STUD, LOOK, SCREEN_RIGHT, SCREEN_UP, groundOffset } from "shared/view";
+import { ART_PX_PER_STUD, LOOK, SCREEN_RIGHT, SCREEN_UP, groundOffset, toView } from "shared/view";
 import { SURFACE_MAX_DISTANCE } from "./ground";
 import { Sprite } from "./sprites";
 
@@ -12,13 +12,14 @@ export interface Card {
 /**
  * Onde fica um cartão de frente para a câmera cujo ponto `anchor` cai sobre `position` no chão.
  * A borda de baixo do sprite encosta no chão. Como todos os cartões são paralelos, o Roblox
- * desenha por último o que tem a base mais perto da câmera, que é a ordem certa.
+ * desenha por último o que tem a base mais perto da câmera, que é a ordem certa. Fica na profundidade
+ * comprimida do desenho (`toView`), como o chão.
  */
 export function cardCFrame(size: Vector2, anchor: Vector2, position: Vector3) {
 	const bottom = position.add(groundOffset(size.X / 2 - anchor.X, size.Y - anchor.Y));
 	const center = bottom.add(SCREEN_UP.mul(size.Y / 2 / ART_PX_PER_STUD));
 	// A face Front fica virada para a câmera.
-	return CFrame.fromMatrix(center, SCREEN_RIGHT.mul(-1), SCREEN_UP, LOOK);
+	return CFrame.fromMatrix(toView(center), SCREEN_RIGHT.mul(-1), SCREEN_UP, LOOK);
 }
 
 /** Um objeto em pé: um Part fino, de frente para a câmera, com o primeiro quadro do sprite num SurfaceGui. */

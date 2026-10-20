@@ -1,3 +1,5 @@
+import { ASSETS } from "shared/assets";
+
 export interface Sprite {
 	image: string;
 	size: Vector2;
@@ -7,9 +9,9 @@ export interface Sprite {
 	frames: Vector2[];
 }
 
-// Folha world_atlas.png, gerada por draw_world.lua (pasta Aseprite).
+// Folha world_atlas.png, gerada por draw_world.lua (pasta Aseprite); o id no registro (mundo.atlas).
 // As linhas de `Sprites` são a saída desse script: colar de novo sempre que a folha mudar.
-const ATLAS = "rbxassetid://77634984782890";
+const ATLAS = ASSETS["mundo.atlas"];
 
 function sprite(w: number, h: number, ax: number, ay: number, cells: [number, number][]): Sprite {
 	return {
@@ -46,5 +48,5 @@ export const enum Facing {
 	Back = 3,
 }
 
-/** Grama que se repete, desenhada já no espaço da tela (world_grass.png). */
-export const GRASS_TILE = { image: "rbxassetid://107539880862143", size: new Vector2(512, 256) };
+/** Grama que se repete, desenhada já no espaço da tela (world_grass.png; mundo.grama no registro). */
+export const GRASS_TILE = { image: ASSETS["mundo.grama"], size: new Vector2(512, 256) };
