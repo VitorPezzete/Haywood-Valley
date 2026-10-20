@@ -1,0 +1,15 @@
+{
+  "name": "diorama",
+  "displayName": "Diorama (Haywood Valley)",
+  "description": "Liga o Aseprite à ponte do Diorama: abre e salva regiões das folhas do jogo e responde aos comandos do Claude e do Studio.",
+  "version": "0.1.0",
+  "publisher": "haywood-valley",
+  "author": { "name": "Haywood Valley" },
+  "license": "UNLICENSED",
+  "categories": [ "Scripts" ],
+  "contributes": {
+    "scripts": [
+      { "path": "./diorama.lua" }
+    ]
+  }
+}
