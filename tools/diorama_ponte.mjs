@@ -50,7 +50,7 @@ export const PASTAS = {
 	docs: path.join(RAIZ, "docs", "diorama"),
 };
 /** As pastas de onde GET /imagens/<caminho>.rgba serve PNG (caminhos relativos à raiz). */
-const PASTAS_IMAGENS = ["assets", path.join("diorama", "folhas")];
+const PASTAS_IMAGENS = ["assets", path.join("diorama", "folhas"), path.join("diorama", "recortes")];
 /** De onde GET /graal/ids e o `gerados` do status leem. */
 const ARQUIVO_GRAAL = path.join(RAIZ, "src", "shared", "graalData.ts");
 const ARQUIVO_INTERIORS = path.join(RAIZ, "src", "shared", "interiors", "index.ts");
@@ -530,9 +530,9 @@ function lerFolha(nome) {
 }
 
 /**
- * Um PNG de `assets/` ou `diorama/folhas/` pelo caminho relativo à raiz sem o `.png` (`assets/ui/atlas`,
- * `diorama/folhas/casa`). Só essas duas pastas, sem `..`, sem nome reservado e sem link no caminho; o caminho é
- * conferido depois de resolvido.
+ * Um PNG de `assets/`, `diorama/folhas/` ou `diorama/recortes/` pelo caminho relativo à raiz sem o `.png`
+ * (`assets/ui/atlas`, `diorama/folhas/casa`, `diorama/recortes/casa/chair/base`). Só essas três pastas, sem
+ * `..`, sem nome reservado e sem link no caminho; o caminho é conferido depois de resolvido.
  */
 function lerImagem(caminho) {
 	const limpo = caminho.replaceAll("\\", "/").replace(/\.png$/i, "");
@@ -540,7 +540,7 @@ function lerImagem(caminho) {
 	for (const parte of limpo.split("/")) conferirNome(parte, "caminho de imagem");
 	const absoluto = path.resolve(RAIZ, `${limpo}.png`);
 	const base = PASTAS_IMAGENS.map((pasta) => path.resolve(RAIZ, pasta)).find((b) => absoluto.startsWith(b + path.sep));
-	if (!base) throw new ErroHttp(400, `a ponte só serve imagens de ${PASTAS_IMAGENS.join(" e ")}: ${caminho}`);
+	if (!base) throw new ErroHttp(400, `a ponte só serve imagens de ${PASTAS_IMAGENS.map((p) => p.replaceAll("\\", "/")).join(", ")}: ${caminho}`);
 	return decodificarPng(semLinks(base, absoluto), limpo);
 }
 

@@ -262,8 +262,9 @@ export function lerFolha(nome: string, x?: number, y?: number, w?: number, h?: n
 }
 
 /**
- * Recorte de qualquer PNG de `assets/` ou `diorama/folhas/`: `caminho` é o caminho relativo à raiz do repositório
- * sem o `.png` (`assets/ui/atlas`, `diorama/folhas/casa`). Sem retângulo, a imagem inteira.
+ * Recorte de qualquer PNG de `assets/`, `diorama/folhas/` ou `diorama/recortes/`: `caminho` é o caminho relativo à raiz
+ * do repositório, com ou sem o `.png` (`assets/ui/atlas`, `diorama/recortes/casa/chair/base`). Sem retângulo, a
+ * imagem inteira.
  */
 export function lerImagem(caminho: string, x?: number, y?: number, w?: number, h?: number): Resultado<Recorte> {
 	const semPng = caminho.gsub("\\", "/")[0].gsub("%.png$", "")[0];

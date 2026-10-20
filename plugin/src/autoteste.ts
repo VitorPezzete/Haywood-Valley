@@ -8,6 +8,7 @@
 import { canonico } from "./canonico";
 import { acoesDe } from "./simulacao";
 import { conferenciasEdicaoCatalogo, conferenciasEdicaoMapas, conferenciasEdicaoServidor } from "./autotesteEdicao";
+import { conferenciasRecorte } from "./autotesteRecorte";
 import { controleMapas, ResumoMapaAberto } from "./mapas/controle";
 import { ModeloBloco } from "./mapas/bloco";
 import { lerFundo, lerPeca, lerCatalogo as lerCatalogoFormato } from "./catalogo/formato";
@@ -238,6 +239,8 @@ function conferenciasCatalogo(gui: DockWidgetPluginGui, lista: Conferencia[], ed
 	conferir(lista, "problemas do catálogo", true, `${problemas.size()} problema(s) nos dados`);
 	const metade = gui.FindFirstChild("Metade0", true);
 	conferir(lista, "folha à vista", metade !== undefined && metade.IsA("ImageLabel"), metade ? "Metade0 desenhada" : "não achei a folha no painel");
+	// A seção Recorte (etapa G): só lê, então roda mesmo sem a edição.
+	conferenciasRecorte(lista, pecas.itens);
 	if (edicao) conferenciasEdicaoCatalogo(lista);
 }
 

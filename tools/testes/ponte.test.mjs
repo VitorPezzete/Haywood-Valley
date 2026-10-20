@@ -109,11 +109,13 @@ function proximaMensagem(ws, filtro = () => true) {
 before(async () => {
 	raiz = fs.mkdtempSync(path.join(os.tmpdir(), "ponte-teste-"));
 	fora = path.join(raiz, "_fora"); // "fora do repositório": o alvo dos links
-	for (const p of ["diorama/mapas", "diorama/catalogo", "diorama/folhas", "assets/ui", "docs/diorama", "_fora/blocos"]) {
+	for (const p of ["diorama/mapas", "diorama/catalogo", "diorama/folhas", "diorama/recortes/casa/peca", "assets/ui", "docs/diorama", "_fora/blocos"]) {
 		fs.mkdirSync(path.join(raiz, p), { recursive: true });
 	}
 	fs.copyFileSync(PNG_PEQUENO, path.join(raiz, "diorama", "folhas", "f.png"));
 	fs.copyFileSync(PNG_PEQUENO, path.join(raiz, "assets", "ui", "x.png"));
+	fs.copyFileSync(PNG_PEQUENO, path.join(raiz, "diorama", "recortes", "casa", "peca", "base.png"));
+	fs.copyFileSync(PNG_PEQUENO, path.join(raiz, "diorama", "catalogo", "y.png"));
 	fs.copyFileSync(PNG_PEQUENO, path.join(fora, "segredo.png"));
 	fs.writeFileSync(path.join(fora, "segredo.md"), "segredo");
 	fs.writeFileSync(path.join(fora, "blocos", "0_0.json"), JSON.stringify(blocoValido("fora")));
@@ -274,6 +276,10 @@ test("caminhos maliciosos nas rotas de arquivo", async () => {
 		["GET", "/imagens/src/x.rgba"],
 		["GET", "/imagens/assets/con.rgba"],
 		["GET", "/imagens/assets/lpt1/x.rgba"],
+		["GET", "/imagens/diorama/recortes/%2E%2E/catalogo/y.rgba"],
+		["GET", "/imagens/diorama/recortes/..%5Ccatalogo%5Cy.rgba"],
+		["GET", "/imagens/diorama/catalogo/y.rgba"],
+		["GET", "/imagens/diorama/recortes/casa/nul.rgba"],
 		["GET", "/docs/..%5C..%5C_fora%5Csegredo"],
 		["GET", "/docs/prn"],
 		["GET", "/docs/%E0%A4%A"],
@@ -327,6 +333,11 @@ test("imagens e folhas válidas", async () => {
 	assert.equal((await pedir("GET", "/folhas/f.rgba?y=99999&h=1")).status, 400);
 	assert.equal((await pedir("GET", "/folhas/f.rgba?x=1.5")).status, 400);
 	assert.equal((await pedir("GET", "/imagens/assets/ui/x.rgba?w=1&h=1")).status, 200);
+	// Os recortes da etapa G (diorama/recortes/<folha>/<id>/base.png e as máscaras) também.
+	const recorte = await pedir("GET", "/imagens/diorama/recortes/casa/peca/base.rgba?x=0&y=0&w=2&h=2");
+	assert.equal(recorte.status, 200);
+	assert.equal(recorte.bytes.length, 2 * 2 * 4);
+	assert.equal((await pedir("GET", "/imagens/diorama/recortes/casa/peca/parte_9.rgba")).status, 404);
 	assert.equal((await pedir("GET", "/docs/A")).texto, "# A\n");
 	// Um temporário largado na pasta (".f.salvando.png", do Aseprite) não aparece como folha.
 	fs.copyFileSync(PNG_PEQUENO, path.join(raiz, "diorama", "folhas", ".f.salvando.png"));

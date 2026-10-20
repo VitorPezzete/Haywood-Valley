@@ -9,6 +9,10 @@
 // Proteções (2026-10-20): "Recarregar" com mudança não salva pede um segundo clique; salvar confere antes se o
 // arquivo mudou no disco desde que foi lido (outro programa ou agente gravou) e pede um segundo clique para
 // sobrescrever; uma mudança feita enquanto a ponte gravava deixa o catálogo sujo.
+//
+// Recorte (etapa G, 2026-10-20): a seção "Recorte e cores" do formulário (../ui/recortePeca.tsx) mostra o recorte
+// que tools/recortes.py gravou no campo `recorte` da peça, as máscaras das partes e a prévia recolorida, e abre o
+// recorte no Aseprite. Só lê: nada da seção vai para pecas.json.
 import { HttpService } from "@rbxts/services";
 import Vide, { batch, cleanup, effect, For, mount, source, untrack } from "@rbxts/vide";
 import { abrirNoAseprite } from "../aseprite";
@@ -79,6 +83,7 @@ import {
 	Titulo,
 } from "../ui/kit";
 import { Recorte } from "../ui/recorte";
+import { ControleRecorte, RecortePecaVista } from "../ui/recortePeca";
 import { AlternarFolhasLocais, AvisoFolhaSalva } from "../ui/alternarFolhas";
 import { imagensFolhas } from "../estado";
 import type { OpcoesWidget } from "../widget";
@@ -277,9 +282,14 @@ export function PainelCatalogo() {
 			fNota(p.nota ?? "");
 			fTemDecorar(p.decorar !== undefined);
 			fFormas(p.decorar ? p.decorar.formas.map(formForma) : []);
+			// O `recorte` (etapa G) tem a seção própria; aqui só o nome dele, para o texto não ficar enorme.
 			const chaves = new Array<string>();
-			for (const [k] of pairs(p.extras)) chaves.push(k as string);
-			const [ok, texto] = pcall(() => HttpService.JSONEncode(p.extras));
+			const mostrar: Record<string, unknown> = {};
+			for (const [k, v] of pairs(p.extras)) {
+				chaves.push(k as string);
+				if (k !== "recorte") mostrar[k as string] = v;
+			}
+			const [ok, texto] = pcall(() => HttpService.JSONEncode(mostrar));
 			fExtras(chaves.size() > 0 ? `${chaves.join(", ")}: ${ok ? texto : "?"}` : "");
 		});
 		carregando = false;
@@ -909,6 +919,11 @@ export function PainelCatalogo() {
 		task.wait();
 		while (ocupado() && os.clock() < limite) task.wait();
 	};
+	let controleRecorte: ControleRecorte | undefined;
+	const recorteControle = () => {
+		if (!controleRecorte) error("a seção Recorte não montou", 0);
+		return controleRecorte;
+	};
 	const estadoDoCatalogo = () => ({
 		pecas: pecas().size(),
 		fundos: fundos().size(),
@@ -953,6 +968,13 @@ export function PainelCatalogo() {
 				esperarLivre();
 				return estadoDoCatalogo();
 			},
+			/** A seção Recorte da peça selecionada (`selecionar` antes): espera a carga e devolve o que montou. */
+			recorte: () => recorteControle().esperar(),
+			/** Escolhe a cor de uma parte: `{ n, cor: "#RRGGBB" }`; sem `cor`, volta ao original. */
+			recorte_cor: (args) => recorteControle().pintar(argNumero(args, "n"), typeIs(args.cor, "string") ? args.cor : undefined),
+			recorte_restaurar: () => recorteControle().restaurar(),
+			/** "Abrir recorte no Aseprite" (precisa do Aseprite conectado à ponte). */
+			recorte_aseprite: () => ({ mensagem: recorteControle().abrirNoAseprite() }),
 		}),
 	);
 
@@ -1167,17 +1189,25 @@ export function PainelCatalogo() {
 						</LinhaCampo>
 						<Rotulo texto={() => (fExtras() !== "" ? `Outros campos (preservados; editar no JSON): ${fExtras()}` : "")} tom="fraco" mono={true} ordem={7} />
 						<Separador ordem={8} />
+						<RecortePecaVista
+							peca={pecaSel}
+							pecas={pecas}
+							aoStatus={(m) => status(m)}
+							aoMontar={(c) => (controleRecorte = c)}
+							ordem={9}
+						/>
+						<Separador ordem={10} />
 
 						{/* Decorar: formas, variantes e células */}
-						<Fileira ordem={9}>
+						<Fileira ordem={11}>
 							<Rotulo texto="Decorar (inventário do jogo, 12.12 e 12.14)" negrito={true} ordem={0} />
 						</Fileira>
-						<Fileira ordem={10}>
+						<Fileira ordem={12}>
 							<Botao texto={() => (fTemDecorar() ? "☑ Entra no Decorar" : "☐ Entra no Decorar")} ativo={fTemDecorar} aoClicar={() => (fTemDecorar() ? fTemDecorar(false) : ligarDecorar())} ordem={0} />
 							<Botao texto="Adicionar forma" aoClicar={adicionarForma} desligado={() => !fTemDecorar()} ordem={1} />
 							<TextoCurto texto={() => (fTemDecorar() ? `${fFormas().size()} forma(s)` : "sem decorar: a peça não entra em decorCatalog.ts")} tom="fraco" ordem={2} />
 						</Fileira>
-						<frame Name="Formas" BackgroundTransparency={1} Size={new UDim2(1, 0, 0, 0)} AutomaticSize={Enum.AutomaticSize.Y} Visible={fTemDecorar} LayoutOrder={11}>
+						<frame Name="Formas" BackgroundTransparency={1} Size={new UDim2(1, 0, 0, 0)} AutomaticSize={Enum.AutomaticSize.Y} Visible={fTemDecorar} LayoutOrder={13}>
 							<uilistlayout FillDirection={Enum.FillDirection.Vertical} SortOrder={Enum.SortOrder.LayoutOrder} Padding={new UDim(0, ESPACO)} />
 							<For each={fFormas}>
 								{(f, fi) => (
@@ -1248,8 +1278,8 @@ export function PainelCatalogo() {
 								)}
 							</For>
 						</frame>
-						<Separador ordem={12} />
-						<Fileira ordem={13}>
+						<Separador ordem={14} />
+						<Fileira ordem={15}>
 							<Botao texto="Duplicar peça" aoClicar={duplicarPeca} ordem={0} />
 							<Botao texto="Apagar peça" aoClicar={apagarPeca} ordem={1} />
 							<Botao texto="Abrir no Aseprite" aoClicar={abrirPecaNoAseprite} ordem={2} />

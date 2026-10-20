@@ -183,12 +183,16 @@ GET /folhas/casa.rgba?x=0&y=32&w=16&h=16
 
 ### `GET /imagens/<caminho>.rgba?x=&y=&w=&h=`
 
-O mesmo recorte RGBA para qualquer PNG de `assets/` ou `diorama/folhas/`: `<caminho>` é o caminho relativo à raiz do repositório sem o `.png` (`assets/ui/atlas`, `assets/acoes/cacos_pote`, `diorama/folhas/casa`), com `/`. Serve para o envio pelo Studio (ferramenta Assets) cobrir o registro inteiro, não só as folhas do Aeko. `400` se o caminho sai dessas duas pastas (o caminho é conferido depois de resolvido: `..` não passa) ou se o recorte sai da imagem; `404` se o arquivo não existe. A imagem fica decodificada em memória e é relida quando o arquivo muda.
+O mesmo recorte RGBA para qualquer PNG de `assets/`, `diorama/folhas/` ou `diorama/recortes/`: `<caminho>` é o caminho relativo à raiz do repositório sem o `.png` (`assets/ui/atlas`, `assets/acoes/cacos_pote`, `diorama/folhas/casa`, `diorama/recortes/casa/chair/base`), com `/`. Serve para o envio pelo Studio (ferramenta Assets) cobrir o registro inteiro, não só as folhas do Aeko, e para o Catálogo montar o recorte, a base e as máscaras de cada peça (etapa G, `RECORTES.md`; `diorama/recortes/` entrou em 2026-10-20). `400` se o caminho sai dessas três pastas (o caminho é conferido depois de resolvido: `..` não passa) ou se o recorte sai da imagem; `404` se o arquivo não existe. A imagem fica decodificada em memória e é relida quando o arquivo muda.
 
 ```
 GET /imagens/assets/acoes/cacos_pote.rgba?x=0&y=0&w=8&h=4
 
 200  Content-Type: application/octet-stream  Content-Length: 128  X-Largura: 8  X-Altura: 4
+
+GET /imagens/diorama/recortes/casa/chair/parte_1.rgba
+
+200  Content-Type: application/octet-stream  Content-Length: 4624  X-Largura: 34  X-Altura: 34
 ```
 
 ## Geradores

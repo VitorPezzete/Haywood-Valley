@@ -20,3 +20,15 @@ export function abrirNoAseprite(folha: string, coluna: number, linha: number, la
 	if (r.valor.ok === false) return { ok: false, mensagem: `O Aseprite recusou abrir ${onde}: ${r.valor.erro ?? "?"}` };
 	return { ok: true, mensagem: `${onde} aberto no Aseprite (lá, "Salvar região na folha" grava de volta).` };
 }
+
+/**
+ * "Abrir recorte no Aseprite": abre um PNG do repositório pelo comando `abrir` da extensão (`{ arquivo }`, relativo à
+ * raiz do repositório que a extensão conhece). Para o recorte da etapa G (`diorama/recortes/<folha>/<id>.png`); o
+ * que se salvar lá fica no arquivo, e `python tools/recortes.py` refaz o recorte por cima. Yielda.
+ */
+export function abrirArquivoNoAseprite(arquivo: string): ResultadoAseprite {
+	const r = pedirJson<{ ok: boolean; erro?: string }>("POST", "/aseprite/comandos", { nome: "abrir", args: { arquivo } });
+	if (!r.ok) return { ok: false, mensagem: `Aseprite: ${r.erro}` };
+	if (r.valor.ok === false) return { ok: false, mensagem: `O Aseprite recusou abrir ${arquivo}: ${r.valor.erro ?? "?"}` };
+	return { ok: true, mensagem: `${arquivo} aberto no Aseprite.` };
+}
