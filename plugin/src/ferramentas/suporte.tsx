@@ -1,5 +1,6 @@
 // Suporte: os documentos de docs/diorama/*.md dentro do Studio. A lista vem de GET /docs; o texto, de GET /docs/<nome>.
-import Vide, { For, mount, source } from "@rbxts/vide";
+import Vide, { cleanup, For, mount, source } from "@rbxts/vide";
+import { argTexto, registrarAcoes } from "../simulacao";
 import { COMO_LIGAR, lerDoc, listarDocs } from "../ponte";
 import { AreaTexto, Botao, Coluna, ESPACO, Lista, Painel, Rotulo, Titulo } from "../ui/kit";
 import type { OpcoesWidget } from "../widget";
@@ -42,6 +43,19 @@ export function PainelSuporte() {
 	}
 
 	recarregar();
+
+	// Abrir um documento visto de fora (simulacao.ts): devolve o tamanho do texto mostrado.
+	cleanup(
+		registrarAcoes("suporte", {
+			abrir: (args) => {
+				abrirDoc(argTexto(args, "nome"));
+				const limite = os.clock() + 10;
+				task.wait();
+				while (carregando() && os.clock() < limite) task.wait();
+				return { nome: aberto(), caracteres: texto().size() };
+			},
+		}),
+	);
 
 	return (
 		<Painel>

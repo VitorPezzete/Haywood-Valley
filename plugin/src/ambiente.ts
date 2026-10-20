@@ -94,3 +94,8 @@ export function gravarConfig(chave: string, valor: unknown) {
 	const [ok, erro] = pcall(() => a.plugin.SetSetting(chaveValida(chave), valor));
 	if (!ok) warn(`[Diorama] não deu para guardar a configuração ${chave}: ${tostring(erro)}`);
 }
+
+/** Quantas coisas estão guardadas para desfazer no `parar` (o comando `inspecionar` mostra, para achar vazamento). */
+export function pendentesAoParar() {
+	return aoPararLista.size();
+}

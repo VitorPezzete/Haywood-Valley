@@ -7,7 +7,8 @@
 // TextoCurto, Etiqueta, Aviso, Separador), os controles (Botao, Interruptor, Alternar, Ciclo, Escolha, Marcas,
 // Abas), os campos (Campo, CampoMulti, CaixaTexto, AreaTexto, LinhaCampo). O que é só do editor de mapas (Quadro,
 // ListaSelecao, Amostra, Legenda) fica em extras.tsx.
-import Vide, { action, For, source } from "@rbxts/vide";
+import Vide, { action, For, source, untrack } from "@rbxts/vide";
+import { TextService } from "@rbxts/services";
 import { aoParar } from "../ambiente";
 
 type Derivable<T> = T | (() => T);
@@ -139,12 +140,14 @@ export function Rotulo(props: {
 	negrito?: boolean;
 	mono?: boolean;
 	ordem?: number;
+	/** Largura (padrão: a do pai inteira). */
+	largura?: UDim;
 }) {
 	return (
 		<textlabel
 			Name="Rotulo"
 			BackgroundTransparency={1}
-			Size={new UDim2(1, 0, 0, 0)}
+			Size={new UDim2(props.largura ?? new UDim(1, 0), new UDim(0, 0))}
 			AutomaticSize={Enum.AutomaticSize.Y}
 			FontFace={props.mono ? FONTE_MONO : props.negrito ? FONTE_NEGRITO : FONTE}
 			Text={props.texto}
@@ -238,13 +241,17 @@ export function Botao(props: {
 	);
 }
 
-/** Campo de texto de uma linha. Grava em `valor` quando o foco sai; Enter chama `aoConfirmar`. */
+/**
+ * Campo de texto de uma linha. Grava em `valor` quando o foco sai; Enter chama `aoConfirmar`. Com `aoVivo`, grava
+ * também a cada letra (para filtros que respondem enquanto se digita).
+ */
 export function Campo(props: {
 	valor: Vide.Source<string>;
 	dica?: string;
 	aoConfirmar?: (texto: string) => void;
 	largura?: Derivable<UDim>;
 	ordem?: number;
+	aoVivo?: boolean;
 }) {
 	return (
 		<textbox
@@ -270,6 +277,11 @@ export function Campo(props: {
 					props.valor(caixa.Text);
 					if (enter && props.aoConfirmar) props.aoConfirmar(caixa.Text);
 				});
+				if (props.aoVivo) {
+					caixa.GetPropertyChangedSignal("Text").Connect(() => {
+						if (caixa.IsFocused()) props.valor(caixa.Text);
+					});
+				}
 			})}
 		</textbox>
 	);
@@ -318,8 +330,23 @@ export function Abas(props: { abas: Array<{ id: string; titulo: string }>; abert
 	);
 }
 
-/** Texto comprido, rolável, em fonte de código; dá para selecionar e copiar, não para editar. */
+/**
+ * Texto comprido, rolável, em fonte de código; dá para selecionar e copiar, não para editar.
+ *
+ * A altura do texto é medida (TextService.GetTextSize) e posta à mão: com AutomaticSize Y dentro do ScrollingFrame,
+ * o Studio prende a caixa à altura visível e o resto do texto some sem barra de rolagem (conferido em 2026-10-20:
+ * o ESPECIFICACAO.md no Suporte mostrava só a primeira tela, 476 de 4379 px).
+ */
 export function AreaTexto(props: { texto: Derivable<string>; tamanho?: Derivable<UDim2>; posicao?: Derivable<UDim2>; ordem?: number }) {
+	const largura = source(0);
+	const altura = () => {
+		const w = largura();
+		if (w <= 0) return 0;
+		const texto = ler(props.texto);
+		if (texto === "") return 0;
+		const [ok, tamanho] = pcall(() => TextService.GetTextSize(texto, TEXTO, Enum.Font.Code, new Vector2(w, 1e7)));
+		return ok ? math.ceil((tamanho as Vector2).Y) + 4 : 0;
+	};
 	return (
 		<scrollingframe
 			Name="AreaTexto"
@@ -327,8 +354,7 @@ export function AreaTexto(props: { texto: Derivable<string>; tamanho?: Derivable
 			Position={props.posicao}
 			BackgroundColor3={cor(Enum.StudioStyleGuideColor.InputFieldBackground)}
 			BorderSizePixel={0}
-			CanvasSize={new UDim2(0, 0, 0, 0)}
-			AutomaticCanvasSize={Enum.AutomaticSize.Y}
+			CanvasSize={() => new UDim2(0, 0, 0, altura() + 12)}
 			ScrollingDirection={Enum.ScrollingDirection.Y}
 			ScrollBarThickness={8}
 			ScrollBarImageColor3={cor(Enum.StudioStyleGuideColor.ScrollBar)}
@@ -337,9 +363,8 @@ export function AreaTexto(props: { texto: Derivable<string>; tamanho?: Derivable
 			<uistroke Color={cor(Enum.StudioStyleGuideColor.InputFieldBorder)} Thickness={1} />
 			<textbox
 				Name="Texto"
-				Size={new UDim2(1, -12, 0, 0)}
+				Size={() => new UDim2(1, -12, 0, math.max(altura(), TEXTO + 4))}
 				Position={UDim2.fromOffset(6, 6)}
-				AutomaticSize={Enum.AutomaticSize.Y}
 				BackgroundTransparency={1}
 				FontFace={FONTE_MONO}
 				Text={props.texto}
@@ -351,7 +376,15 @@ export function AreaTexto(props: { texto: Derivable<string>; tamanho?: Derivable
 				MultiLine={true}
 				TextEditable={false}
 				ClearTextOnFocus={false}
-			/>
+			>
+				{action((caixa: TextBox) => {
+					// A largura vem da caixa (a da área menos a barra), e muda quando o widget muda de tamanho.
+					largura(caixa.AbsoluteSize.X);
+					caixa.GetPropertyChangedSignal("AbsoluteSize").Connect(() => {
+						if (caixa.AbsoluteSize.X !== largura()) largura(caixa.AbsoluteSize.X);
+					});
+				})}
+			</textbox>
 		</scrollingframe>
 	);
 }
@@ -626,25 +659,42 @@ export function CampoMulti(props: { valor: Vide.Source<string>; dica?: string; a
 
 /** Caixa de texto de várias linhas, rolável e editável, em fonte de código: para colar JSON ou listas. */
 export function CaixaTexto(props: { valor: Vide.Source<string>; dica?: string; tamanho?: Derivable<UDim2>; ordem?: number }) {
+	// A altura do texto é medida à mão, como em AreaTexto: com AutomaticSize Y dentro do ScrollingFrame, o Studio
+	// prende a caixa à altura visível e um texto colado comprido não rola.
+	const texto = source(untrack(props.valor));
+	const largura = source(0);
+	const visivel = source(0);
+	const altura = () => {
+		const w = largura();
+		const t = texto();
+		let h = 0;
+		if (w > 0 && t !== "") {
+			const [ok, tamanho] = pcall(() => TextService.GetTextSize(t, TEXTO, Enum.Font.Code, new Vector2(w, 1e7)));
+			if (ok) h = math.ceil((tamanho as Vector2).Y) + 4;
+		}
+		return math.max(h, visivel() - 12);
+	};
 	return (
 		<scrollingframe
 			Name="CaixaTexto"
 			Size={props.tamanho ?? new UDim2(1, 0, 0, 120)}
 			BackgroundColor3={cor(Enum.StudioStyleGuideColor.InputFieldBackground)}
 			BorderSizePixel={0}
-			CanvasSize={new UDim2(0, 0, 0, 0)}
-			AutomaticCanvasSize={Enum.AutomaticSize.Y}
+			CanvasSize={() => new UDim2(0, 0, 0, altura() + 12)}
 			ScrollingDirection={Enum.ScrollingDirection.Y}
 			ScrollBarThickness={8}
 			ScrollBarImageColor3={cor(Enum.StudioStyleGuideColor.ScrollBar)}
 			LayoutOrder={props.ordem}
 		>
+			{action((quadro: ScrollingFrame) => {
+				visivel(quadro.AbsoluteSize.Y);
+				quadro.GetPropertyChangedSignal("AbsoluteSize").Connect(() => visivel(quadro.AbsoluteSize.Y));
+			})}
 			<uistroke Color={cor(Enum.StudioStyleGuideColor.InputFieldBorder)} Thickness={1} />
 			<textbox
 				Name="Texto"
-				Size={new UDim2(1, -12, 1, -12)}
+				Size={() => new UDim2(1, -12, 0, altura())}
 				Position={UDim2.fromOffset(6, 6)}
-				AutomaticSize={Enum.AutomaticSize.Y}
 				BackgroundTransparency={1}
 				FontFace={FONTE_MONO}
 				Text={props.valor}
@@ -661,6 +711,11 @@ export function CaixaTexto(props: { valor: Vide.Source<string>; dica?: string; t
 			>
 				{action((caixa: TextBox) => {
 					caixa.FocusLost.Connect(() => props.valor(caixa.Text));
+					largura(caixa.AbsoluteSize.X);
+					caixa.GetPropertyChangedSignal("AbsoluteSize").Connect(() => {
+						if (caixa.AbsoluteSize.X !== largura()) largura(caixa.AbsoluteSize.X);
+					});
+					caixa.GetPropertyChangedSignal("Text").Connect(() => texto(caixa.Text));
 				})}
 			</textbox>
 		</scrollingframe>

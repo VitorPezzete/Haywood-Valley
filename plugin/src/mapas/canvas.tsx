@@ -6,11 +6,15 @@
 //
 // A interface é construída à mão (Instance.new e eventos), não pelo Vide: milhares de ImageLabel com propriedades
 // reativas seriam caros, e o canvas muda por lotes, não por célula.
+//
+// O vazio pintado no chão ([folha, 0, 2], um tile de uma cor só) não tem uma instância por célula: cada fileira
+// de vazios seguidos numa linha vira um ImageLabel só, esticando o miolo de 8 × 8 do tile (o mesmo truque do jogo
+// para os tiles de uma cor, FLAT_INSET). A casa de teste tinha 1860 células de vazio; viram umas 70 faixas.
 import Vide, { cleanup, effect, source } from "@rbxts/vide";
 import { UserInputService } from "@rbxts/services";
 import { cor } from "../ui/kit";
 import { CAMADA_TERRENO, CELULAS, corDoTerreno, desempacotar, LADO, ModeloBloco } from "./bloco";
-import { METADE, Tile, TILE_PX } from "./zonas";
+import { METADE, Tile, TILE_PX, VAZIO_COL, VAZIO_LINHA } from "./zonas";
 import { conteudo } from "../folhasLocais";
 
 /** Ids das metades de cada folha (`rbxassetid://...`), pela chave `aeko.<folha>.<metade>` do registro de assets. */
@@ -55,6 +59,8 @@ export interface PropsCanvas {
 	aoPressionar: (x: number, y: number, botao: 1 | 2, modificadores: Modificadores) => void;
 	aoArrastar: (x: number, y: number) => void;
 	aoSoltar: (x: number, y: number) => void;
+	/** Chamado a cada redesenho com o tempo gasto (ms) e se foi o canvas inteiro. */
+	aoRedesenhar?: (ms: number, tudo: boolean) => void;
 }
 
 const MUNDO_PX = LADO * TILE_PX;
@@ -165,6 +171,28 @@ export function aplicarTile(label: ImageLabel, tile: Tile, imagens: Imagens) {
 	label.ImageRectOffset = new Vector2((tile[1] % METADE) * TILE_PX, tile[2] * TILE_PX);
 }
 
+/** O tile é o vazio de uma folha ([folha, 0, 2]): uma cor só, desenhado em faixas. */
+function ehVazio(tile: Tile) {
+	return tile[1] === VAZIO_COL && tile[2] === VAZIO_LINHA;
+}
+
+/** Uma faixa de vazio: o miolo de 8 × 8 do tile (a 4 px da borda) esticado sobre `largura` células. */
+function aplicarFaixa(label: ImageLabel, tile: Tile, imagens: Imagens) {
+	const par = imagens[tile[0]];
+	const id = par ? par[tile[1] >= METADE ? 1 : 0] : undefined;
+	if (id === undefined || id === "") {
+		label.ImageContent = Content.none;
+		label.SetAttribute("SemImagem", true);
+		label.BackgroundTransparency = 0.4;
+	} else {
+		label.ImageContent = conteudo(id);
+		label.SetAttribute("SemImagem", undefined);
+		label.BackgroundTransparency = 1;
+	}
+	label.ImageRectOffset = new Vector2((tile[1] % METADE) * TILE_PX + 4, tile[2] * TILE_PX + 4);
+	label.ImageRectSize = new Vector2(8, 8);
+}
+
 function caixa(pai: Frame, x: number, y: number, largura: number, altura: number, tom: Color3, texto: string, ordem: number) {
 	const frame = new Instance("Frame");
 	frame.BackgroundColor3 = tom;
@@ -228,6 +256,50 @@ export function CanvasBloco(props: PropsCanvas) {
 	const poolsTiles = quadrosTiles.map((q) => new Pool(q, novoRotuloTile));
 	const transparencia = [0, 0, 0, 0];
 
+	// As faixas de vazio do chão, por linha do bloco (dentro do quadro do chão, numa pasta própria).
+	const quadroFaixas = new Instance("Frame");
+	quadroFaixas.Name = "Faixas";
+	quadroFaixas.BackgroundTransparency = 1;
+	quadroFaixas.BorderSizePixel = 0;
+	quadroFaixas.Size = UDim2.fromScale(1, 1);
+	quadroFaixas.Parent = quadrosTiles[0];
+	const faixas = new Map<number, ImageLabel[]>();
+	const faixasLivres = new Array<ImageLabel>();
+	const linhasSujas = new Set<number>();
+	const refazerFaixas = (modelo: ModeloBloco, y: number, imagens: Imagens) => {
+		const velhas = faixas.get(y) ?? [];
+		const novas = new Array<ImageLabel>();
+		const linha = modelo.camadas[0];
+		let x = 0;
+		while (x < LADO) {
+			const codigo = linha[y * LADO + x];
+			const tile = codigo !== 0 ? desempacotar(codigo) : undefined;
+			if (!tile || !ehVazio(tile)) {
+				x++;
+				continue;
+			}
+			let fim = x + 1;
+			while (fim < LADO && linha[y * LADO + fim] === codigo) fim++;
+			const label = velhas.pop() ?? faixasLivres.pop() ?? novoRotuloTile();
+			label.Name = `Faixa_${y}_${x}`;
+			label.Position = UDim2.fromOffset(x * TILE_PX, y * TILE_PX);
+			label.Size = UDim2.fromOffset((fim - x) * TILE_PX, TILE_PX);
+			label.SetAttribute("Celulas", fim - x);
+			aplicarFaixa(label, tile, imagens);
+			label.ImageTransparency = transparencia[0];
+			label.Visible = true;
+			label.Parent = quadroFaixas;
+			novas.push(label);
+			x = fim;
+		}
+		for (const sobra of velhas) {
+			sobra.Visible = false;
+			faixasLivres.push(sobra);
+		}
+		if (novas.size() > 0) faixas.set(y, novas);
+		else faixas.delete(y);
+	};
+
 	// A grade: 63 linhas verticais e 63 horizontais de 1 px (escalam com o zoom).
 	for (let i = 1; i < LADO; i++) {
 		for (const vertical of [true, false]) {
@@ -287,7 +359,8 @@ export function CanvasBloco(props: PropsCanvas) {
 		for (let camada = 0; camada < 3; camada++) {
 			const tile = desempacotar(modelo.camadas[camada as 0 | 1 | 2][indice]);
 			const pool = poolsTiles[camada];
-			if (!tile) pool.remover(indice);
+			if (camada === 0) linhasSujas.add(math.floor(indice / LADO));
+			if (!tile || (camada === 0 && ehVazio(tile))) pool.remover(indice);
 			else {
 				const t = transparencia[camada];
 				pool.definir(indice, (label) => {
@@ -315,6 +388,7 @@ export function CanvasBloco(props: PropsCanvas) {
 		const imagens = props.imagens();
 		const modelo = props.modelo();
 		const tudo = modelo.tudoSujo || imagens !== ultimasImagens || modelo !== ultimoModelo;
+		const inicio = os.clock();
 		ultimasImagens = imagens;
 		ultimoModelo = modelo;
 		if (tudo) {
@@ -325,7 +399,10 @@ export function CanvasBloco(props: PropsCanvas) {
 		} else {
 			for (const i of modelo.sujos) desenharCelula(modelo, i, imagens);
 		}
+		for (const y of linhasSujas) refazerFaixas(modelo, y, imagens);
+		linhasSujas.clear();
 		modelo.sujos.clear();
+		props.aoRedesenhar?.((os.clock() - inicio) * 1000, tudo);
 	});
 
 	effect(() => {
@@ -337,6 +414,7 @@ export function CanvasBloco(props: PropsCanvas) {
 				label.ImageTransparency = transparencia[camada];
 			});
 		});
+		for (const [, lista] of faixas) for (const label of lista) label.ImageTransparency = transparencia[0];
 		poolTerreno.paraCada((frame) => {
 			frame.BackgroundTransparency = transparencia[CAMADA_TERRENO];
 		});

@@ -144,12 +144,18 @@ function mensagemAmigavel(erro: string): string {
 
 /** Um pedido cru à ponte (o canal do Studio usa para o long-poll, que responde 204 quando não há comando). */
 export function pedir(metodo: "GET" | "PUT" | "POST" | "DELETE", rota: string, corpo?: string): Resultado<Resposta> {
+	// `X-Diorama: 1` em todo pedido que muda algo: a ponte pode recusar POST/PUT/DELETE sem ele (uma página aberta
+	// no navegador não consegue mandar cabeçalho próprio sem o preflight do CORS, que a ponte não aceita).
+	const cabecalhos: Record<string, string> = {};
+	if (corpo !== undefined) cabecalhos["Content-Type"] = "application/json";
+	if (metodo !== "GET") cabecalhos["X-Diorama"] = "1";
+	const temCabecalho = corpo !== undefined || metodo !== "GET";
 	const [ok, resposta] = pcall(() =>
 		HttpService.RequestAsync({
 			Url: BASE + rota,
 			Method: metodo,
 			Body: corpo,
-			Headers: corpo !== undefined ? { "Content-Type": "application/json" } : undefined,
+			Headers: temCabecalho ? cabecalhos : undefined,
 		}),
 	);
 	if (!ok) {

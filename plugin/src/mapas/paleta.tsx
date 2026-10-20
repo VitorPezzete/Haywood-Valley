@@ -1,8 +1,9 @@
 // A paleta de tiles: a folha inteira (128 × 32 tiles, as duas metades lado a lado) rolável e com zoom, onde se
 // escolhe um tile ou arrasta um retângulo de tiles (vira o carimbo). Mostra a coluna, a linha e a zona do tile sob
-// o mouse e da seleção.
-import Vide, { effect, source } from "@rbxts/vide";
-import { Botao, cor, Linha, Rotulo } from "../ui/kit";
+// o mouse e da seleção. O campo "ir para" aceita "coluna,linha" (ou "coluna,linha,largura,altura", ou com o nome da
+// folha na frente) e seleciona e rola até lá; "Aseprite" abre a seleção no Aseprite (pela ponte).
+import Vide, { action, effect, source } from "@rbxts/vide";
+import { Botao, Campo, cor, Linha, Rotulo } from "../ui/kit";
 import { Legenda } from "../ui/extras";
 import type { Imagens } from "./canvas";
 import { COLUNAS, DESCRICAO_ZONA, ehAnimado, FOLHAS_CONHECIDAS, LINHAS, METADE, TILE_PX, zonaDoTile } from "./zonas";
@@ -21,11 +22,37 @@ export interface PropsPaleta {
 	imagens: () => Imagens;
 	selecao: Vide.Source<SelecaoPaleta | undefined>;
 	ordem?: number;
+	/** Abre a seleção no Aseprite (o botão só aparece com esta função). */
+	aoAseprite?: (s: SelecaoPaleta) => void;
+	/** Mensagem de um campo mal escrito. */
+	aviso?: (texto: string) => void;
 }
 
 const FOLHA_PX_X = COLUNAS * TILE_PX;
 const FOLHA_PX_Y = LINHAS * TILE_PX;
-const ALTURA_CABECALHO = 60;
+const ALTURA_CABECALHO = 90;
+
+/**
+ * Lê o texto do campo "ir para": "34,25", "34 25", "casa 34,25", "34,25,3,3" (vírgulas, espaços ou x). Devolve a folha
+ * (se veio), coluna, linha, largura e altura, ou nada.
+ */
+export function lerIrPara(texto: string): [string | undefined, number, number, number, number] | undefined {
+	let resto = texto.lower().gsub("^%s+", "")[0];
+	let folha: string | undefined;
+	const [nome] = resto.match("^(%a[%w_]*)");
+	if (nome !== undefined) {
+		folha = tostring(nome);
+		resto = resto.sub(folha.size() + 1);
+	}
+	const numeros = new Array<number>();
+	for (const [n] of resto.gmatch("%d+")) numeros.push(tonumber(n)!);
+	if (numeros.size() !== 2 && numeros.size() !== 4) return undefined;
+	const [c, l] = [numeros[0], numeros[1]];
+	const w = numeros.size() === 4 ? numeros[2] : 1;
+	const h = numeros.size() === 4 ? numeros[3] : 1;
+	if (c >= COLUNAS || l >= LINHAS || w < 1 || h < 1 || c + w > COLUNAS || l + h > LINHAS) return undefined;
+	return [folha, c, l, w, h];
+}
 
 export function Paleta(props: PropsPaleta) {
 	const folha = source<string>(props.selecao()?.folha ?? FOLHAS_CONHECIDAS[0]);
@@ -147,6 +174,30 @@ export function Paleta(props: PropsPaleta) {
 	});
 	entrada.MouseLeave.Connect(() => sobMouse(undefined));
 
+	let rolagem: ScrollingFrame | undefined;
+	const irPara = source("");
+	const aplicarIrPara = (texto: string) => {
+		const r = lerIrPara(texto);
+		if (!r) {
+			props.aviso?.(`"${texto}": escreva coluna,linha (0–127, 0–31), ou coluna,linha,largura,altura.`);
+			return;
+		}
+		const [nome, c, l, w, h] = r;
+		if (nome !== undefined) {
+			if (!FOLHAS_CONHECIDAS.includes(nome)) {
+				props.aviso?.(`Folha desconhecida: ${nome} (há ${FOLHAS_CONHECIDAS.join(", ")}).`);
+				return;
+			}
+			folha(nome);
+		}
+		props.selecao({ folha: folha(), c0: c, l0: l, largura: w, altura: h });
+		// Rola até a seleção, com uma célula de folga.
+		if (rolagem) {
+			const z = zoom();
+			rolagem.CanvasPosition = new Vector2(math.max(0, (c - 1) * TILE_PX * z), math.max(0, (l - 1) * TILE_PX * z));
+		}
+	};
+
 	const descricao = (c: number, l: number) => {
 		const tile: [string, number, number] = [folha(), c, l];
 		const zona = zonaDoTile(tile);
@@ -175,7 +226,24 @@ export function Paleta(props: PropsPaleta) {
 					<Legenda texto={() => `${zoom()}×`} largura={26} ordem={12} />
 					<Botao texto="+" aoClicar={() => zoom(math.min(4, zoom() + 1))} ordem={13} />
 				</Linha>
-				<frame Size={new UDim2(1, 0, 0, 34)} Position={UDim2.fromOffset(0, 26)} BackgroundTransparency={1}>
+				<frame Size={new UDim2(1, 0, 0, 26)} Position={UDim2.fromOffset(0, 28)} BackgroundTransparency={1}>
+					<Linha espaco={4}>
+						<Campo valor={irPara} dica="ir para: 34,25 ou casa 40,25,3,3" aoConfirmar={aplicarIrPara} largura={new UDim(1, -(props.aoAseprite ? 160 : 50))} ordem={0} />
+						<Botao texto="Ir" aoClicar={() => aplicarIrPara(irPara())} ordem={1} />
+						{props.aoAseprite ? (
+							<Botao
+								texto="Abrir no Aseprite"
+								desligado={() => props.selecao() === undefined}
+								aoClicar={() => {
+									const sel = props.selecao();
+									if (sel && props.aoAseprite) props.aoAseprite(sel);
+								}}
+								ordem={2}
+							/>
+						) : undefined}
+					</Linha>
+				</frame>
+				<frame Size={new UDim2(1, 0, 0, 34)} Position={UDim2.fromOffset(0, 56)} BackgroundTransparency={1}>
 					<Rotulo texto={linhaMouse} tom="fraco" ordem={0} />
 					<Rotulo texto={linhaSelecao} ordem={1} />
 					<uilistlayout FillDirection={Enum.FillDirection.Vertical} SortOrder={Enum.SortOrder.LayoutOrder} Padding={new UDim(0, 0)} />
@@ -193,6 +261,9 @@ export function Paleta(props: PropsPaleta) {
 				ScrollBarImageColor3={cor(Enum.StudioStyleGuideColor.ScrollBar)}
 				ElasticBehavior={Enum.ElasticBehavior.Never}
 			>
+				{action((r: ScrollingFrame) => {
+					rolagem = r;
+				})}
 				{mundo}
 			</scrollingframe>
 		</frame>

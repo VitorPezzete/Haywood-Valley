@@ -11,6 +11,8 @@ export interface ResumoMapaAberto {
 	celulas: { chao: number; objeto: number; frente: number; terreno: number };
 	marcadores: { entradas: number; saidas: number; zonas: number; moradores: number; nascimento?: [number, number] };
 	sujo: boolean;
+	/** Quanto levou a última abertura: a leitura da ponte e a montagem (modelo + canvas), em ms. */
+	tempos?: { ponte_ms: number; montar_ms: number };
 }
 
 export interface ControleMapas {
@@ -37,7 +39,7 @@ export function controleMapas(): ControleMapas | undefined {
 }
 
 /** O resumo de um modelo (o que o editor tem aberto). */
-export function resumirModelo(modelo: ModeloBloco, sujo: boolean): ResumoMapaAberto {
+export function resumirModelo(modelo: ModeloBloco, sujo: boolean, tempos?: { ponte_ms: number; montar_ms: number }): ResumoMapaAberto {
 	const contar = (lista: ReadonlyArray<number | string>) => {
 		let n = 0;
 		for (const v of lista) if (v !== 0 && v !== "") n++;
@@ -62,5 +64,6 @@ export function resumirModelo(modelo: ModeloBloco, sujo: boolean): ResumoMapaAbe
 			nascimento: m.nascimento,
 		},
 		sujo,
+		tempos,
 	};
 }

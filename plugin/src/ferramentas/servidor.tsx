@@ -5,7 +5,7 @@
 // jogador e o "teleportar" (deixa InteriorTeste e InteriorTesteCelula prontos para o próximo teste).
 //
 // Lógica em plugin/src/servidor/: execucao.ts, atributos.ts, place.ts, output.ts, teleporte.ts.
-import Vide, { cleanup, For, mount, source } from "@rbxts/vide";
+import Vide, { cleanup, effect, For, mount, source, untrack } from "@rbxts/vide";
 import { mapas as mapasConhecidos, recarregarMapas } from "../estado";
 import {
 	ATRIBUTO_INTERIOR_CELULA,
@@ -20,10 +20,11 @@ import {
 	textoDoValor,
 } from "../servidor/atributos";
 import { descreverJogadores, descricaoModo, jogadores, Modo, modoAtual, parar, pausar, rodar } from "../servidor/execucao";
-import { filtrar, Filtro, ligarOutput, limparMensagens, mensagens, Nivel as NivelOutput, PREFIXOS, textoDasMensagens } from "../servidor/output";
+import { filtrar, Filtro, ligarOutput, limparMensagens, mensagens, Nivel as NivelOutput, PREFIXOS, textoDasMensagens, versaoOutput } from "../servidor/output";
 import { resumirPlace, Verificacao, verificarPlace } from "../servidor/place";
 import { aplicarPendente, descartarPendente, pendente, teleportar } from "../servidor/teleporte";
 import { copiarTexto } from "../ui/copiar";
+import { AcaoSimulada, argTexto, registrarAcoes } from "../simulacao";
 import { Abas, AreaTexto, Botao, Campo, Coluna, Lista, Painel, Rotulo, Separador, Titulo, Tom } from "../ui/kit";
 import { Aviso, Bloco, Etiqueta, Fileira, Interruptor, Preenche, TextoCurto } from "../ui/kit";
 import { OpcoesWidget, widgetVisivel } from "../widget";
@@ -306,7 +307,7 @@ function AbaPlace(props: { visivel: () => boolean }) {
 
 // ------------------------------------------------------------------ aba Output
 
-function AbaOutput(props: { visivel: () => boolean; mensagem: Vide.Source<string> }) {
+function AbaOutput(props: { visivel: () => boolean; mensagem: Vide.Source<string>; acoes?: Record<string, AcaoSimulada> }) {
 	ligarOutput();
 	const soDoJogo = source(true);
 	const prefixos = source<ReadonlySet<string>>(new Set<string>());
@@ -317,6 +318,42 @@ function AbaOutput(props: { visivel: () => boolean; mensagem: Vide.Source<string
 	const filtro = (): Filtro => ({ prefixos: prefixos(), soDoJogo: soDoJogo(), niveis: niveis(), contem: contem() });
 	const filtradas = () => filtrar(mensagens(), filtro());
 	const texto = () => textoDasMensagens(filtradas());
+
+	// O texto mostrado é refeito em lote (a cada 0,25 s, no máximo), e só com a aba e o widget à vista: antes era
+	// refeito a cada linha do Output, mesmo com o widget fechado, e um jogo que imprime muito travava o Studio.
+	const textoMostrado = source("");
+	const contagem = source("");
+	let revisaoFiltro = 0;
+	effect(() => {
+		filtro();
+		revisaoFiltro++;
+	});
+	let vivo = true;
+	cleanup(() => {
+		vivo = false;
+	});
+	task.spawn(() => {
+		let versaoMostrada = -1;
+		let filtroMostrado = -1;
+		while (vivo) {
+			const versao = untrack(versaoOutput);
+			if (props.visivel() && widgetVisivel("servidor") && (versao !== versaoMostrada || revisaoFiltro !== filtroMostrado)) {
+				versaoMostrada = versao;
+				filtroMostrado = revisaoFiltro;
+				const lista = untrack(filtradas);
+				textoMostrado(textoDasMensagens(lista));
+				contagem(`${lista.size()} de ${untrack(mensagens).size()} mensagem(ns)`);
+			}
+			task.wait(0.25);
+		}
+	});
+	if (props.acoes) {
+		props.acoes.output = (args) => {
+			if (typeIs(args.contem, "string")) contem(args.contem);
+			task.wait(0.6);
+			return { contagem: contagem(), linhas: textoMostrado() === "" ? 0 : textoMostrado().split("\n").size() };
+		};
+	}
 
 	const alternarPrefixo = (p: string) => {
 		const novo = new Set<string>([...prefixos()]);
@@ -359,10 +396,10 @@ function AbaOutput(props: { visivel: () => boolean; mensagem: Vide.Source<string
 				<Campo valor={contem} dica="contém..." largura={new UDim(0, 160)} ordem={0} />
 				<Botao texto="Limpar" aoClicar={limparMensagens} ordem={1} />
 				<Botao texto="Copiar" aoClicar={copiar} ordem={2} />
-				<TextoCurto texto={() => `${filtradas().size()} de ${mensagens().size()} mensagem(ns)`} tom="fraco" ordem={3} />
+				<TextoCurto texto={contagem} tom="fraco" ordem={3} />
 			</Fileira>
 			<Preenche ordem={3}>
-				<AreaTexto texto={() => (copia() !== "" ? copia() : texto())} tamanho={UDim2.fromScale(1, 1)} />
+				<AreaTexto texto={() => (copia() !== "" ? copia() : textoMostrado())} tamanho={UDim2.fromScale(1, 1)} />
 			</Preenche>
 		</Bloco>
 	);
@@ -372,6 +409,11 @@ function AbaOutput(props: { visivel: () => boolean; mensagem: Vide.Source<string
 
 export function PainelServidor(props: { plugin: Plugin }) {
 	const aba = source("execucao");
+	// As abas vistas de fora (simulacao.ts).
+	const acoes: Record<string, AcaoSimulada> = {
+		aba: (args) => aba(argTexto(args, "id")),
+	};
+	cleanup(registrarAcoes("servidor", acoes));
 	const modo = source<Modo>(modoAtual());
 	const mensagem = source("");
 
@@ -409,7 +451,7 @@ export function PainelServidor(props: { plugin: Plugin }) {
 					<AbaExecucao plugin={props.plugin} modo={modo} visivel={() => aba() === "execucao"} mensagem={mensagem} />
 					<AbaAtributos visivel={() => aba() === "atributos"} mensagem={mensagem} />
 					<AbaPlace visivel={() => aba() === "place"} />
-					<AbaOutput visivel={() => aba() === "output"} mensagem={mensagem} />
+					<AbaOutput visivel={() => aba() === "output"} mensagem={mensagem} acoes={acoes} />
 				</Preenche>
 			</Coluna>
 		</Painel>

@@ -5,8 +5,15 @@
 // (PUT /catalogo/<nome>) e o botão que roda o gerador --decorar (POST /gerar/decorar).
 // O formato dos JSON está em ../catalogo/formato.ts (o do gerador, GERADOR.md); a folha, em ../ui/folhaVista.tsx.
 // O que o plugin não edita (movel, fixo, luz, noite) aparece como texto e volta igual no arquivo.
+//
+// Proteções (2026-10-20): "Recarregar" com mudança não salva pede um segundo clique; salvar confere antes se o
+// arquivo mudou no disco desde que foi lido (outro programa ou agente gravou) e pede um segundo clique para
+// sobrescrever; uma mudança feita enquanto a ponte gravava deixa o catálogo sujo.
 import { HttpService } from "@rbxts/services";
-import Vide, { batch, effect, For, mount, source, untrack } from "@rbxts/vide";
+import Vide, { batch, cleanup, effect, For, mount, source, untrack } from "@rbxts/vide";
+import { abrirNoAseprite } from "../aseprite";
+import { canonico } from "../canonico";
+import { argNumero, argTexto, registrarAcoes } from "../simulacao";
 import { carregarMetades, Metades } from "../catalogo/folhas";
 import {
 	ACOES,
@@ -72,7 +79,7 @@ import {
 	Titulo,
 } from "../ui/kit";
 import { Recorte } from "../ui/recorte";
-import { AlternarFolhasLocais } from "../ui/alternarFolhas";
+import { AlternarFolhasLocais, AvisoFolhaSalva } from "../ui/alternarFolhas";
 import { imagensFolhas } from "../estado";
 import type { OpcoesWidget } from "../widget";
 
@@ -216,6 +223,18 @@ export function PainelCatalogo() {
 	const ocupado = source(false);
 
 	const bump = () => revisao(untrack(revisao) + 1);
+	// O que estava no disco quando cada arquivo foi lido (JSON canônico; nada = não existia), e o arquivo cujo
+	// salvamento foi recusado por conflito (o próximo Salvar dele sobrescreve). `mudancas` sobe a cada edição.
+	let basePecas: string | undefined;
+	let baseFundos: string | undefined;
+	let sobrescrever: string | undefined;
+	let confirmarRecarga = false;
+	let mudancas = 0;
+	// Toda edição chama bump(): a revisão conta as mudanças (o salvamento compara antes e depois da ponte).
+	effect(() => {
+		revisao();
+		mudancas++;
+	});
 
 	// Formulário da peça
 	let carregando = false;
@@ -415,6 +434,13 @@ export function PainelCatalogo() {
 
 	function carregar() {
 		if (ocupado()) return;
+		if ((sujoPecas() || sujoFundos()) && !confirmarRecarga) {
+			confirmarRecarga = true;
+			status("Há mudanças não salvas no catálogo. Clique em Recarregar de novo para descartá-las e reler do disco.");
+			return;
+		}
+		confirmarRecarga = false;
+		sobrescrever = undefined;
 		ocupado(true);
 		status("Carregando o catálogo pela ponte...");
 		task.spawn(() => {
@@ -431,6 +457,7 @@ export function PainelCatalogo() {
 			}
 
 			const rp = lerCatalogoPonte<unknown>("pecas");
+			basePecas = rp.ok ? canonico(rp.valor) : rp.status === 404 ? undefined : "?";
 			if (rp.ok) {
 				const lido = lerCatalogo(rp.valor, "pecas", lerPeca);
 				pecas(lido.itens);
@@ -445,6 +472,7 @@ export function PainelCatalogo() {
 			}
 
 			const rf = lerCatalogoPonte<unknown>("fundos");
+			baseFundos = rf.ok ? canonico(rf.valor) : rf.status === 404 ? undefined : "?";
 			if (rf.ok) {
 				const lido = lerCatalogo(rf.valor, "fundos", lerFundo);
 				fundos(lido.itens);
@@ -471,37 +499,61 @@ export function PainelCatalogo() {
 		});
 	}
 
-	function salvarPecas() {
+	/**
+	 * Grava pecas.json ou fundos.json. Antes confere se o arquivo mudou no disco desde a leitura (outro programa ou
+	 * agente gravou): se mudou, recusa e o próximo clique sobrescreve. Yielda (num task.spawn).
+	 */
+	function salvarArquivo(nome: "pecas" | "fundos") {
 		if (ocupado()) return;
 		ocupado(true);
-		status("Salvando pecas.json...");
+		confirmarRecarga = false;
+		const arquivo = `${nome}.json`;
+		const conteudo =
+			nome === "pecas"
+				? catalogoParaJson("pecas", pecas().map(pecaParaJson), extrasPecas, ordemPecas)
+				: catalogoParaJson("fundos", fundos().map(fundoParaJson), extrasFundos, ordemFundos);
+		const versao = mudancas;
+		const forcar = sobrescrever === nome;
+		status(`Salvando ${arquivo}...`);
 		task.spawn(() => {
-			const r = gravarCatalogo("pecas", catalogoParaJson("pecas", pecas().map(pecaParaJson), extrasPecas, ordemPecas));
+			if (!forcar) {
+				const disco = lerCatalogoPonte<unknown>(nome);
+				if (!disco.ok && disco.status !== 404) {
+					status(`Não salvou ${arquivo}: não deu para conferir o disco (${disco.erro}).`);
+					ocupado(false);
+					return;
+				}
+				const atual = disco.ok ? canonico(disco.valor) : undefined;
+				if (atual !== (nome === "pecas" ? basePecas : baseFundos)) {
+					sobrescrever = nome;
+					status(
+						`${arquivo} mudou no disco desde que foi lido (outro programa gravou). Clique em Salvar de novo para sobrescrever, ou em Recarregar (perde as mudanças daqui).`,
+					);
+					ocupado(false);
+					return;
+				}
+			}
+			const r = gravarCatalogo(nome, conteudo);
 			if (r.ok) {
-				sujoPecas(false);
-				status(`Peças salvas em ${r.valor.arquivo}. Rode "Gerar decorCatalog" para o jogo receber.`);
+				sobrescrever = undefined;
+				const relido = lerCatalogoPonte<unknown>(nome);
+				const base = relido.ok ? canonico(relido.valor) : undefined;
+				if (nome === "pecas") basePecas = base;
+				else baseFundos = base;
+				const mudou = mudancas !== versao;
+				if (!mudou) (nome === "pecas" ? sujoPecas : sujoFundos)(false);
+				const depois = nome === "pecas" ? ' Rode "Gerar decorCatalog" para o jogo receber.' : "";
+				status(
+					`${nome === "pecas" ? "Peças salvas" : "Fundos salvos"} em ${r.valor.arquivo}.${mudou ? " Houve mudanças enquanto salvava: salve de novo." : ""}${depois}`,
+				);
 			} else {
-				status(`Não salvou as peças: ${r.erro}`);
+				status(`Não salvou ${arquivo}: ${r.erro}`);
 			}
 			ocupado(false);
 		});
 	}
-
-	function salvarFundos() {
-		if (ocupado()) return;
-		ocupado(true);
-		status("Salvando fundos.json...");
-		task.spawn(() => {
-			const r = gravarCatalogo("fundos", catalogoParaJson("fundos", fundos().map(fundoParaJson), extrasFundos, ordemFundos));
-			if (r.ok) {
-				sujoFundos(false);
-				status(`Fundos salvos em ${r.valor.arquivo}.`);
-			} else {
-				status(`Não salvou os fundos: ${r.erro}`);
-			}
-			ocupado(false);
-		});
-	}
+	const salvarPecas = () => salvarArquivo("pecas");
+	const salvarFundos = () => salvarArquivo("fundos");
 
 	function gerar() {
 		if (ocupado()) return;
@@ -839,6 +891,71 @@ export function PainelCatalogo() {
 
 	carregar();
 
+	/** Abre a área da peça selecionada no Aseprite (pela ponte); "Salvar região na folha" lá grava de volta. */
+	function abrirPecaNoAseprite() {
+		const area = areaDoFormulario();
+		const p = pecaSel();
+		if (!area || !p) return status("Escolha uma peça para abrir no Aseprite.");
+		status(`Abrindo ${p.id} no Aseprite...`);
+		task.spawn(() => {
+			const r = abrirNoAseprite(fFolha(), area.c, area.l, area.w, area.h);
+			status(r.mensagem);
+		});
+	}
+
+	// As ações dos botões vistas de fora (simulacao.ts: o comando `simular` e o autoteste).
+	const esperarLivre = () => {
+		const limite = os.clock() + 15;
+		task.wait();
+		while (ocupado() && os.clock() < limite) task.wait();
+	};
+	const estadoDoCatalogo = () => ({
+		pecas: pecas().size(),
+		fundos: fundos().size(),
+		sujo_pecas: sujoPecas(),
+		sujo_fundos: sujoFundos(),
+		selecionada: pecaSel()?.id,
+		status: status(),
+		ocupado: ocupado(),
+	});
+	cleanup(
+		registrarAcoes("catalogo", {
+			estado: () => estadoDoCatalogo(),
+			/** Como arrastar na folha: uma peça nova com a área. */
+			criar_peca: (args) => {
+				if (typeIs(args.folha, "string")) folha(args.folha);
+				criarPeca({ c: argNumero(args, "c"), l: argNumero(args, "l"), w: argNumero(args, "w"), h: argNumero(args, "h") });
+				return estadoDoCatalogo();
+			},
+			selecionar: (args) => {
+				const id = argTexto(args, "id");
+				const p = pecas().find((x) => x.id === id);
+				if (!p) error(`peça desconhecida: ${id}`, 0);
+				selecionarPeca(p);
+				return estadoDoCatalogo();
+			},
+			apagar_peca: () => {
+				apagarPeca();
+				return estadoDoCatalogo();
+			},
+			recarregar: () => {
+				carregar();
+				esperarLivre();
+				return estadoDoCatalogo();
+			},
+			salvar_pecas: () => {
+				salvarPecas();
+				esperarLivre();
+				return estadoDoCatalogo();
+			},
+			salvar_fundos: () => {
+				salvarFundos();
+				esperarLivre();
+				return estadoDoCatalogo();
+			},
+		}),
+	);
+
 	const metadesDaFolha = () => metades()[folha()];
 	const campoNumero = (valor: Vide.Source<string>) => <Campo valor={valor} largura={new UDim(0, 48)} />;
 
@@ -891,7 +1008,7 @@ export function PainelCatalogo() {
 					<Botao texto="Zonas" ativo={() => aba() === "zonas"} aoClicar={() => aba("zonas")} ordem={2} />
 					<Botao texto="Log" ativo={() => aba() === "log"} aoClicar={() => aba("log")} ordem={3} />
 				</Linha>
-				<Campo valor={filtroTexto} dica="filtrar por id ou nome (Enter)" aoConfirmar={(t) => filtroTexto(t)} ordem={1} />
+				<Campo valor={filtroTexto} dica="filtrar por id ou nome" aoConfirmar={(t) => filtroTexto(t)} aoVivo={true} ordem={1} />
 				<Escolha opcoes={[{ id: "", titulo: "todas" }, ...OPCOES_FOLHA]} valor={filtroFolha} rotulo="Folha:" ordem={2} />
 				<Escolha opcoes={[{ id: "", titulo: "todos" }, ...OPCOES_TIPO]} valor={filtroTipo} rotulo="Tipo:" ordem={3} />
 				{/* As quatro listas existem sempre; só uma fica visível. O UIFlexItem faz a lista ocupar o que sobra
@@ -1135,7 +1252,8 @@ export function PainelCatalogo() {
 						<Fileira ordem={13}>
 							<Botao texto="Duplicar peça" aoClicar={duplicarPeca} ordem={0} />
 							<Botao texto="Apagar peça" aoClicar={apagarPeca} ordem={1} />
-							<TextoCurto texto="(apagar não pede confirmação; só vale depois de Salvar peças)" tom="fraco" ordem={2} />
+							<Botao texto="Abrir no Aseprite" aoClicar={abrirPecaNoAseprite} ordem={2} />
+							<TextoCurto texto="(apagar não pede confirmação; só vale depois de Salvar peças)" tom="fraco" ordem={3} />
 						</Fileira>
 					</frame>
 				</frame>
@@ -1205,6 +1323,9 @@ export function PainelCatalogo() {
 				Size={new UDim2(1, 0, 0, RODAPE)}
 			>
 				<Rotulo texto={() => `Problemas do catálogo: ${problemas().size()}`} negrito={true} />
+				<frame Name="AvisoFolha" BackgroundTransparency={1} Position={UDim2.fromScale(0.4, 0)} Size={new UDim2(0.6, 0, 0, 0)} AutomaticSize={Enum.AutomaticSize.Y} ZIndex={2}>
+					<AvisoFolhaSalva horizontal={true} />
+				</frame>
 				<Lista posicao={UDim2.fromOffset(0, TEXTO + 6)} tamanho={new UDim2(1, 0, 1, -(TEXTO + 6))} espaco={1}>
 					<For each={problemas}>
 						{(p, indice) => <Botao texto={p.texto} largura={new UDim(1, -10)} aoClicar={() => irAoProblema(p)} ordem={indice()} />}

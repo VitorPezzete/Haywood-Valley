@@ -105,8 +105,8 @@ export function PainelPecas(props: PropsPecas) {
 					tom={() => (props.catalogo() ? "normal" : "aviso")}
 					ordem={0}
 				/>
-				<Campo valor={filtro} dica="filtrar por nome ou id" aoConfirmar={(t) => filtro(t)} ordem={1} />
-				<Linha espaco={4}>
+				<Campo valor={filtro} dica="filtrar por nome ou id" aoConfirmar={(t) => filtro(t)} aoVivo={true} ordem={1} />
+				<Linha espaco={4} ordem={2}>
 					<Botao
 						texto="Forma anterior"
 						desligado={() => (props.selecionada()?.forms.size() ?? 0) < 2}

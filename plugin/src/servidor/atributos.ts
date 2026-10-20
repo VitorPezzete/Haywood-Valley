@@ -7,6 +7,7 @@
 // (server/services/MapService.ts), HOUR_TEST_ATTRIBUTE e CLOCK_OFFSET_ATTRIBUTE (shared/clock.ts).
 import { ChangeHistoryService, RunService, Workspace } from "@rbxts/services";
 import { source } from "@rbxts/vide";
+import { aoParar } from "../ambiente";
 
 export type TipoAtributo = "texto" | "booleano" | "numero" | "celular";
 
@@ -117,7 +118,13 @@ export function fonteAtributo(nome: string): () => AttributeValue | undefined {
 	const existente = fontes.get(nome);
 	if (existente) return existente;
 	const fonte = source<AttributeValue | undefined>(lerAtributo(nome));
-	pcall(() => Workspace.GetAttributeChangedSignal(nome).Connect(() => fonte(lerAtributo(nome))));
+	// A conexão sai quando o pacote para: sem isso, cada recarga deixava uma conexão viva por atributo no
+	// Workspace, presa à fonte do pacote velho (achado em 2026-10-20).
+	const [ok, conexao] = pcall(() => Workspace.GetAttributeChangedSignal(nome).Connect(() => fonte(lerAtributo(nome))));
+	if (ok) {
+		aoParar(conexao as RBXScriptConnection);
+		aoParar(() => fontes.delete(nome));
+	}
 	fontes.set(nome, fonte);
 	return fonte;
 }

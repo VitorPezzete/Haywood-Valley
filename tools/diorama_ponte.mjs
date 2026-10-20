@@ -34,10 +34,10 @@ const TEMPO_GERADOR = 120_000;
 const LADO_BLOCO = 64;
 /**
  * Se POST/PUT/DELETE precisam de `X-Diorama: 1` quando nenhuma opção diz o contrário. O MCP e os testes mandam o
- * cabeçalho, e plugin/src/ponte.ts também, mas em 2026-10-20 o plugin/out compilado (o pacote que o Studio roda)
- * ainda não mandava: desligado até lá (DUVIDAS.md, item 29). A extensão do Aseprite só usa o WebSocket.
+ * cabeçalho, e o plugin também desde a revisão de 2026-10-20 (DUVIDAS.md, item 29); `--sem-exigir-cabecalho` desliga
+ * para um plugin mais velho. A extensão do Aseprite só usa o WebSocket.
  */
-const EXIGIR_CABECALHO_PADRAO = false;
+const EXIGIR_CABECALHO_PADRAO = true;
 
 export const RAIZ = process.env.DIORAMA_RAIZ
 	? path.resolve(process.env.DIORAMA_RAIZ)

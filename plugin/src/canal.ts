@@ -11,14 +11,16 @@ import { source } from "@rbxts/vide";
 import { ambiente, gravarConfig, lerConfig } from "./ambiente";
 import { autoteste } from "./autoteste";
 import { avisoImagens, carregarImagensFolhas, definirFolhasLocais } from "./estado";
-import { folhasCarregadas, folhasLocais, lerPixel, recarregarFolhas } from "./folhasLocais";
+import { folhaSalva, folhasCarregadas, folhasLocais, lerPixel, recarregarFolhas } from "./folhasLocais";
 import { controleMapas } from "./mapas/controle";
 import { pedir } from "./ponte";
 import { diagnosticar, resumir } from "./problemas/diagnostico";
 import { ATRIBUTO_INTERIOR_CELULA, ATRIBUTO_INTERIOR_TESTE, ATRIBUTOS, gravarAtributo, lerAtributo } from "./servidor/atributos";
 import { modoAtual } from "./servidor/execucao";
 import { mensagens, nivelDe } from "./servidor/output";
-import { ferramentasAbertas, mostrar } from "./widget";
+import { alternar, desmontar, ferramentasAbertas, idsFerramentas, mostrar, widget } from "./widget";
+import { inspecionar } from "./inspecao";
+import { esperarAcoes, listaDeAcoes } from "./simulacao";
 
 /** De quanto em quanto tempo a presença é anunciada, em segundos. */
 const INTERVALO_PRESENCA = 5;
@@ -204,6 +206,7 @@ const COMANDOS: Record<string, (args: Args) => unknown> = {
 				ferramentas: lista,
 				espera: typeIs(args.espera, "number") ? args.espera : undefined,
 				remontar: args.remontar === true,
+				edicao: args.edicao !== false,
 			}),
 		);
 	},
@@ -229,7 +232,9 @@ const COMANDOS: Record<string, (args: Args) => unknown> = {
 			definirFolhasLocais(args.ligar === true);
 			return { ativo: folhasLocais(), folhas: paraJson(folhasCarregadas()), aviso: avisoImagens() };
 		}
-		if (!folhasLocais()) return { ativo: false, aviso: "Folhas locais está desligado; nada a recarregar." };
+		// O aviso dos painéis (ui/alternarFolhas.tsx): desligado, oferece ligar; ligado, diz que a folha foi relida.
+		folhaSalva({ folha: folha ?? "(todas)", em: os.time(), aplicada: folhasLocais() });
+		if (!folhasLocais()) return { ativo: false, aviso: "Folhas locais está desligado; nada a recarregar (os painéis mostram o aviso com o botão para ligar)." };
 		if (folhasCarregadas().size() === 0) {
 			carregarImagensFolhas();
 			return { ativo: true, folhas: paraJson(folhasCarregadas()) };
@@ -242,6 +247,60 @@ const COMANDOS: Record<string, (args: Args) => unknown> = {
 			pixel = lerPixel(folha, x, y);
 		}
 		return { ativo: true, resultado: paraJson(resultado), pixel: paraJson(pixel) };
+	},
+
+	/** O que o plugin tem vivo (inspecao.ts); com `ferramenta`, também a árvore resumida do widget. */
+	inspecionar: (args) => {
+		const ferramenta = texto(args.ferramenta);
+		const profundidade = typeIs(args.profundidade, "number") ? args.profundidade : 3;
+		return paraJson(inspecionar(ferramenta, profundidade));
+	},
+
+	/**
+	 * Chama a ação de um painel como o clique chamaria (simulacao.ts): `{ ferramenta, acao, args? }`. Abre o widget
+	 * (e monta o painel) antes. `acao: "acoes"` lista as ações da ferramenta.
+	 */
+	simular: (args) => {
+		const ferramenta = texto(args.ferramenta);
+		const acao = texto(args.acao);
+		if (ferramenta === undefined || acao === undefined) error("falta ferramenta ou acao", 0);
+		const erro = mostrar(ferramenta);
+		if (erro !== undefined) error(`a ferramenta ${ferramenta} não montou: ${erro}`, 0);
+		const acoes = esperarAcoes(ferramenta);
+		if (!acoes) error(`a ferramenta ${ferramenta} não registrou ações para simular`, 0);
+		if (acao === "acoes") return listaDeAcoes(ferramenta);
+		const f = acoes[acao];
+		if (!f) error(`ação desconhecida em ${ferramenta}: ${acao} (há: ${listaDeAcoes(ferramenta).join(", ")})`, 0);
+		return paraJson(f(typeIs(args.args, "table") ? (args.args as Args) : {}));
+	},
+
+	/**
+	 * Abre e fecha o widget (`vezes` vezes; `desmontar`: desmonta o painel a cada volta, como uma recarga) e devolve
+	 * as contas de antes e depois, para achar vazamento de instâncias e de memória.
+	 */
+	ciclar_widget: (args) => {
+		const id = texto(args.ferramenta);
+		if (id === undefined || !idsFerramentas().includes(id)) error("ferramenta desconhecida", 0);
+		const vezes = typeIs(args.vezes, "number") ? math.clamp(args.vezes, 1, 50) : 5;
+		const gui = widget(id)!;
+		const estava = gui.Enabled;
+		const contar = () => ({ instancias: gui.GetDescendants().size(), memoria_lua_kb: math.floor(collectgarbage("count")) });
+		mostrar(id);
+		task.wait(0.5);
+		const antes = contar();
+		const t0 = os.clock();
+		for (let i = 0; i < vezes; i++) {
+			if (args.desmontar === true) desmontar(id);
+			alternar(id);
+			task.wait();
+			alternar(id);
+			task.wait(0.2);
+		}
+		const segundos = os.clock() - t0;
+		task.wait(1);
+		const depois = contar();
+		if (!estava) gui.Enabled = false;
+		return { antes, depois, vezes, ms_por_volta: math.floor((segundos / vezes) * 1000) };
 	},
 
 	executar_luau: (args) => {

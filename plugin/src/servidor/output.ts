@@ -39,8 +39,18 @@ export const PREFIXOS: string[] = [
 /** Quantas mensagens ficam guardadas. */
 const LIMITE = 500;
 
-/** As mensagens guardadas, da mais antiga para a mais nova. Trocada inteira a cada mensagem nova. */
-export const mensagens = source<Mensagem[]>([]);
+// As mensagens guardadas, da mais antiga para a mais nova, num array que só cresce no fim e perde o começo (antes
+// o array inteiro era copiado a cada mensagem nova, e quem o lia refazia tudo a cada linha do Output). Quem precisa
+// reagir lê `versaoOutput` (sobe a cada mudança); `mensagens()` também a lê, então funciona dentro de um effect.
+const buffer = new Array<Mensagem>();
+/** Sobe a cada mensagem nova (ou limpeza). */
+export const versaoOutput = source(0);
+
+/** As mensagens guardadas (não guarde o array: ele muda no lugar). */
+export function mensagens(): ReadonlyArray<Mensagem> {
+	versaoOutput();
+	return buffer;
+}
 
 function prefixoDe(texto: string): string | undefined {
 	const [achado] = texto.match("^%s*(%[[^%]]+%])");
@@ -64,10 +74,9 @@ export function ouvirOutput(f: (m: Mensagem) => void): () => void {
 function acrescentar(texto: string, tipo: Enum.MessageType, carimbo?: number, avisar = true) {
 	const nova: Mensagem = { n: proximoNumero++, texto, tipo, hora: hora(carimbo), prefixo: prefixoDe(texto) };
 	if (avisar) for (const f of ouvintes) task.spawn(f, nova);
-	const atual = mensagens();
-	const lista = atual.size() >= LIMITE ? atual.filter((_, i) => i >= atual.size() - LIMITE + 1) : [...atual];
-	lista.push(nova);
-	mensagens(lista);
+	buffer.push(nova);
+	if (buffer.size() > LIMITE) buffer.shift();
+	versaoOutput(versaoOutput() + 1);
 }
 
 let ligado = false;
@@ -80,7 +89,7 @@ export function ligarOutput() {
 	if (ligado) return;
 	ligado = true;
 	// Recomeça o buffer: o histórico do LogService já traz o que havia (uma volta ao pacote anterior não duplica).
-	mensagens([]);
+	buffer.clear();
 	proximoNumero = 1;
 	pcall(() => {
 		const historico = LogService.GetLogHistory();
@@ -95,7 +104,8 @@ export function ligarOutput() {
 }
 
 export function limparMensagens() {
-	mensagens([]);
+	buffer.clear();
+	versaoOutput(versaoOutput() + 1);
 }
 
 export type Nivel = "info" | "aviso" | "erro";
@@ -116,7 +126,7 @@ export interface Filtro {
 	contem: string;
 }
 
-export function filtrar(lista: Mensagem[], filtro: Filtro): Mensagem[] {
+export function filtrar(lista: ReadonlyArray<Mensagem>, filtro: Filtro): Mensagem[] {
 	const contem = filtro.contem.lower();
 	return lista.filter((m) => {
 		if (!filtro.niveis.has(nivelDe(m.tipo))) return false;
@@ -134,7 +144,12 @@ export function filtrar(lista: Mensagem[], filtro: Filtro): Mensagem[] {
 const MARCA: Record<Nivel, string> = { info: " ", aviso: "!", erro: "X" };
 
 /** As mensagens como texto, uma por linha: "HH:MM:SS ! texto". */
-export function textoDasMensagens(lista: Mensagem[]): string {
+export function textoDasMensagens(lista: ReadonlyArray<Mensagem>): string {
 	if (lista.size() === 0) return "";
 	return lista.map((m) => `${m.hora} ${MARCA[nivelDe(m.tipo)]} ${m.texto}`).join("\n");
+}
+
+/** Quantos ouvintes do Output estão ligados (o comando `inspecionar` mostra, para achar vazamento). */
+export function quantosOuvintes() {
+	return ouvintes.size();
 }

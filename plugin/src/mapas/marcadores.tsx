@@ -24,6 +24,8 @@ export interface PropsMarcadores {
 	/** Chamado depois de cada mudança (o painel marca o bloco como sujo). */
 	aoMudar: () => void;
 	aviso: (texto: string) => void;
+	/** Preenchido pelo painel com as ações dos botões (o comando `simular` e o autoteste as chamam). */
+	acoes?: Record<string, (args: Record<string, unknown>) => unknown>;
 }
 
 const ABAS = [
@@ -238,8 +240,87 @@ export function PainelMarcadores(props: PropsMarcadores) {
 		if (r && !m.moradores.includes(r)) moradorSel(undefined);
 	});
 
+	// As ações dos botões, vistas de fora (simulacao.ts): cada uma faz o que o clique faria.
+	const novaEntrada = () => {
+		const nova: Entrada = { nome: "entrada", x: 0, y: 0 };
+		mudar((m) => m.entradas.push(nova));
+		entradaSel(nova);
+		pedirCelula("entrada", (x, y) =>
+			mudar(() => {
+				nova.x = x;
+				nova.y = y;
+			}),
+		);
+		return nova;
+	};
+	const novaSaida = () => {
+		const nova: Saida = { x: 0, y: 0, largura: 1, altura: 1, mapa: "" };
+		mudar((m) => m.saidas.push(nova));
+		saidaSel(nova);
+		pedirRetangulo("saída", (x0, y0, x1, y1) =>
+			mudar(() => {
+				nova.x = x0;
+				nova.y = y0;
+				nova.largura = x1 - x0 + 1;
+				nova.altura = y1 - y0 + 1;
+			}),
+		);
+		return nova;
+	};
+	const novaZona = () => {
+		const nova: ZonaMapa = { nome: "Sala", areas: [], props: {} };
+		mudar((m) => m.zonas.push(nova));
+		zonaSel(nova);
+		pedirRetangulo("área da zona", (x0, y0, x1, y1) => mudar(() => nova.areas.push([x0, y0, x1, y1])));
+		return nova;
+	};
+	const novoMorador = () => {
+		const novo: Morador = { nome: "Morador", x: 0, y: 0, olhando: 2, visual: "", pose: "idle" };
+		mudar((m) => m.moradores.push(novo));
+		moradorSel(novo);
+		pedirCelula("morador", (x, y) =>
+			mudar(() => {
+				novo.x = x;
+				novo.y = y;
+			}),
+		);
+		return novo;
+	};
+	const posicionarNascimento = () =>
+		pedirCelula("nascimento", (x, y) =>
+			mudar((m) => {
+				m.nascimento = [x, y];
+			}),
+		);
+	if (props.acoes) {
+		const texto = (v: unknown) => (typeIs(v, "string") ? v : undefined);
+		props.acoes.nascimento = () => posicionarNascimento();
+		props.acoes.nova_entrada = () => novaEntrada().nome;
+		props.acoes.nova_saida = () => {
+			novaSaida();
+			return true;
+		};
+		props.acoes.nova_zona = () => novaZona().nome;
+		props.acoes.novo_morador = () => novoMorador().nome;
+		/** Os campos da entrada selecionada e "Aplicar". */
+		props.acoes.aplicar_entrada = (args) => {
+			if (texto(args.nome) !== undefined) eNome(texto(args.nome)!);
+			aplicarEntrada();
+			return entradaSel();
+		};
+		/** Os campos da saída selecionada (mapa, chegada) e "Aplicar". */
+		props.acoes.aplicar_saida = (args) => {
+			if (texto(args.mapa) !== undefined) sMapa(texto(args.mapa)!);
+			if (texto(args.chegada) !== undefined) sChegada(texto(args.chegada)!);
+			aplicarSaida();
+			return saidaSel();
+		};
+		props.acoes.lista = () => modelo().marcadores;
+		props.acoes.aba = (args) => aba(texto(args.id) ?? "nascimento");
+	}
+
 	const linhaCampo = (rotulo: string, valor: Vide.Source<string>, aoConfirmar: () => void, ordem: number, largura = 90) => (
-		<Linha espaco={4}>
+		<Linha espaco={4} ordem={ordem}>
 			<Legenda texto={rotulo} largura={60} ordem={0} />
 			<Campo valor={valor} aoConfirmar={aoConfirmar} largura={new UDim(0, largura)} ordem={1} />
 		</Linha>
@@ -258,13 +339,7 @@ export function PainelMarcadores(props: PropsMarcadores) {
 						<Botao
 							texto="Posicionar no canvas"
 							principal={true}
-							aoClicar={() =>
-								pedirCelula("nascimento", (x, y) =>
-									mudar((m) => {
-										m.nascimento = [x, y];
-									}),
-								)
-							}
+							aoClicar={posicionarNascimento}
 							ordem={1}
 						/>
 						<Botao
@@ -291,20 +366,10 @@ export function PainelMarcadores(props: PropsMarcadores) {
 							selecionado={entradaSel}
 							ordem={0}
 						/>
-						<Linha espaco={4}>
+						<Linha espaco={4} ordem={1}>
 							<Botao
 								texto="Nova"
-								aoClicar={() => {
-									const nova: Entrada = { nome: "entrada", x: 0, y: 0 };
-									mudar((m) => m.entradas.push(nova));
-									entradaSel(nova);
-									pedirCelula("entrada", (x, y) =>
-										mudar(() => {
-											nova.x = x;
-											nova.y = y;
-										}),
-									);
-								}}
+								aoClicar={novaEntrada}
 								ordem={0}
 							/>
 							<Botao
@@ -349,22 +414,10 @@ export function PainelMarcadores(props: PropsMarcadores) {
 							selecionado={saidaSel}
 							ordem={0}
 						/>
-						<Linha espaco={4}>
+						<Linha espaco={4} ordem={1}>
 							<Botao
 								texto="Nova"
-								aoClicar={() => {
-									const nova: Saida = { x: 0, y: 0, largura: 1, altura: 1, mapa: "" };
-									mudar((m) => m.saidas.push(nova));
-									saidaSel(nova);
-									pedirRetangulo("saída", (x0, y0, x1, y1) =>
-										mudar(() => {
-											nova.x = x0;
-											nova.y = y0;
-											nova.largura = x1 - x0 + 1;
-											nova.altura = y1 - y0 + 1;
-										}),
-									);
-								}}
+								aoClicar={novaSaida}
 								ordem={0}
 							/>
 							<Botao
@@ -417,15 +470,10 @@ export function PainelMarcadores(props: PropsMarcadores) {
 							selecionado={zonaSel}
 							ordem={0}
 						/>
-						<Linha espaco={4}>
+						<Linha espaco={4} ordem={1}>
 							<Botao
 								texto="Nova"
-								aoClicar={() => {
-									const nova: ZonaMapa = { nome: "Sala", areas: [], props: {} };
-									mudar((m) => m.zonas.push(nova));
-									zonaSel(nova);
-									pedirRetangulo("área da zona", (x0, y0, x1, y1) => mudar(() => nova.areas.push([x0, y0, x1, y1])));
-								}}
+								aoClicar={novaZona}
 								ordem={0}
 							/>
 							<Botao
@@ -456,7 +504,7 @@ export function PainelMarcadores(props: PropsMarcadores) {
 							altura={70}
 							ordem={9}
 						/>
-						<Linha espaco={4}>
+						<Linha espaco={4} ordem={10}>
 							<Botao
 								texto="Adicionar área"
 								desligado={() => zonaSel() === undefined}
@@ -491,20 +539,10 @@ export function PainelMarcadores(props: PropsMarcadores) {
 							selecionado={moradorSel}
 							ordem={0}
 						/>
-						<Linha espaco={4}>
+						<Linha espaco={4} ordem={1}>
 							<Botao
 								texto="Novo"
-								aoClicar={() => {
-									const novo: Morador = { nome: "Morador", x: 0, y: 0, olhando: 2, visual: "", pose: "idle" };
-									mudar((m) => m.moradores.push(novo));
-									moradorSel(novo);
-									pedirCelula("morador", (x, y) =>
-										mudar(() => {
-											novo.x = x;
-											novo.y = y;
-										}),
-									);
-								}}
+								aoClicar={novoMorador}
 								ordem={0}
 							/>
 							<Botao

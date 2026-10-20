@@ -3,7 +3,11 @@
 // da ponte, guarda os erros que o Output recebeu nesse tempo e roda as conferências próprias da ferramenta. No fim
 // devolve o widget ao estado em que estava (aberto ou fechado; o painel fica montado).
 //
-// As conferências usam a ponte de verdade. A de Mapas grava e apaga o mapa temporário `zz_autoteste`.
+// As conferências usam a ponte de verdade. A de Mapas grava e apaga os mapas temporários `zz_autoteste` e
+// `zz_autoteste_edicao`; esta, a da edição (autotesteEdicao.ts), mexe no painel como o autor mexeria.
+import { canonico } from "./canonico";
+import { acoesDe } from "./simulacao";
+import { conferenciasEdicaoCatalogo, conferenciasEdicaoMapas, conferenciasEdicaoServidor } from "./autotesteEdicao";
 import { controleMapas, ResumoMapaAberto } from "./mapas/controle";
 import { ModeloBloco } from "./mapas/bloco";
 import { lerFundo, lerPeca, lerCatalogo as lerCatalogoFormato } from "./catalogo/formato";
@@ -51,6 +55,8 @@ export interface OpcoesAutoteste {
 	espera?: number;
 	/** Desmonta e monta de novo os painéis que já estavam montados. */
 	remontar?: boolean;
+	/** Roda também a edição simulada (autotesteEdicao.ts); padrão: sim. */
+	edicao?: boolean;
 }
 
 const MAPAS_DE_TESTE = ["teste_d_destino", "casa_teste_v2_l"];
@@ -60,27 +66,7 @@ function conferir(lista: Conferencia[], nome: string, ok: boolean, detalhe: stri
 	lista.push({ nome, ok, detalhe });
 }
 
-/** JSON canônico (chaves em ordem), para comparar dois blocos sem depender da ordem das tabelas do Luau. */
-function canonico(v: unknown): string {
-	if (typeIs(v, "table")) {
-		const chaves = new Array<string>();
-		let lista = true;
-		let n = 0;
-		for (const [k] of pairs(v as object)) {
-			n++;
-			if (!typeIs(k, "number")) lista = false;
-			chaves.push(tostring(k));
-		}
-		if (n === 0) return "{}";
-		if (lista) return `[${(v as defined[]).map((x) => canonico(x)).join(",")}]`;
-		chaves.sort();
-		return `{${chaves.map((k) => `${k}:${canonico((v as Record<string, unknown>)[k])}`).join(",")}}`;
-	}
-	if (typeIs(v, "string")) return `"${v}"`;
-	return tostring(v);
-}
-
-/** Conta as células desenhadas no canvas do editor, por camada (os itens visíveis dos chunks). */
+/** Conta as células desenhadas no canvas do editor, por camada (os itens visíveis dos chunks; uma faixa de vazio vale as células que cobre). */
 function desenhadasNoCanvas(gui: Instance): Record<string, number> | undefined {
 	const mundo = gui.FindFirstChild("Mundo", true);
 	if (!mundo) return undefined;
@@ -90,7 +76,11 @@ function desenhadasNoCanvas(gui: Instance): Record<string, number> | undefined {
 		const camada = mundo.FindFirstChild(nome);
 		if (camada) {
 			for (const chunk of camada.GetChildren()) {
-				for (const item of chunk.GetChildren()) if (item.IsA("GuiObject") && item.Visible) n++;
+				for (const item of chunk.GetChildren()) {
+					if (!item.IsA("GuiObject") || !item.Visible) continue;
+					const celulas = item.GetAttribute("Celulas");
+					n += typeIs(celulas, "number") ? celulas : 1;
+				}
 			}
 		}
 		saida[nome] = n;
@@ -170,7 +160,7 @@ function conferirFolhasLocais(lista: Conferencia[]) {
 	if (!estava) liberarFolhasLocais();
 }
 
-function conferenciasMapas(gui: DockWidgetPluginGui, lista: Conferencia[]) {
+function conferenciasMapas(gui: DockWidgetPluginGui, lista: Conferencia[], edicao: boolean) {
 	const limite = os.clock() + 5;
 	let c = controleMapas();
 	while (!c && os.clock() < limite) {
@@ -227,10 +217,14 @@ function conferenciasMapas(gui: DockWidgetPluginGui, lista: Conferencia[]) {
 		// O editor não fica num mapa que não existe mais.
 		if (origemId !== "") c.abrir(origemId, true);
 	}
+	if (edicao) {
+		const [ok, erro] = pcall(() => conferenciasEdicaoMapas(lista));
+		if (!ok) conferir(lista, "edição", false, `erro: ${tostring(erro)}`);
+	}
 	conferirFolhasLocais(lista);
 }
 
-function conferenciasCatalogo(gui: DockWidgetPluginGui, lista: Conferencia[]) {
+function conferenciasCatalogo(gui: DockWidgetPluginGui, lista: Conferencia[], edicao: boolean) {
 	const rp = ponte.lerCatalogo("pecas");
 	const rf = ponte.lerCatalogo("fundos");
 	if (!rp.ok) conferir(lista, "pecas.json", false, rp.erro);
@@ -244,6 +238,7 @@ function conferenciasCatalogo(gui: DockWidgetPluginGui, lista: Conferencia[]) {
 	conferir(lista, "problemas do catálogo", true, `${problemas.size()} problema(s) nos dados`);
 	const metade = gui.FindFirstChild("Metade0", true);
 	conferir(lista, "folha à vista", metade !== undefined && metade.IsA("ImageLabel"), metade ? "Metade0 desenhada" : "não achei a folha no painel");
+	if (edicao) conferenciasEdicaoCatalogo(lista);
 }
 
 function conferenciasAssets(lista: Conferencia[]) {
@@ -269,7 +264,7 @@ function conferenciasProblemas(lista: Conferencia[]) {
 	);
 }
 
-function conferenciasServidor(lista: Conferencia[]) {
+function conferenciasServidor(lista: Conferencia[], edicao: boolean) {
 	const valores = new Array<string>();
 	for (const def of ATRIBUTOS) {
 		const v = lerAtributo(def.nome);
@@ -280,12 +275,27 @@ function conferenciasServidor(lista: Conferencia[]) {
 	const conta: Record<string, number> = {};
 	for (const v of place) conta[v.nivel] = (conta[v.nivel] ?? 0) + 1;
 	conferir(lista, "place", true, `${game.Name}: ${conta.ok ?? 0} ok, ${conta.info ?? 0} info, ${conta.aviso ?? 0} aviso(s), ${conta.erro ?? 0} erro(s)`);
+	if (edicao) conferenciasEdicaoServidor(lista);
 }
 
-function conferenciasSuporte(lista: Conferencia[]) {
+function conferenciasSuporte(gui: DockWidgetPluginGui, lista: Conferencia[]) {
 	const r = ponte.listarDocs();
 	if (!r.ok) return conferir(lista, "documentos", false, r.erro);
 	conferir(lista, "documentos", r.valor.includes("CONEXOES"), `${r.valor.size()} documento(s): ${r.valor.join(", ")}`);
+	// Um documento comprido aparece inteiro e rola (antes a caixa ficava presa à primeira tela).
+	const acoes = acoesDe("suporte");
+	if (!acoes || !r.valor.includes("ESPECIFICACAO")) return;
+	const aberto = acoes.abrir({ nome: "ESPECIFICACAO" }) as { caracteres: number };
+	task.wait(0.2);
+	const texto = gui.FindFirstChild("AreaTexto", true)?.FindFirstChild("Texto");
+	const area = gui.FindFirstChild("AreaTexto", true);
+	if (!texto || !texto.IsA("TextBox") || !area || !area.IsA("ScrollingFrame")) return conferir(lista, "texto longo", false, "não achei a área de texto");
+	conferir(
+		lista,
+		"texto longo",
+		texto.TextFits && area.AbsoluteCanvasSize.Y >= texto.TextBounds.Y,
+		`ESPECIFICACAO: ${aberto.caracteres} caracteres, ${math.floor(texto.TextBounds.Y)} px de texto, área rolável de ${area.AbsoluteCanvasSize.Y} px`,
+	);
 }
 
 function conferenciasConexao(lista: Conferencia[]) {
@@ -370,12 +380,13 @@ function testarFerramenta(id: string, opcoes: OpcoesAutoteste): RelatorioFerrame
 	const conferencias = new Array<Conferencia>();
 	if (erroMontagem === undefined) {
 		const [ok, erro] = pcall(() => {
-			if (id === "mapas") conferenciasMapas(gui, conferencias);
-			else if (id === "catalogo") conferenciasCatalogo(gui, conferencias);
+			const edicao = opcoes.edicao !== false;
+			if (id === "mapas") conferenciasMapas(gui, conferencias, edicao);
+			else if (id === "catalogo") conferenciasCatalogo(gui, conferencias, edicao);
 			else if (id === "assets") conferenciasAssets(conferencias);
 			else if (id === "problemas") conferenciasProblemas(conferencias);
-			else if (id === "servidor") conferenciasServidor(conferencias);
-			else if (id === "suporte") conferenciasSuporte(conferencias);
+			else if (id === "servidor") conferenciasServidor(conferencias, edicao);
+			else if (id === "suporte") conferenciasSuporte(gui, conferencias);
 			else if (id === "conexao") conferenciasConexao(conferencias);
 		});
 		if (!ok) conferir(conferencias, "conferências", false, `erro: ${tostring(erro)}`);

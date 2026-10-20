@@ -1,7 +1,8 @@
 // Problemas: diagnóstico com um clique. Lê os mapas, o catálogo e os assets pela ponte, confere o place, e lista
 // cada problema com a gravidade, onde, o quê e como corrigir. Filtros por grupo e por gravidade. Com a ponte
 // fora, avisa no topo e confere só o place. Lógica em plugin/src/problemas/ (diagnostico.ts chama o resto).
-import Vide, { For, mount, source } from "@rbxts/vide";
+import Vide, { cleanup, For, mount, source } from "@rbxts/vide";
+import { registrarAcoes } from "../simulacao";
 import { diagnosticar, Diagnostico, resumir } from "../problemas/diagnostico";
 import { Gravidade, Grupo, Problema, TITULO_DO_GRUPO } from "../problemas/tipos";
 import { copiarTexto } from "../ui/copiar";
@@ -90,6 +91,21 @@ export function PainelProblemas() {
 	};
 
 	rodar();
+
+	// O botão Diagnosticar visto de fora (simulacao.ts): roda e espera o resultado.
+	cleanup(
+		registrarAcoes("problemas", {
+			rodar: () => {
+				const limite = os.clock() + 30;
+				while (rodando() && os.clock() < limite) task.wait();
+				rodar();
+				task.wait();
+				while (rodando() && os.clock() < limite) task.wait();
+				const d = resultado();
+				return { mensagem: mensagem(), problemas: d ? d.problemas.size() : 0, mostrados: filtrados().size() };
+			},
+		}),
+	);
 
 	return (
 		<Painel>

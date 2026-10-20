@@ -51,6 +51,11 @@ Só escuta em 127.0.0.1, sem autenticação. A ferramenta **Conexão** mostra se
 | `plugin/src/ambiente.ts` | O que a casca entrega (`plugin`, `botao`, `widget`, `versao`, `hash`, `origem`, `sessao`), `aoParar`/`encerrar` (o que desfazer na troca) e `lerConfig`/`gravarConfig`. Sem dependências: todos podem importar. |
 | `plugin/src/canal.ts` | Canal do Studio (`CONEXOES.md`, seção 2): presença a cada 5 s, long-poll de comandos, a tabela de comandos, o interruptor "Permitir executar Luau" e o `estadoCanal` que a Conexão mostra. |
 | `plugin/src/autoteste.ts` | O comando `autoteste`: abre cada ferramenta, conta instâncias, pega os erros do Output e roda as conferências de cada uma (abaixo). |
+| `plugin/src/autotesteEdicao.ts` | A parte do autoteste que mexe nos painéis como o autor (pincel, traço, carimbo, desfazer, peça, marcadores, salvar, conflito, rascunho, mapa apagado; Catálogo sem gravar; atributos do Servidor). |
+| `plugin/src/simulacao.ts` | O registro das ações dos painéis (`registrarAcoes(ferramenta, { nome: (args) => … })`): cada painel montado registra as funções que os cliques dele chamam, e o comando `simular` e o autoteste chamam as mesmas. |
+| `plugin/src/inspecao.ts` | O comando `inspecionar`: os widgets (aberto, montado, instâncias), as pastas `Pacote_*` na casca, o que espera o `parar`, os ouvintes do Output, as folhas locais, a memória e, com `ferramenta`, a árvore resumida do widget. |
+| `plugin/src/aseprite.ts` | "Abrir no Aseprite": `POST /aseprite/comandos { nome: "abrir_regiao", args: { folha, area } }` pela ponte, com a mensagem pronta para o painel. |
+| `plugin/src/canonico.ts` | JSON canônico (chaves em ordem), para saber se um arquivo mudou no disco e para comparar blocos no autoteste. |
 | `plugin/src/folhasLocais.ts` | Prévia local das folhas (`CONEXOES.md`, seção 4): uma EditableImage por metade, ids falsos `local://<folha>/<metade>` e `conteudo(id)`, que converte qualquer id em `Content` para `ImageContent`. |
 | `plugin/src/ferramentas/index.ts` | A lista `FERRAMENTAS` (`{ id, nome, descricao, icone, widget, montar }`), na ordem dos botões. Fica em `ferramentas/index.ts`, e não em `ferramentas.ts`, porque o Rojo não aceita arquivo e pasta com o mesmo nome. |
 | `plugin/src/ferramentas/<id>.tsx` | Uma ferramenta por arquivo: o painel (componente Vide), `WIDGET` (título e tamanho) e `montar(gui, plugin)`. **Mapas**, **Catálogo**, **Assets**, **Conexão**, **Servidor**, **Problemas** e **Suporte**. `emConstrucao.tsx` é o painel provisório para uma ferramenta nova. |
@@ -114,6 +119,24 @@ Só escuta em 127.0.0.1, sem autenticação. A ferramenta **Conexão** mostra se
 - Para pixels, `lerFolha` e `lerImagem` em `ponte.ts` devolvem um `buffer` RGBA pronto para `EditableImage:WritePixelsBuffer`.
 - O MCP do Studio e o Rojo não são usados pelo plugin; o plugin só fala com a ponte (e a ponte faz o ping no Rojo).
 - O que só se confere no Studio está em `docs/diorama/DUVIDAS.md`, itens 20 a 28, com o que já foi conferido em 2026-10-20.
+- **`LayoutOrder` empatado** numa `Coluna`/`Linha`: o Studio mantém a ordem de inserção entre os empatados, então um elemento sem `ordem` (vale 0) vai parar junto do primeiro da lista. Foi assim que "Novo" e "Desfazer/Refazer" subiam para debaixo do título em Mapas e os campos dos Marcadores ficavam acima do separador (corrigido em 2026-10-20). Dê `ordem` a todo filho de uma lista.
+- **`AutomaticSize` Y dentro de um `ScrollingFrame`**: o Studio prende o elemento à altura visível do quadro, e o resto some sem barra de rolagem (o `ESPECIFICACAO.md` no Suporte mostrava 476 de 4379 px). `AreaTexto` e `CaixaTexto` (kit) medem o texto com `TextService:GetTextSize` e põem a altura à mão; faça o mesmo para texto comprido.
+- Pedidos à ponte que mudam algo (POST, PUT, DELETE) levam o cabeçalho `X-Diorama: 1` (`ponte.ts`); a ponte pode recusar sem ele.
+- Uma ferramenta nova que tenha ações que valham testar registra-as com `registrarAcoes` (`simulacao.ts`) dentro do componente, com `cleanup(...)` em volta.
+
+## Proteções e conveniências do editor (2026-10-20)
+
+- **Rascunhos**: um mapa com mudança não salva vira rascunho nas configurações do plugin (`Diorama_mapas_rascunhos`, um por mapa) quando o painel desmonta (recarga do pacote, Studio fechando) ou o widget de Mapas fecha (com aviso no Output). Ao abrir de novo, a coluna esquerda mostra "Mudanças não salvas de …" com **Recuperar** e **Descartar**. Salvar o mapa, ou descartar as mudanças dele (abrir outro com o segundo clique), apaga o rascunho.
+- **Conflito com o disco**: Salvar (Mapas, e "Salvar peças"/"Salvar fundos" no Catálogo) relê o arquivo antes e compara com o que foi aberto; se outro programa, o MCP ou outro Studio gravou nesse meio-tempo, recusa e diz; o segundo clique sobrescreve. Uma mudança feita enquanto a ponte gravava deixa o mapa (ou o catálogo) sujo, com "Houve mudanças enquanto salvava: salve de novo".
+- **Recarregar** no Catálogo com mudança não salva pede um segundo clique.
+- **Lembrar**: o último mapa, a ferramenta, a camada, o zoom e a aba da direita (`Diorama_mapas_lembrar`); o painel reabre o mapa sozinho, a não ser que haja rascunho dele esperando.
+- **Pincel**: arrastar um carimbo maior que 1 × 1 repete o padrão alinhado ao começo do traço (antes, carimbava de novo a cada célula, deslocado); o mouse rápido não deixa buracos (as células entre duas leituras entram em linha). Desfazer cancela um posicionamento de marcador pendente.
+- **Paleta**: o campo "ir para" aceita `34,25`, `casa 40,25` ou `40,25,3,3` (seleciona e rola até lá); **Abrir no Aseprite** abre a seleção num sprite do Aseprite (pela ponte; lá, "Salvar região na folha" grava de volta). O Catálogo tem o mesmo botão para a peça selecionada.
+- **Folha salva no Aseprite**: quando a ponte avisa (`recarregar_folhas`), Mapas e Catálogo dizem qual folha e quando; com "Folhas locais" desligado, o aviso traz **Ver folhas locais**.
+- **Filtros ao vivo**: o filtro de peças (Mapas, aba Peças) e o do Catálogo respondem a cada letra, sem Enter.
+- **Atalhos à vista**: os botões mostram B, R, G, E, I, 1–4, Ctrl+S, Ctrl+Z e Ctrl+Y.
+- **Canvas mais leve**: o vazio pintado no chão ([folha, 0, 2], uma cor só) vira uma faixa por sequência numa linha, esticando o miolo de 8 × 8 do tile (o truque do jogo para tiles de uma cor). `casa_teste_v2_l` aberta: 5574 → 3886 instâncias no widget; abrir leva uns 20–80 ms de ponte e 50 ms de montagem.
+- **Output do Servidor**: o buffer não é mais copiado a cada mensagem, e o texto da aba é refeito em lote (no máximo a cada 0,25 s) e só com a aba e o widget à vista.
 
 ## Canal do Studio e autoteste
 
@@ -128,11 +151,20 @@ curl -s "http://127.0.0.1:34873/studio/respostas/c3?espera=50"
 
 Com mais de um Studio aberto, mande sempre a `sessao` (sem ela, vai para o mais recente na edição). `executar_luau` só roda com "Permitir executar Luau" ligado no painel Conexão (desligado por padrão).
 
-O **autoteste** (`{ "tipo": "autoteste", "args": { "ferramentas"?: [...], "espera"?: 2, "remontar"?: true } }`) abre o widget de cada ferramenta (e o fecha de novo, se estava fechado), espera um quadro, conta as instâncias, espera as leituras da ponte e junta os erros e avisos que o Output recebeu nesse tempo. Conferências de cada uma:
+O **autoteste** (`{ "tipo": "autoteste", "args": { "ferramentas"?: [...], "espera"?: 2, "remontar"?: true, "edicao"?: false } }`) abre o widget de cada ferramenta (e o fecha de novo, se estava fechado), espera um quadro, conta as instâncias, espera as leituras da ponte e junta os erros e avisos que o Output recebeu nesse tempo. Conferências de cada uma:
 
 - **Mapas**: abre `teste_d_destino` e `casa_teste_v2_l` pelo editor e confere, por camada, as células desenhadas no canvas contra as do bloco e de onde vem a imagem dos tiles (id do Roblox ou EditableImage); salva o bloco aberto como `zz_autoteste`, reabre no editor, compara o JSON, apaga o mapa e volta ao original; monta a folha da casa em EditableImage e lê um pixel de volta. Com mudança não salva no editor, pula os mapas.
-- **Catálogo**: lê `pecas.json` e `fundos.json`, conta, roda os problemas do catálogo e confere que a folha está à vista.
-- **Assets**: o registro e quantos estão sem id. **Problemas**: o diagnóstico inteiro. **Servidor**: os atributos de teste e a conferência do place. **Suporte**: a lista de documentos. **Conexão**: `GET /status`.
+- **Mapas, edição** (`autotesteEdicao.ts`; `"edicao": false` pula): num mapa novo `zz_autoteste_edicao`, pincel numa célula, traço rápido sem buracos, carimbo 2 × 2 arrastado, desfazer/refazer, borracha por camada, peça com regras recusada sobre o vazio e peça livre carimbada, nascimento, saída com destino e chegada, desfazer que cancela o posicionamento, salvar, pintar durante o salvamento (fica sujo), conflito com o disco (recusa e depois sobrescreve), rascunho ao desmontar e montar o painel, mapa apagado no disco; apaga o mapa no fim e volta ao que estava aberto.
+- **Catálogo**: lê `pecas.json` e `fundos.json`, conta, roda os problemas do catálogo e confere que a folha está à vista; na edição, cria uma peça e confere que "Recarregar" pede o segundo clique e então descarta (não grava nada em `diorama/catalogo`).
+- **Assets**: o registro e quantos estão sem id. **Problemas**: o diagnóstico inteiro. **Servidor**: os atributos de teste, a conferência do place e (edição) gravar e limpar `AcoesTeste` e `HoraTeste`, voltando ao que estava. **Suporte**: a lista de documentos e o `ESPECIFICACAO.md` inteiro e rolável. **Conexão**: `GET /status`.
 - Sem `ferramentas`, devolve também `studio`: as conferências dos itens 20 a 27 de `DUVIDAS.md`.
 
 Para testar uma mudança: `npm run plugin:compile`, esperar o Output mostrar o pacote novo e mandar o autoteste com `"remontar": true`.
+
+Comandos de diagnóstico (2026-10-20), para testar sem clicar:
+
+- `inspecionar { ferramenta?, profundidade? }`: os widgets (aberto, montado, instâncias), `pacotes_na_casca` (deve haver uma pasta só), `ao_parar` (o que o `parar` vai desfazer), os ouvintes do Output, as folhas locais carregadas, a memória Lua e a do Studio, o resumo do mapa aberto (com `tempos` da última abertura) e, com `ferramenta`, a árvore do widget com o número de descendentes de cada nó (os maiores primeiro).
+- `simular { ferramenta, acao, args? }`: chama a ação do painel como o clique chamaria (abre o widget antes). `acao: "acoes"` lista as de cada ferramenta. **Mapas**: `estado`, `aba`, `ferramenta {f}`, `camada {n}`, `terreno {codigo}`, `tile {folha, c, l, w?, h?}`, `pressionar/arrastar/soltar {x, y}`, `traco {x, y, por?: [[x, y], …]}`, `desfazer`, `refazer`, `pecas`, `peca {id, forma?}`, `marcador {acao: nascimento | nova_entrada | nova_saida | nova_zona | novo_morador | aplicar_entrada | aplicar_saida | aba | lista, …}`, `novo {id}`, `clicar_mapa {id}`, `salvar {pintar_durante?: [x, y]}`, `testar`, `parar_teste`, `aseprite`, `guardar_rascunho`, `reler_rascunhos`, `recuperar_rascunho`, `descartar_rascunho`, `esquecer_rascunho {mapa}`. **Catálogo**: `estado`, `criar_peca {folha?, c, l, w, h}`, `selecionar {id}`, `apagar_peca`, `recarregar`, `salvar_pecas`, `salvar_fundos`. **Servidor**: `aba {id}`, `output {contem?}`. **Problemas**: `rodar`. **Suporte**: `abrir {nome}`.
+- `ciclar_widget { ferramenta, vezes?, desmontar? }`: abre e fecha o widget (e desmonta o painel a cada volta, como numa recarga) e devolve as instâncias e a memória Lua antes e depois.
+
+Medido em 2026-10-20 no Studio de teste: abrir e fechar Mapas, Catálogo, Servidor e Assets 8 vezes com desmontagem deixa as mesmas instâncias e a memória Lua oscilando sem crescer; 5 recargas do pacote deixam uma pasta `Pacote_*` só e `ao_parar` igual. A conexão de cada atributo de teste ao Workspace (`fonteAtributo`) não saía na recarga e ficava viva presa ao pacote velho; agora sai pelo `aoParar`.

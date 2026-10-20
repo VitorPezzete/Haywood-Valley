@@ -23,6 +23,12 @@ const PREFIXO = "local://";
 /** O interruptor "Folhas locais" (guardado em plugin:SetSetting). */
 export const folhasLocais = source(false);
 
+/**
+ * A última folha que o Aseprite salvou (`recarregar_folhas` da ponte): com "Folhas locais" ligado ela já foi relida
+ * (`aplicada`); desligado, Mapas e Catálogo mostram um aviso com o botão para ligar.
+ */
+export const folhaSalva = source<{ folha: string; em: number; aplicada: boolean } | undefined>(undefined);
+
 /** As EditableImage de cada folha carregada: [metade 0, metade 1]. */
 const editaveis = new Map<string, [EditableImage, EditableImage]>();
 
