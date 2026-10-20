@@ -1,0 +1,5204 @@
+{
+	"versao": 1,
+	"nota": "Gerado por tools/recortes.py (etapa G do Diorama). Recortes RGBA com 1 pixel de folga em volta da área (o canto do recorte fica em (coluna × 16 − 1, linha × 16 − 1) da folha). Confiança = 1 − incertos / pixels da peça; incertos são os pixels que a limpeza e o contorno decidiram, não o casamento com o fundo. Partes: 0 é o contorno (fixo), −1 as cores pequenas demais para pintar (ficam na base), 1.. as pintáveis, com a máscara em cinza (branco = a cor escolhida cheia). Ver docs/diorama/RECORTES.md.",
+	"metodo": {
+		"nome": "final",
+		"deslocamento_livre": true,
+		"por_celula": true,
+		"uniao_global": true,
+		"inundar": true,
+		"paleta_casada": true,
+		"sombra": true,
+		"tolerancia_sombra": 24,
+		"tolerancia": 8,
+		"limpeza": true,
+		"contorno": "cantos",
+		"folga": true,
+		"minimo_celula": 8,
+		"candidatos": 6,
+		"ligado_a_borda": true,
+		"limiar_contorno": 44,
+		"prior": true,
+		"vantagem": 4,
+		"furo_max": 6,
+		"cisco_max": 4,
+		"escuro_max": 112
+	},
+	"gabarito": {
+		"pecas": {
+			"casa42": {
+				"pixels": 1156,
+				"iguais": 1156,
+				"taxa": 1.0,
+				"iou": 1.0,
+				"sobra": 0,
+				"falta": 0,
+				"cor": 0
+			},
+			"casa43": {
+				"pixels": 1156,
+				"iguais": 1156,
+				"taxa": 1.0,
+				"iou": 1.0,
+				"sobra": 0,
+				"falta": 0,
+				"cor": 0
+			},
+			"casa67": {
+				"pixels": 612,
+				"iguais": 610,
+				"taxa": 0.9967,
+				"iou": 0.9963,
+				"sobra": 2,
+				"falta": 0,
+				"cor": 0
+			}
+		},
+		"iguais": 2922,
+		"pixels": 2924,
+		"taxa": 0.9993
+	},
+	"sintetico": {
+		"casos": 98,
+		"iguais_media": 0.9972,
+		"iguais_min": 0.938,
+		"abaixo_de_99": [
+			{
+				"id": "torch",
+				"fundo": "xadrez_claro",
+				"iguais": 0.9883,
+				"iou": 0.9712
+			},
+			{
+				"id": "torch",
+				"fundo": "papel_azul",
+				"iguais": 0.9883,
+				"iou": 0.9706
+			},
+			{
+				"id": "lamp",
+				"fundo": "xadrez_claro",
+				"iguais": 0.9844,
+				"iou": 0.9355
+			},
+			{
+				"id": "casa9",
+				"fundo": "tabua",
+				"iguais": 0.9824,
+				"iou": 0.9814
+			},
+			{
+				"id": "casa10b",
+				"fundo": "tabua",
+				"iguais": 0.9883,
+				"iou": 0.9868
+			},
+			{
+				"id": "casa@1,0",
+				"fundo": "xadrez_claro",
+				"iguais": 0.9873,
+				"iou": 0.9675
+			},
+			{
+				"id": "casa@1,0",
+				"fundo": "papel_azul",
+				"iguais": 0.9834,
+				"iou": 0.9571
+			},
+			{
+				"id": "castelo@8,0",
+				"fundo": "laje_escura",
+				"iguais": 0.981,
+				"iou": 0.9214
+			},
+			{
+				"id": "castelo@8,0",
+				"fundo": "face_pedra",
+				"iguais": 0.938,
+				"iou": 0.7825
+			},
+			{
+				"id": "castelo@10,0",
+				"fundo": "laje_escura",
+				"iguais": 0.9873,
+				"iou": 0.9823
+			},
+			{
+				"id": "castelo@10,0",
+				"fundo": "face_pedra",
+				"iguais": 0.9595,
+				"iou": 0.9455
+			}
+		]
+	},
+	"evolucao": [
+		{
+			"passo": "1. tile de fundo alinhado à grade, um para a peça inteira",
+			"taxa": 0.8629,
+			"casa42": 0.8642,
+			"casa43": 0.8166,
+			"casa67": 0.9477,
+			"iou_final_media": 0.851,
+			"pecas_longe_do_final": 19
+		},
+		{
+			"passo": "2. textura de fundo com deslocamento em pixels",
+			"taxa": 0.8574,
+			"casa42": 0.8642,
+			"casa43": 0.8166,
+			"casa67": 0.9216,
+			"iou_final_media": 0.853,
+			"pecas_longe_do_final": 17
+		},
+		{
+			"passo": "3. + escolha por célula",
+			"taxa": 0.8574,
+			"casa42": 0.8642,
+			"casa43": 0.8166,
+			"casa67": 0.9216,
+			"iou_final_media": 0.837,
+			"pecas_longe_do_final": 20
+		},
+		{
+			"passo": "4. + inundar pelas cores da textura (tolerância 12)",
+			"taxa": 0.9709,
+			"casa42": 0.987,
+			"casa43": 0.9827,
+			"casa67": 0.9183,
+			"iou_final_media": 0.729,
+			"pecas_longe_do_final": 18
+		},
+		{
+			"passo": "5. + limpeza (ciscos e furos)",
+			"taxa": 0.9771,
+			"casa42": 0.987,
+			"casa43": 0.9827,
+			"casa67": 0.9477,
+			"iou_final_media": 0.731,
+			"pecas_longe_do_final": 18
+		},
+		{
+			"passo": "6. + folga com contorno onde a peça encosta na borda",
+			"taxa": 0.9942,
+			"casa42": 0.9957,
+			"casa43": 0.9913,
+			"casa67": 0.9967,
+			"iou_final_media": 0.731,
+			"pecas_longe_do_final": 18
+		},
+		{
+			"passo": "7. + contorno por fora (o escuro do piso colado na peça vira preto)",
+			"taxa": 0.9959,
+			"casa42": 1.0,
+			"casa43": 0.9913,
+			"casa67": 0.9967,
+			"iou_final_media": 0.764,
+			"pecas_longe_do_final": 16
+		},
+		{
+			"passo": "8. tolerância 20 (a sombra 3c1e18 do piso escuro)",
+			"taxa": 0.9993,
+			"casa42": 1.0,
+			"casa43": 1.0,
+			"casa67": 0.9967,
+			"iou_final_media": 0.746,
+			"pecas_longe_do_final": 16
+		},
+		{
+			"passo": "9. fundo ligado à borda, quase preto é contorno, inunda só pelas cores que casaram (tolerância 8), sem móveis vazios atrás, cadeira só no piso",
+			"taxa": 0.9925,
+			"casa42": 0.9913,
+			"casa43": 0.9913,
+			"casa67": 0.9967,
+			"iou_final_media": 0.994,
+			"pecas_longe_do_final": 0
+		},
+		{
+			"passo": "10. + sombra do piso colada no fundo (final)",
+			"taxa": 0.9993,
+			"casa42": 1.0,
+			"casa43": 1.0,
+			"casa67": 0.9967,
+			"iou_final_media": 1.0,
+			"pecas_longe_do_final": 0
+		}
+	],
+	"pecas": {
+		"chair": {
+			"folha": "casa",
+			"area": [
+				0,
+				20,
+				2,
+				2
+			],
+			"origem": "pecas.json",
+			"arquivo": "diorama/recortes/casa/chair.png",
+			"base": "diorama/recortes/casa/chair/base.png",
+			"folga": 1,
+			"tamanho": [
+				34,
+				34
+			],
+			"metodo": "final",
+			"fundos_atras": [
+				"piso"
+			],
+			"fundo": null,
+			"celulas_sem_fundo": 4,
+			"borda_aberta": 0.274,
+			"pixels_peca": 1060,
+			"confianca": 1.0,
+			"incertos": 0,
+			"incertos_xy": [],
+			"notas": [],
+			"partes": [
+				{
+					"n": 0,
+					"pintavel": false,
+					"pixels": 156,
+					"cor_media": "#010000",
+					"referencia": "#010000",
+					"rampa": [
+						"#010000",
+						"#120606"
+					]
+				},
+				{
+					"n": 1,
+					"pintavel": true,
+					"pixels": 904,
+					"cor_media": "#a35536",
+					"referencia": "#aa6d3c",
+					"rampa": [
+						"#3c180c",
+						"#5b300c",
+						"#5b3018",
+						"#673012",
+						"#793612",
+						"#974230",
+						"#a34830",
+						"#a35536",
+						"#aa553c",
+						"#aa6d3c"
+					],
+					"matiz": 54,
+					"arquivo": "diorama/recortes/casa/chair/parte_1.png",
+					"erro_volta_de": 7.53
+				}
+			]
+		},
+		"table": {
+			"folha": "casa",
+			"area": [
+				51,
+				20,
+				3,
+				4
+			],
+			"origem": "pecas.json",
+			"arquivo": "diorama/recortes/casa/table.png",
+			"base": "diorama/recortes/casa/table/base.png",
+			"folga": 1,
+			"tamanho": [
+				50,
+				66
+			],
+			"metodo": "final",
+			"fundos_atras": [
+				"parede",
+				"piso"
+			],
+			"fundo": null,
+			"celulas_sem_fundo": 12,
+			"borda_aberta": 0.918,
+			"pixels_peca": 3278,
+			"confianca": 1.0,
+			"incertos": 0,
+			"incertos_xy": [],
+			"notas": [],
+			"partes": [
+				{
+					"n": 0,
+					"pintavel": false,
+					"pixels": 317,
+					"cor_media": "#010000",
+					"referencia": "#010000",
+					"rampa": [
+						"#010000",
+						"#060000",
+						"#120606"
+					]
+				},
+				{
+					"n": 1,
+					"pintavel": true,
+					"pixels": 2961,
+					"cor_media": "#c2c3c6",
+					"referencia": "#e0e0e0",
+					"rampa": [
+						"#3c180c",
+						"#4e1e0c",
+						"#34363c",
+						"#5b300c",
+						"#5b3018",
+						"#6d2a06",
+						"#793612",
+						"#4e4a4a",
+						"#974230",
+						"#878787",
+						"#9a9d9a",
+						"#b5b5b5",
+						"#c2c3c6",
+						"#e0e0e0"
+					],
+					"arquivo": "diorama/recortes/casa/table/parte_1.png",
+					"erro_volta_de": 3.11
+				}
+			]
+		},
+		"pot": {
+			"folha": "casa",
+			"area": [
+				37,
+				20,
+				2,
+				2
+			],
+			"origem": "pecas.json",
+			"arquivo": "diorama/recortes/casa/pot.png",
+			"base": "diorama/recortes/casa/pot/base.png",
+			"folga": 1,
+			"tamanho": [
+				34,
+				34
+			],
+			"metodo": "final",
+			"fundos_atras": [
+				"parede",
+				"piso"
+			],
+			"fundo": {
+				"fundo": "diagonal_claro",
+				"deslocamento": [
+					32,
+					32
+				],
+				"iguais": 182
+			},
+			"celulas_sem_fundo": 0,
+			"borda_aberta": 0.081,
+			"pixels_peca": 693,
+			"confianca": 0.986,
+			"incertos": 10,
+			"incertos_xy": [
+				[
+					13,
+					3
+				],
+				[
+					20,
+					3
+				],
+				[
+					8,
+					8
+				],
+				[
+					25,
+					8
+				],
+				[
+					4,
+					12
+				],
+				[
+					29,
+					12
+				],
+				[
+					4,
+					26
+				],
+				[
+					29,
+					26
+				],
+				[
+					9,
+					31
+				],
+				[
+					24,
+					31
+				]
+			],
+			"notas": [],
+			"partes": [
+				{
+					"n": 0,
+					"pintavel": false,
+					"pixels": 134,
+					"cor_media": "#010000",
+					"referencia": "#010000",
+					"rampa": [
+						"#010000"
+					]
+				},
+				{
+					"n": 1,
+					"pintavel": true,
+					"pixels": 379,
+					"cor_media": "#644342",
+					"referencia": "#8c5b4a",
+					"rampa": [
+						"#2e2814",
+						"#553031",
+						"#644342",
+						"#8c5b4a"
+					],
+					"matiz": 45,
+					"arquivo": "diorama/recortes/casa/pot/parte_1.png",
+					"erro_volta_de": 5.0
+				},
+				{
+					"n": 2,
+					"pintavel": true,
+					"pixels": 180,
+					"cor_media": "#bc9185",
+					"referencia": "#bc9185",
+					"rampa": [
+						"#9d796d",
+						"#bc9185"
+					],
+					"matiz": 42,
+					"arquivo": "diorama/recortes/casa/pot/parte_2.png",
+					"erro_volta_de": 0.47
+				}
+			]
+		},
+		"picture": {
+			"folha": "casa",
+			"area": [
+				75,
+				24,
+				3,
+				3
+			],
+			"origem": "pecas.json",
+			"arquivo": "diorama/recortes/casa/picture.png",
+			"base": "diorama/recortes/casa/picture/base.png",
+			"folga": 1,
+			"tamanho": [
+				50,
+				50
+			],
+			"metodo": "final",
+			"fundos_atras": [
+				"parede",
+				"piso"
+			],
+			"fundo": {
+				"fundo": "papel_azul#1",
+				"deslocamento": [
+					16,
+					0
+				],
+				"iguais": 365
+			},
+			"celulas_sem_fundo": 1,
+			"borda_aberta": 0.0,
+			"pixels_peca": 1918,
+			"confianca": 1.0,
+			"incertos": 0,
+			"incertos_xy": [],
+			"notas": [],
+			"partes": [
+				{
+					"n": 0,
+					"pintavel": false,
+					"pixels": 500,
+					"cor_media": "#010000",
+					"referencia": "#010000",
+					"rampa": [
+						"#010000",
+						"#262527",
+						"#2a1812"
+					]
+				},
+				{
+					"n": 1,
+					"pintavel": true,
+					"pixels": 490,
+					"cor_media": "#7f4230",
+					"referencia": "#7f4230",
+					"rampa": [
+						"#7f4230",
+						"#c45b43"
+					],
+					"matiz": 43,
+					"arquivo": "diorama/recortes/casa/picture/parte_1.png",
+					"erro_volta_de": 0.1
+				},
+				{
+					"n": 2,
+					"pintavel": true,
+					"pixels": 394,
+					"cor_media": "#4b7e52",
+					"referencia": "#6daa73",
+					"rampa": [
+						"#3c4e34",
+						"#4b7e52",
+						"#6daa73"
+					],
+					"matiz": 145,
+					"arquivo": "diorama/recortes/casa/picture/parte_2.png",
+					"erro_volta_de": 3.39
+				},
+				{
+					"n": 3,
+					"pintavel": true,
+					"pixels": 322,
+					"cor_media": "#f8aa6c",
+					"referencia": "#f8aa6c",
+					"rampa": [
+						"#f8aa6c"
+					],
+					"matiz": 63,
+					"arquivo": "diorama/recortes/casa/picture/parte_3.png",
+					"erro_volta_de": 0.0
+				},
+				{
+					"n": 4,
+					"pintavel": true,
+					"pixels": 86,
+					"cor_media": "#e08b55",
+					"referencia": "#e08b55",
+					"rampa": [
+						"#e08b55"
+					],
+					"matiz": 57,
+					"arquivo": "diorama/recortes/casa/picture/parte_4.png",
+					"erro_volta_de": 0.0
+				},
+				{
+					"n": 5,
+					"pintavel": true,
+					"pixels": 60,
+					"cor_media": "#b76820",
+					"referencia": "#b76820",
+					"rampa": [
+						"#b76820"
+					],
+					"matiz": 63,
+					"arquivo": "diorama/recortes/casa/picture/parte_5.png",
+					"erro_volta_de": 0.0
+				},
+				{
+					"n": 6,
+					"pintavel": true,
+					"pixels": 48,
+					"cor_media": "#a4d6b7",
+					"referencia": "#a4d6b7",
+					"rampa": [
+						"#a4d6b7"
+					],
+					"matiz": 156,
+					"arquivo": "diorama/recortes/casa/picture/parte_6.png",
+					"erro_volta_de": 0.0
+				},
+				{
+					"n": -1,
+					"pintavel": false,
+					"pixels": 18,
+					"cor_media": "#f7f7f7",
+					"referencia": "#f7f7f7",
+					"rampa": [
+						"#f7f7f7"
+					]
+				}
+			]
+		},
+		"window": {
+			"folha": "casa",
+			"area": [
+				40,
+				25,
+				3,
+				3
+			],
+			"origem": "pecas.json",
+			"arquivo": "diorama/recortes/casa/window.png",
+			"base": "diorama/recortes/casa/window/base.png",
+			"folga": 1,
+			"tamanho": [
+				50,
+				50
+			],
+			"metodo": "final",
+			"fundos_atras": [
+				"parede",
+				"piso"
+			],
+			"fundo": {
+				"fundo": "papel_azul#1",
+				"deslocamento": [
+					0,
+					0
+				],
+				"iguais": 243
+			},
+			"celulas_sem_fundo": 1,
+			"borda_aberta": 0.0,
+			"pixels_peca": 1932,
+			"confianca": 1.0,
+			"incertos": 0,
+			"incertos_xy": [],
+			"notas": [],
+			"partes": [
+				{
+					"n": 0,
+					"pintavel": false,
+					"pixels": 430,
+					"cor_media": "#010000",
+					"referencia": "#010000",
+					"rampa": [
+						"#010000",
+						"#2a1812"
+					]
+				},
+				{
+					"n": 1,
+					"pintavel": true,
+					"pixels": 962,
+					"cor_media": "#7f4230",
+					"referencia": "#e08b55",
+					"rampa": [
+						"#553018",
+						"#7f4230",
+						"#c45b43",
+						"#e08b55"
+					],
+					"matiz": 49,
+					"arquivo": "diorama/recortes/casa/window/parte_1.png",
+					"erro_volta_de": 6.07
+				},
+				{
+					"n": 2,
+					"pintavel": true,
+					"pixels": 540,
+					"cor_media": "#fdffff",
+					"referencia": "#fdffff",
+					"rampa": [
+						"#d8d8d8",
+						"#fdffff"
+					],
+					"arquivo": "diorama/recortes/casa/window/parte_2.png",
+					"erro_volta_de": 0.02
+				}
+			]
+		},
+		"shelf": {
+			"folha": "casa",
+			"area": [
+				51,
+				30,
+				4,
+				2
+			],
+			"origem": "pecas.json",
+			"arquivo": "diorama/recortes/casa/shelf.png",
+			"base": "diorama/recortes/casa/shelf/base.png",
+			"folga": 1,
+			"tamanho": [
+				66,
+				34
+			],
+			"metodo": "final",
+			"fundos_atras": [
+				"parede",
+				"piso"
+			],
+			"fundo": null,
+			"celulas_sem_fundo": 8,
+			"borda_aberta": 0.191,
+			"pixels_peca": 2084,
+			"confianca": 1.0,
+			"incertos": 0,
+			"incertos_xy": [],
+			"notas": [],
+			"partes": [
+				{
+					"n": 0,
+					"pintavel": false,
+					"pixels": 637,
+					"cor_media": "#010000",
+					"referencia": "#010000",
+					"rampa": [
+						"#010000",
+						"#060008",
+						"#120606",
+						"#1b0603"
+					]
+				},
+				{
+					"n": 1,
+					"pintavel": true,
+					"pixels": 1015,
+					"cor_media": "#79361e",
+					"referencia": "#aa553c",
+					"rampa": [
+						"#3c180c",
+						"#5b3018",
+						"#79361e",
+						"#aa553c"
+					],
+					"matiz": 48,
+					"arquivo": "diorama/recortes/casa/shelf/parte_1.png",
+					"erro_volta_de": 4.08
+				},
+				{
+					"n": 2,
+					"pintavel": true,
+					"pixels": 138,
+					"cor_media": "#005670",
+					"referencia": "#2cacb0",
+					"rampa": [
+						"#022a37",
+						"#003c42",
+						"#005670",
+						"#2cacb0"
+					],
+					"matiz": 233,
+					"arquivo": "diorama/recortes/casa/shelf/parte_2.png",
+					"erro_volta_de": 11.33
+				},
+				{
+					"n": 3,
+					"pintavel": true,
+					"pixels": 138,
+					"cor_media": "#00550c",
+					"referencia": "#69d470",
+					"rampa": [
+						"#103c05",
+						"#00550c",
+						"#186f28",
+						"#69d470"
+					],
+					"matiz": 140,
+					"arquivo": "diorama/recortes/casa/shelf/parte_3.png",
+					"erro_volta_de": 19.23
+				},
+				{
+					"n": 4,
+					"pintavel": true,
+					"pixels": 130,
+					"cor_media": "#783c00",
+					"referencia": "#9d5500",
+					"rampa": [
+						"#5b1e00",
+						"#783c00",
+						"#9d5500"
+					],
+					"matiz": 60,
+					"arquivo": "diorama/recortes/casa/shelf/parte_4.png",
+					"erro_volta_de": 4.54
+				},
+				{
+					"n": -1,
+					"pintavel": false,
+					"pixels": 26,
+					"cor_media": "#a3f2f2",
+					"referencia": "#a3f2f2",
+					"rampa": [
+						"#a3f2f2",
+						"#d1fed8",
+						"#dabc36",
+						"#ffff98"
+					]
+				}
+			]
+		},
+		"bed": {
+			"folha": "casa",
+			"area": [
+				4,
+				24,
+				4,
+				6
+			],
+			"origem": "pecas.json",
+			"arquivo": "diorama/recortes/casa/bed.png",
+			"base": "diorama/recortes/casa/bed/base.png",
+			"folga": 1,
+			"tamanho": [
+				66,
+				98
+			],
+			"metodo": "final",
+			"fundos_atras": [
+				"parede",
+				"piso"
+			],
+			"fundo": {
+				"fundo": "tabua",
+				"deslocamento": [
+					32,
+					16
+				],
+				"iguais": 90
+			},
+			"celulas_sem_fundo": 20,
+			"borda_aberta": 0.07,
+			"pixels_peca": 6000,
+			"confianca": 0.999,
+			"incertos": 8,
+			"incertos_xy": [
+				[
+					13,
+					3
+				],
+				[
+					52,
+					3
+				],
+				[
+					15,
+					95
+				],
+				[
+					16,
+					95
+				],
+				[
+					49,
+					95
+				],
+				[
+					50,
+					95
+				],
+				[
+					13,
+					96
+				],
+				[
+					52,
+					96
+				]
+			],
+			"notas": [],
+			"partes": [
+				{
+					"n": 0,
+					"pintavel": false,
+					"pixels": 1268,
+					"cor_media": "#010000",
+					"referencia": "#010000",
+					"rampa": [
+						"#010000",
+						"#0c0500",
+						"#180c0c",
+						"#1b0603",
+						"#1e110c",
+						"#2a1812"
+					]
+				},
+				{
+					"n": 1,
+					"pintavel": true,
+					"pixels": 2350,
+					"cor_media": "#b06da3",
+					"referencia": "#b06da3",
+					"rampa": [
+						"#733655",
+						"#8b4873",
+						"#b06da3"
+					],
+					"matiz": 336,
+					"arquivo": "diorama/recortes/casa/bed/parte_1.png",
+					"erro_volta_de": 2.83
+				},
+				{
+					"n": 2,
+					"pintavel": true,
+					"pixels": 1421,
+					"cor_media": "#553018",
+					"referencia": "#c45b43",
+					"rampa": [
+						"#30120c",
+						"#3c1e18",
+						"#553018",
+						"#553031",
+						"#793c18",
+						"#7f4230",
+						"#c45b43"
+					],
+					"matiz": 49,
+					"arquivo": "diorama/recortes/casa/bed/parte_2.png",
+					"erro_volta_de": 8.11
+				},
+				{
+					"n": 3,
+					"pintavel": true,
+					"pixels": 659,
+					"cor_media": "#fdffff",
+					"referencia": "#fdffff",
+					"rampa": [
+						"#34363c",
+						"#a3a3aa",
+						"#fdffff"
+					],
+					"arquivo": "diorama/recortes/casa/bed/parte_3.png",
+					"erro_volta_de": 0.67
+				},
+				{
+					"n": 4,
+					"pintavel": true,
+					"pixels": 262,
+					"cor_media": "#e08b55",
+					"referencia": "#e08b55",
+					"rampa": [
+						"#e08b55"
+					],
+					"matiz": 57,
+					"arquivo": "diorama/recortes/casa/bed/parte_4.png",
+					"erro_volta_de": 0.0
+				},
+				{
+					"n": -1,
+					"pintavel": false,
+					"pixels": 40,
+					"cor_media": "#605b6d",
+					"referencia": "#605b6d",
+					"rampa": [
+						"#605b6d"
+					]
+				}
+			]
+		},
+		"torch": {
+			"folha": "casa",
+			"area": [
+				1,
+				0,
+				1,
+				1
+			],
+			"origem": "pecas.json",
+			"arquivo": "diorama/recortes/casa/torch.png",
+			"base": "diorama/recortes/casa/torch/base.png",
+			"folga": 1,
+			"tamanho": [
+				18,
+				18
+			],
+			"metodo": "final",
+			"fundos_atras": [
+				"parede",
+				"piso"
+			],
+			"fundo": {
+				"fundo": "papel_azul",
+				"deslocamento": [
+					16,
+					5
+				],
+				"iguais": 153
+			},
+			"celulas_sem_fundo": 0,
+			"borda_aberta": 0.1,
+			"pixels_peca": 107,
+			"confianca": 0.981,
+			"incertos": 2,
+			"incertos_xy": [
+				[
+					3,
+					13
+				],
+				[
+					14,
+					13
+				]
+			],
+			"notas": [],
+			"partes": [
+				{
+					"n": 0,
+					"pintavel": false,
+					"pixels": 18,
+					"cor_media": "#010000",
+					"referencia": "#010000",
+					"rampa": [
+						"#010000",
+						"#2a1812"
+					]
+				},
+				{
+					"n": 1,
+					"pintavel": true,
+					"pixels": 32,
+					"cor_media": "#ffa400",
+					"referencia": "#ffa400",
+					"rampa": [
+						"#ff9000",
+						"#ffa400"
+					],
+					"matiz": 70,
+					"arquivo": "diorama/recortes/casa/torch/parte_1.png",
+					"erro_volta_de": 4.88
+				},
+				{
+					"n": 2,
+					"pintavel": true,
+					"pixels": 22,
+					"cor_media": "#ffff12",
+					"referencia": "#ffff12",
+					"rampa": [
+						"#ffff12"
+					],
+					"matiz": 103,
+					"arquivo": "diorama/recortes/casa/torch/parte_2.png",
+					"erro_volta_de": 0.0
+				},
+				{
+					"n": 3,
+					"pintavel": true,
+					"pixels": 15,
+					"cor_media": "#d9260f",
+					"referencia": "#d9260f",
+					"rampa": [
+						"#d9260f"
+					],
+					"matiz": 40,
+					"arquivo": "diorama/recortes/casa/torch/parte_3.png",
+					"erro_volta_de": 0.0
+				},
+				{
+					"n": 4,
+					"pintavel": true,
+					"pixels": 12,
+					"cor_media": "#b86e4d",
+					"referencia": "#e08b55",
+					"rampa": [
+						"#7f4230",
+						"#b86e4d",
+						"#e08b55"
+					],
+					"matiz": 50,
+					"arquivo": "diorama/recortes/casa/torch/parte_4.png",
+					"erro_volta_de": 5.42
+				},
+				{
+					"n": 5,
+					"pintavel": true,
+					"pixels": 6,
+					"cor_media": "#fdffff",
+					"referencia": "#fdffff",
+					"rampa": [
+						"#fdffff"
+					],
+					"arquivo": "diorama/recortes/casa/torch/parte_5.png",
+					"erro_volta_de": 0.0
+				},
+				{
+					"n": -1,
+					"pintavel": false,
+					"pixels": 2,
+					"cor_media": "#113b73",
+					"referencia": "#113b73",
+					"rampa": [
+						"#113b73"
+					]
+				}
+			]
+		},
+		"lamp": {
+			"folha": "casa",
+			"area": [
+				64,
+				31,
+				1,
+				1
+			],
+			"origem": "pecas.json",
+			"arquivo": "diorama/recortes/casa/lamp.png",
+			"base": "diorama/recortes/casa/lamp/base.png",
+			"folga": 1,
+			"tamanho": [
+				18,
+				18
+			],
+			"metodo": "final",
+			"fundos_atras": [
+				"parede",
+				"piso"
+			],
+			"fundo": {
+				"fundo": "papel_amarelo",
+				"deslocamento": [
+					0,
+					17
+				],
+				"iguais": 190
+			},
+			"celulas_sem_fundo": 0,
+			"borda_aberta": 0.1,
+			"pixels_peca": 68,
+			"confianca": 1.0,
+			"incertos": 0,
+			"incertos_xy": [],
+			"notas": [],
+			"partes": [
+				{
+					"n": 0,
+					"pintavel": false,
+					"pixels": 24,
+					"cor_media": "#010000",
+					"referencia": "#010000",
+					"rampa": [
+						"#010000",
+						"#19181b"
+					]
+				},
+				{
+					"n": 1,
+					"pintavel": true,
+					"pixels": 38,
+					"cor_media": "#b5b5b5",
+					"referencia": "#fdffff",
+					"rampa": [
+						"#575757",
+						"#b5b5b5",
+						"#d8d8d8",
+						"#fdffff"
+					],
+					"arquivo": "diorama/recortes/casa/lamp/parte_1.png",
+					"erro_volta_de": 0.39
+				},
+				{
+					"n": -1,
+					"pintavel": false,
+					"pixels": 6,
+					"cor_media": "#00550c",
+					"referencia": "#00550c",
+					"rampa": [
+						"#00550c",
+						"#186f28",
+						"#483c1e"
+					]
+				}
+			]
+		},
+		"casa@0,24": {
+			"folha": "casa",
+			"area": [
+				0,
+				24,
+				4,
+				6
+			],
+			"origem": "pecas.json",
+			"arquivo": "diorama/recortes/casa/casa_0_24.png",
+			"base": "diorama/recortes/casa/casa_0_24/base.png",
+			"folga": 1,
+			"tamanho": [
+				66,
+				98
+			],
+			"metodo": "final",
+			"fundos_atras": [
+				"parede",
+				"piso"
+			],
+			"fundo": {
+				"fundo": "tabua",
+				"deslocamento": [
+					32,
+					16
+				],
+				"iguais": 90
+			},
+			"celulas_sem_fundo": 20,
+			"borda_aberta": 0.07,
+			"pixels_peca": 6000,
+			"confianca": 0.999,
+			"incertos": 8,
+			"incertos_xy": [
+				[
+					13,
+					3
+				],
+				[
+					52,
+					3
+				],
+				[
+					15,
+					95
+				],
+				[
+					16,
+					95
+				],
+				[
+					49,
+					95
+				],
+				[
+					50,
+					95
+				],
+				[
+					13,
+					96
+				],
+				[
+					52,
+					96
+				]
+			],
+			"notas": [],
+			"partes": [
+				{
+					"n": 0,
+					"pintavel": false,
+					"pixels": 912,
+					"cor_media": "#010000",
+					"referencia": "#010000",
+					"rampa": [
+						"#010000",
+						"#0c0500",
+						"#0c1618",
+						"#1b0603",
+						"#1e110c",
+						"#2a1812"
+					]
+				},
+				{
+					"n": 1,
+					"pintavel": true,
+					"pixels": 2610,
+					"cor_media": "#488b67",
+					"referencia": "#6daa73",
+					"rampa": [
+						"#2a5542",
+						"#346f4e",
+						"#488b67",
+						"#6daa73"
+					],
+					"matiz": 149,
+					"arquivo": "diorama/recortes/casa/casa_0_24/parte_1.png",
+					"erro_volta_de": 2.83
+				},
+				{
+					"n": 2,
+					"pintavel": true,
+					"pixels": 818,
+					"cor_media": "#3c1e18",
+					"referencia": "#553018",
+					"rampa": [
+						"#30120c",
+						"#3c1e18",
+						"#553018"
+					],
+					"matiz": 46,
+					"arquivo": "diorama/recortes/casa/casa_0_24/parte_2.png",
+					"erro_volta_de": 4.45
+				},
+				{
+					"n": 3,
+					"pintavel": true,
+					"pixels": 699,
+					"cor_media": "#553018",
+					"referencia": "#c45b43",
+					"rampa": [
+						"#30120c",
+						"#3c1e18",
+						"#553018",
+						"#793c18",
+						"#7f4230",
+						"#c45b43"
+					],
+					"matiz": 52,
+					"arquivo": "diorama/recortes/casa/casa_0_24/parte_3.png",
+					"erro_volta_de": 7.3
+				},
+				{
+					"n": 4,
+					"pintavel": true,
+					"pixels": 659,
+					"cor_media": "#fdffff",
+					"referencia": "#fdffff",
+					"rampa": [
+						"#34363c",
+						"#a3a3aa",
+						"#fdffff"
+					],
+					"arquivo": "diorama/recortes/casa/casa_0_24/parte_4.png",
+					"erro_volta_de": 0.67
+				},
+				{
+					"n": 5,
+					"pintavel": true,
+					"pixels": 262,
+					"cor_media": "#e08b55",
+					"referencia": "#e08b55",
+					"rampa": [
+						"#e08b55"
+					],
+					"matiz": 57,
+					"arquivo": "diorama/recortes/casa/casa_0_24/parte_5.png",
+					"erro_volta_de": 0.0
+				},
+				{
+					"n": -1,
+					"pintavel": false,
+					"pixels": 40,
+					"cor_media": "#605b6d",
+					"referencia": "#605b6d",
+					"rampa": [
+						"#605b6d"
+					]
+				}
+			]
+		},
+		"casa@4,24": {
+			"folha": "casa",
+			"area": [
+				4,
+				24,
+				4,
+				6
+			],
+			"origem": "pecas.json",
+			"arquivo": "diorama/recortes/casa/casa_4_24.png",
+			"base": "diorama/recortes/casa/casa_4_24/base.png",
+			"folga": 1,
+			"tamanho": [
+				66,
+				98
+			],
+			"metodo": "final",
+			"fundos_atras": [
+				"parede",
+				"piso"
+			],
+			"fundo": {
+				"fundo": "tabua",
+				"deslocamento": [
+					32,
+					16
+				],
+				"iguais": 90
+			},
+			"celulas_sem_fundo": 20,
+			"borda_aberta": 0.07,
+			"pixels_peca": 6000,
+			"confianca": 0.999,
+			"incertos": 8,
+			"incertos_xy": [
+				[
+					13,
+					3
+				],
+				[
+					52,
+					3
+				],
+				[
+					15,
+					95
+				],
+				[
+					16,
+					95
+				],
+				[
+					49,
+					95
+				],
+				[
+					50,
+					95
+				],
+				[
+					13,
+					96
+				],
+				[
+					52,
+					96
+				]
+			],
+			"notas": [],
+			"partes": [
+				{
+					"n": 0,
+					"pintavel": false,
+					"pixels": 1268,
+					"cor_media": "#010000",
+					"referencia": "#010000",
+					"rampa": [
+						"#010000",
+						"#0c0500",
+						"#180c0c",
+						"#1b0603",
+						"#1e110c",
+						"#2a1812"
+					]
+				},
+				{
+					"n": 1,
+					"pintavel": true,
+					"pixels": 2350,
+					"cor_media": "#b06da3",
+					"referencia": "#b06da3",
+					"rampa": [
+						"#733655",
+						"#8b4873",
+						"#b06da3"
+					],
+					"matiz": 336,
+					"arquivo": "diorama/recortes/casa/casa_4_24/parte_1.png",
+					"erro_volta_de": 2.83
+				},
+				{
+					"n": 2,
+					"pintavel": true,
+					"pixels": 1421,
+					"cor_media": "#553018",
+					"referencia": "#c45b43",
+					"rampa": [
+						"#30120c",
+						"#3c1e18",
+						"#553018",
+						"#553031",
+						"#793c18",
+						"#7f4230",
+						"#c45b43"
+					],
+					"matiz": 49,
+					"arquivo": "diorama/recortes/casa/casa_4_24/parte_2.png",
+					"erro_volta_de": 8.11
+				},
+				{
+					"n": 3,
+					"pintavel": true,
+					"pixels": 659,
+					"cor_media": "#fdffff",
+					"referencia": "#fdffff",
+					"rampa": [
+						"#34363c",
+						"#a3a3aa",
+						"#fdffff"
+					],
+					"arquivo": "diorama/recortes/casa/casa_4_24/parte_3.png",
+					"erro_volta_de": 0.67
+				},
+				{
+					"n": 4,
+					"pintavel": true,
+					"pixels": 262,
+					"cor_media": "#e08b55",
+					"referencia": "#e08b55",
+					"rampa": [
+						"#e08b55"
+					],
+					"matiz": 57,
+					"arquivo": "diorama/recortes/casa/casa_4_24/parte_4.png",
+					"erro_volta_de": 0.0
+				},
+				{
+					"n": -1,
+					"pintavel": false,
+					"pixels": 40,
+					"cor_media": "#605b6d",
+					"referencia": "#605b6d",
+					"rampa": [
+						"#605b6d"
+					]
+				}
+			],
+			"mesma_area_que": "bed"
+		},
+		"casa8": {
+			"folha": "casa",
+			"area": [
+				0,
+				20,
+				2,
+				2
+			],
+			"origem": "pecas.json",
+			"arquivo": "diorama/recortes/casa/casa8.png",
+			"base": "diorama/recortes/casa/casa8/base.png",
+			"folga": 1,
+			"tamanho": [
+				34,
+				34
+			],
+			"metodo": "final",
+			"fundos_atras": [
+				"piso"
+			],
+			"fundo": null,
+			"celulas_sem_fundo": 4,
+			"borda_aberta": 0.274,
+			"pixels_peca": 1060,
+			"confianca": 1.0,
+			"incertos": 0,
+			"incertos_xy": [],
+			"notas": [],
+			"partes": [
+				{
+					"n": 0,
+					"pintavel": false,
+					"pixels": 156,
+					"cor_media": "#010000",
+					"referencia": "#010000",
+					"rampa": [
+						"#010000",
+						"#120606"
+					]
+				},
+				{
+					"n": 1,
+					"pintavel": true,
+					"pixels": 904,
+					"cor_media": "#a35536",
+					"referencia": "#aa6d3c",
+					"rampa": [
+						"#3c180c",
+						"#5b300c",
+						"#5b3018",
+						"#673012",
+						"#793612",
+						"#974230",
+						"#a34830",
+						"#a35536",
+						"#aa553c",
+						"#aa6d3c"
+					],
+					"matiz": 54,
+					"arquivo": "diorama/recortes/casa/casa8/parte_1.png",
+					"erro_volta_de": 7.53
+				}
+			],
+			"mesma_area_que": "chair"
+		},
+		"casa9": {
+			"folha": "casa",
+			"area": [
+				2,
+				20,
+				1,
+				2
+			],
+			"origem": "pecas.json",
+			"arquivo": "diorama/recortes/casa/casa9.png",
+			"base": "diorama/recortes/casa/casa9/base.png",
+			"folga": 1,
+			"tamanho": [
+				18,
+				34
+			],
+			"metodo": "final",
+			"fundos_atras": [
+				"piso"
+			],
+			"fundo": {
+				"fundo": "tabua",
+				"deslocamento": [
+					20,
+					38
+				],
+				"iguais": 10
+			},
+			"celulas_sem_fundo": 1,
+			"borda_aberta": 0.674,
+			"pixels_peca": 548,
+			"confianca": 0.998,
+			"incertos": 1,
+			"incertos_xy": [
+				[
+					8,
+					30
+				]
+			],
+			"notas": [],
+			"partes": [
+				{
+					"n": 0,
+					"pintavel": false,
+					"pixels": 109,
+					"cor_media": "#010000",
+					"referencia": "#010000",
+					"rampa": [
+						"#010000",
+						"#120606"
+					]
+				},
+				{
+					"n": 1,
+					"pintavel": true,
+					"pixels": 439,
+					"cor_media": "#a35536",
+					"referencia": "#b66d42",
+					"rampa": [
+						"#3c180c",
+						"#5b3018",
+						"#673012",
+						"#793612",
+						"#7f360c",
+						"#974230",
+						"#a34830",
+						"#a35536",
+						"#aa553c",
+						"#aa6d3c",
+						"#b66d42"
+					],
+					"matiz": 54,
+					"arquivo": "diorama/recortes/casa/casa9/parte_1.png",
+					"erro_volta_de": 6.23
+				}
+			]
+		},
+		"casa10a": {
+			"folha": "casa",
+			"area": [
+				0,
+				22,
+				2,
+				1
+			],
+			"origem": "pecas.json",
+			"arquivo": "diorama/recortes/casa/casa10a.png",
+			"base": "diorama/recortes/casa/casa10a/base.png",
+			"folga": 1,
+			"tamanho": [
+				34,
+				18
+			],
+			"metodo": "final",
+			"fundos_atras": [
+				"piso"
+			],
+			"fundo": {
+				"fundo": "xadrez_claro",
+				"deslocamento": [
+					0,
+					15
+				],
+				"iguais": 33
+			},
+			"celulas_sem_fundo": 0,
+			"borda_aberta": 0.37,
+			"pixels_peca": 484,
+			"confianca": 0.994,
+			"incertos": 3,
+			"incertos_xy": [
+				[
+					1,
+					13
+				],
+				[
+					1,
+					14
+				],
+				[
+					17,
+					16
+				]
+			],
+			"notas": [],
+			"partes": [
+				{
+					"n": 0,
+					"pintavel": false,
+					"pixels": 96,
+					"cor_media": "#010000",
+					"referencia": "#010000",
+					"rampa": [
+						"#010000",
+						"#120606"
+					]
+				},
+				{
+					"n": 1,
+					"pintavel": true,
+					"pixels": 386,
+					"cor_media": "#a35536",
+					"referencia": "#aa6d3c",
+					"rampa": [
+						"#3c180c",
+						"#5b3018",
+						"#974230",
+						"#a35536",
+						"#aa6d3c"
+					],
+					"matiz": 53,
+					"arquivo": "diorama/recortes/casa/casa10a/parte_1.png",
+					"erro_volta_de": 7.18
+				},
+				{
+					"n": -1,
+					"pintavel": false,
+					"pixels": 2,
+					"cor_media": "#9a9d9a",
+					"referencia": "#9a9d9a",
+					"rampa": [
+						"#9a9d9a"
+					]
+				}
+			]
+		},
+		"casa10b": {
+			"folha": "casa",
+			"area": [
+				0,
+				23,
+				2,
+				1
+			],
+			"origem": "pecas.json",
+			"arquivo": "diorama/recortes/casa/casa10b.png",
+			"base": "diorama/recortes/casa/casa10b/base.png",
+			"folga": 1,
+			"tamanho": [
+				34,
+				18
+			],
+			"metodo": "final",
+			"fundos_atras": [
+				"piso"
+			],
+			"fundo": {
+				"fundo": "xadrez_escuro",
+				"deslocamento": [
+					0,
+					15
+				],
+				"iguais": 33
+			},
+			"celulas_sem_fundo": 0,
+			"borda_aberta": 0.391,
+			"pixels_peca": 489,
+			"confianca": 0.992,
+			"incertos": 4,
+			"incertos_xy": [
+				[
+					1,
+					13
+				],
+				[
+					1,
+					14
+				],
+				[
+					1,
+					16
+				],
+				[
+					17,
+					16
+				]
+			],
+			"notas": [],
+			"partes": [
+				{
+					"n": 0,
+					"pintavel": false,
+					"pixels": 99,
+					"cor_media": "#010000",
+					"referencia": "#010000",
+					"rampa": [
+						"#010000",
+						"#120606"
+					]
+				},
+				{
+					"n": 1,
+					"pintavel": true,
+					"pixels": 386,
+					"cor_media": "#a35536",
+					"referencia": "#aa6d3c",
+					"rampa": [
+						"#3c180c",
+						"#5b3018",
+						"#974230",
+						"#a35536",
+						"#aa6d3c"
+					],
+					"matiz": 53,
+					"arquivo": "diorama/recortes/casa/casa10b/parte_1.png",
+					"erro_volta_de": 7.18
+				},
+				{
+					"n": -1,
+					"pintavel": false,
+					"pixels": 4,
+					"cor_media": "#9a9d9a",
+					"referencia": "#9a9d9a",
+					"rampa": [
+						"#9a9d9a"
+					]
+				}
+			]
+		},
+		"casa11": {
+			"folha": "casa",
+			"area": [
+				2,
+				22,
+				1,
+				2
+			],
+			"origem": "pecas.json",
+			"arquivo": "diorama/recortes/casa/casa11.png",
+			"base": "diorama/recortes/casa/casa11/base.png",
+			"folga": 1,
+			"tamanho": [
+				18,
+				34
+			],
+			"metodo": "final",
+			"fundos_atras": [
+				"piso"
+			],
+			"fundo": {
+				"fundo": "tabua",
+				"deslocamento": [
+					13,
+					38
+				],
+				"iguais": 10
+			},
+			"celulas_sem_fundo": 1,
+			"borda_aberta": 0.598,
+			"pixels_peca": 531,
+			"confianca": 0.994,
+			"incertos": 3,
+			"incertos_xy": [
+				[
+					16,
+					28
+				],
+				[
+					9,
+					30
+				],
+				[
+					15,
+					30
+				]
+			],
+			"notas": [],
+			"partes": [
+				{
+					"n": 0,
+					"pintavel": false,
+					"pixels": 101,
+					"cor_media": "#010000",
+					"referencia": "#010000",
+					"rampa": [
+						"#010000",
+						"#120606"
+					]
+				},
+				{
+					"n": 1,
+					"pintavel": true,
+					"pixels": 430,
+					"cor_media": "#a35536",
+					"referencia": "#b66d42",
+					"rampa": [
+						"#3c180c",
+						"#5b3018",
+						"#673012",
+						"#974230",
+						"#a34830",
+						"#a35536",
+						"#aa553c",
+						"#aa6d3c",
+						"#b66d42"
+					],
+					"matiz": 54,
+					"arquivo": "diorama/recortes/casa/casa11/parte_1.png",
+					"erro_volta_de": 6.05
+				}
+			]
+		},
+		"castelo14": {
+			"folha": "castelo",
+			"area": [
+				0,
+				20,
+				2,
+				3
+			],
+			"origem": "pecas.json",
+			"arquivo": "diorama/recortes/castelo/castelo14.png",
+			"base": "diorama/recortes/castelo/castelo14/base.png",
+			"folga": 1,
+			"tamanho": [
+				34,
+				50
+			],
+			"metodo": "final",
+			"fundos_atras": [
+				"piso"
+			],
+			"fundo": {
+				"fundo": "marmore_losango",
+				"deslocamento": [
+					10,
+					17
+				],
+				"iguais": 31
+			},
+			"celulas_sem_fundo": 4,
+			"borda_aberta": 0.077,
+			"pixels_peca": 1480,
+			"confianca": 1.0,
+			"incertos": 0,
+			"incertos_xy": [],
+			"notas": [],
+			"partes": [
+				{
+					"n": 0,
+					"pintavel": false,
+					"pixels": 228,
+					"cor_media": "#010000",
+					"referencia": "#010000",
+					"rampa": [
+						"#010000",
+						"#101010",
+						"#111828"
+					]
+				},
+				{
+					"n": 1,
+					"pintavel": true,
+					"pixels": 438,
+					"cor_media": "#6e685e",
+					"referencia": "#696969",
+					"rampa": [
+						"#30302f",
+						"#6e685e",
+						"#696969"
+					],
+					"arquivo": "diorama/recortes/castelo/castelo14/parte_1.png",
+					"erro_volta_de": 4.31
+				},
+				{
+					"n": 2,
+					"pintavel": true,
+					"pixels": 374,
+					"cor_media": "#94653f",
+					"referencia": "#94653f",
+					"rampa": [
+						"#94653f"
+					],
+					"matiz": 63,
+					"arquivo": "diorama/recortes/castelo/castelo14/parte_2.png",
+					"erro_volta_de": 0.0
+				},
+				{
+					"n": 3,
+					"pintavel": true,
+					"pixels": 366,
+					"cor_media": "#9e9d85",
+					"referencia": "#acaa92",
+					"rampa": [
+						"#9e9d85",
+						"#acaa92"
+					],
+					"matiz": 107,
+					"arquivo": "diorama/recortes/castelo/castelo14/parte_3.png",
+					"erro_volta_de": 1.01
+				},
+				{
+					"n": 4,
+					"pintavel": true,
+					"pixels": 44,
+					"cor_media": "#935442",
+					"referencia": "#935442",
+					"rampa": [
+						"#673012",
+						"#8f4835",
+						"#935442"
+					],
+					"matiz": 43,
+					"arquivo": "diorama/recortes/castelo/castelo14/parte_4.png",
+					"erro_volta_de": 3.45
+				},
+				{
+					"n": 5,
+					"pintavel": true,
+					"pixels": 30,
+					"cor_media": "#31394d",
+					"referencia": "#31394d",
+					"rampa": [
+						"#31394d"
+					],
+					"matiz": 280,
+					"arquivo": "diorama/recortes/castelo/castelo14/parte_5.png",
+					"erro_volta_de": 0.0
+				}
+			]
+		},
+		"casa42": {
+			"folha": "casa",
+			"area": [
+				37,
+				20,
+				2,
+				2
+			],
+			"origem": "pecas.json",
+			"arquivo": "diorama/recortes/casa/casa42.png",
+			"base": "diorama/recortes/casa/casa42/base.png",
+			"folga": 1,
+			"tamanho": [
+				34,
+				34
+			],
+			"metodo": "final",
+			"fundos_atras": [
+				"parede",
+				"piso"
+			],
+			"fundo": {
+				"fundo": "diagonal_claro",
+				"deslocamento": [
+					32,
+					32
+				],
+				"iguais": 182
+			},
+			"celulas_sem_fundo": 0,
+			"borda_aberta": 0.081,
+			"pixels_peca": 693,
+			"confianca": 0.986,
+			"incertos": 10,
+			"incertos_xy": [
+				[
+					13,
+					3
+				],
+				[
+					20,
+					3
+				],
+				[
+					8,
+					8
+				],
+				[
+					25,
+					8
+				],
+				[
+					4,
+					12
+				],
+				[
+					29,
+					12
+				],
+				[
+					4,
+					26
+				],
+				[
+					29,
+					26
+				],
+				[
+					9,
+					31
+				],
+				[
+					24,
+					31
+				]
+			],
+			"notas": [],
+			"partes": [
+				{
+					"n": 0,
+					"pintavel": false,
+					"pixels": 134,
+					"cor_media": "#010000",
+					"referencia": "#010000",
+					"rampa": [
+						"#010000"
+					]
+				},
+				{
+					"n": 1,
+					"pintavel": true,
+					"pixels": 379,
+					"cor_media": "#644342",
+					"referencia": "#8c5b4a",
+					"rampa": [
+						"#2e2814",
+						"#553031",
+						"#644342",
+						"#8c5b4a"
+					],
+					"matiz": 45,
+					"arquivo": "diorama/recortes/casa/casa42/parte_1.png",
+					"erro_volta_de": 5.0
+				},
+				{
+					"n": 2,
+					"pintavel": true,
+					"pixels": 180,
+					"cor_media": "#bc9185",
+					"referencia": "#bc9185",
+					"rampa": [
+						"#9d796d",
+						"#bc9185"
+					],
+					"matiz": 42,
+					"arquivo": "diorama/recortes/casa/casa42/parte_2.png",
+					"erro_volta_de": 0.47
+				}
+			],
+			"mesma_area_que": "pot"
+		},
+		"casa43": {
+			"folha": "casa",
+			"area": [
+				37,
+				22,
+				2,
+				2
+			],
+			"origem": "pecas.json",
+			"arquivo": "diorama/recortes/casa/casa43.png",
+			"base": "diorama/recortes/casa/casa43/base.png",
+			"folga": 1,
+			"tamanho": [
+				34,
+				34
+			],
+			"metodo": "final",
+			"fundos_atras": [
+				"parede",
+				"piso"
+			],
+			"fundo": {
+				"fundo": "diagonal_escuro",
+				"deslocamento": [
+					63,
+					1
+				],
+				"iguais": 117
+			},
+			"celulas_sem_fundo": 1,
+			"borda_aberta": 0.081,
+			"pixels_peca": 693,
+			"confianca": 0.986,
+			"incertos": 10,
+			"incertos_xy": [
+				[
+					13,
+					3
+				],
+				[
+					20,
+					3
+				],
+				[
+					8,
+					8
+				],
+				[
+					25,
+					8
+				],
+				[
+					4,
+					12
+				],
+				[
+					29,
+					12
+				],
+				[
+					4,
+					26
+				],
+				[
+					29,
+					26
+				],
+				[
+					9,
+					31
+				],
+				[
+					24,
+					31
+				]
+			],
+			"notas": [],
+			"partes": [
+				{
+					"n": 0,
+					"pintavel": false,
+					"pixels": 134,
+					"cor_media": "#010000",
+					"referencia": "#010000",
+					"rampa": [
+						"#010000"
+					]
+				},
+				{
+					"n": 1,
+					"pintavel": true,
+					"pixels": 379,
+					"cor_media": "#644342",
+					"referencia": "#8c5b4a",
+					"rampa": [
+						"#2e2814",
+						"#553031",
+						"#644342",
+						"#8c5b4a"
+					],
+					"matiz": 45,
+					"arquivo": "diorama/recortes/casa/casa43/parte_1.png",
+					"erro_volta_de": 5.0
+				},
+				{
+					"n": 2,
+					"pintavel": true,
+					"pixels": 180,
+					"cor_media": "#bc9185",
+					"referencia": "#bc9185",
+					"rampa": [
+						"#9d796d",
+						"#bc9185"
+					],
+					"matiz": 42,
+					"arquivo": "diorama/recortes/casa/casa43/parte_2.png",
+					"erro_volta_de": 0.47
+				}
+			]
+		},
+		"casa67": {
+			"folha": "casa",
+			"area": [
+				54,
+				20,
+				2,
+				1
+			],
+			"origem": "pecas.json",
+			"arquivo": "diorama/recortes/casa/casa67.png",
+			"base": "diorama/recortes/casa/casa67/base.png",
+			"folga": 1,
+			"tamanho": [
+				34,
+				18
+			],
+			"metodo": "final",
+			"fundos_atras": [
+				"parede",
+				"piso"
+			],
+			"fundo": null,
+			"celulas_sem_fundo": 2,
+			"borda_aberta": 0.326,
+			"pixels_peca": 542,
+			"confianca": 1.0,
+			"incertos": 0,
+			"incertos_xy": [],
+			"notas": [],
+			"partes": [
+				{
+					"n": 0,
+					"pintavel": false,
+					"pixels": 209,
+					"cor_media": "#010000",
+					"referencia": "#010000",
+					"rampa": [
+						"#010000",
+						"#012507",
+						"#061103",
+						"#2a1812"
+					]
+				},
+				{
+					"n": 1,
+					"pintavel": true,
+					"pixels": 243,
+					"cor_media": "#e0975b",
+					"referencia": "#e0975b",
+					"rampa": [
+						"#7f4830",
+						"#b66d42",
+						"#b86e4d",
+						"#e0975b"
+					],
+					"matiz": 61,
+					"arquivo": "diorama/recortes/casa/casa67/parte_1.png",
+					"erro_volta_de": 1.65
+				},
+				{
+					"n": 2,
+					"pintavel": true,
+					"pixels": 85,
+					"cor_media": "#a0171b",
+					"referencia": "#c45b43",
+					"rampa": [
+						"#3c180c",
+						"#a0171b",
+						"#c45b43"
+					],
+					"matiz": 35,
+					"arquivo": "diorama/recortes/casa/casa67/parte_2.png",
+					"erro_volta_de": 19.74
+				},
+				{
+					"n": -1,
+					"pintavel": false,
+					"pixels": 5,
+					"cor_media": "#186f28",
+					"referencia": "#186f28",
+					"rampa": [
+						"#186f28",
+						"#36913c"
+					]
+				}
+			]
+		},
+		"casa46": {
+			"folha": "casa",
+			"area": [
+				45,
+				20,
+				2,
+				2
+			],
+			"origem": "pecas.json",
+			"arquivo": "diorama/recortes/casa/casa46.png",
+			"base": "diorama/recortes/casa/casa46/base.png",
+			"folga": 1,
+			"tamanho": [
+				34,
+				34
+			],
+			"metodo": "final",
+			"fundos_atras": [
+				"parede",
+				"piso"
+			],
+			"fundo": null,
+			"celulas_sem_fundo": 4,
+			"borda_aberta": 0.0,
+			"pixels_peca": 1024,
+			"confianca": 1.0,
+			"incertos": 0,
+			"incertos_xy": [],
+			"notas": [],
+			"partes": [
+				{
+					"n": 0,
+					"pintavel": false,
+					"pixels": 252,
+					"cor_media": "#010000",
+					"referencia": "#010000",
+					"rampa": [
+						"#010000"
+					]
+				},
+				{
+					"n": 1,
+					"pintavel": true,
+					"pixels": 424,
+					"cor_media": "#a30500",
+					"referencia": "#d9260f",
+					"rampa": [
+						"#550600",
+						"#79010b",
+						"#a30500",
+						"#d9260f"
+					],
+					"matiz": 40,
+					"arquivo": "diorama/recortes/casa/casa46/parte_1.png",
+					"erro_volta_de": 3.24
+				},
+				{
+					"n": 2,
+					"pintavel": true,
+					"pixels": 348,
+					"cor_media": "#9a9d9a",
+					"referencia": "#c2c3c6",
+					"rampa": [
+						"#34363c",
+						"#6d6d73",
+						"#9a9d9a",
+						"#c2c3c6"
+					],
+					"arquivo": "diorama/recortes/casa/casa46/parte_2.png",
+					"erro_volta_de": 1.63
+				}
+			]
+		},
+		"casa47": {
+			"folha": "casa",
+			"area": [
+				45,
+				22,
+				2,
+				2
+			],
+			"origem": "pecas.json",
+			"arquivo": "diorama/recortes/casa/casa47.png",
+			"base": "diorama/recortes/casa/casa47/base.png",
+			"folga": 1,
+			"tamanho": [
+				34,
+				34
+			],
+			"metodo": "final",
+			"fundos_atras": [
+				"parede",
+				"piso"
+			],
+			"fundo": null,
+			"celulas_sem_fundo": 4,
+			"borda_aberta": 0.0,
+			"pixels_peca": 1024,
+			"confianca": 1.0,
+			"incertos": 0,
+			"incertos_xy": [],
+			"notas": [],
+			"partes": [
+				{
+					"n": 0,
+					"pintavel": false,
+					"pixels": 252,
+					"cor_media": "#010000",
+					"referencia": "#010000",
+					"rampa": [
+						"#010000"
+					]
+				},
+				{
+					"n": 1,
+					"pintavel": true,
+					"pixels": 424,
+					"cor_media": "#0c55c2",
+					"referencia": "#1e6de0",
+					"rampa": [
+						"#001855",
+						"#113b73",
+						"#003caa",
+						"#0c55c2",
+						"#1e6de0"
+					],
+					"matiz": 290,
+					"arquivo": "diorama/recortes/casa/casa47/parte_1.png",
+					"erro_volta_de": 8.81
+				},
+				{
+					"n": 2,
+					"pintavel": true,
+					"pixels": 348,
+					"cor_media": "#9a9d9a",
+					"referencia": "#c2c3c6",
+					"rampa": [
+						"#34363c",
+						"#6d6d73",
+						"#9a9d9a",
+						"#c2c3c6"
+					],
+					"arquivo": "diorama/recortes/casa/casa47/parte_2.png",
+					"erro_volta_de": 1.63
+				}
+			]
+		},
+		"casa64": {
+			"folha": "casa",
+			"area": [
+				47,
+				22,
+				2,
+				2
+			],
+			"origem": "pecas.json",
+			"arquivo": "diorama/recortes/casa/casa64.png",
+			"base": "diorama/recortes/casa/casa64/base.png",
+			"folga": 1,
+			"tamanho": [
+				34,
+				34
+			],
+			"metodo": "final",
+			"fundos_atras": [
+				"parede",
+				"piso"
+			],
+			"fundo": null,
+			"celulas_sem_fundo": 4,
+			"borda_aberta": 0.0,
+			"pixels_peca": 1024,
+			"confianca": 1.0,
+			"incertos": 0,
+			"incertos_xy": [],
+			"notas": [],
+			"partes": [
+				{
+					"n": 0,
+					"pintavel": false,
+					"pixels": 445,
+					"cor_media": "#010000",
+					"referencia": "#010000",
+					"rampa": [
+						"#010000",
+						"#181218"
+					]
+				},
+				{
+					"n": 1,
+					"pintavel": true,
+					"pixels": 480,
+					"cor_media": "#9a9d9a",
+					"referencia": "#c2c3c6",
+					"rampa": [
+						"#34363c",
+						"#6d6d73",
+						"#9a9d9a",
+						"#c2c3c6"
+					],
+					"arquivo": "diorama/recortes/casa/casa64/parte_1.png",
+					"erro_volta_de": 1.48
+				},
+				{
+					"n": 2,
+					"pintavel": true,
+					"pixels": 52,
+					"cor_media": "#113b73",
+					"referencia": "#113b73",
+					"rampa": [
+						"#001855",
+						"#113b73"
+					],
+					"matiz": 288,
+					"arquivo": "diorama/recortes/casa/casa64/parte_2.png",
+					"erro_volta_de": 6.16
+				},
+				{
+					"n": 3,
+					"pintavel": true,
+					"pixels": 47,
+					"cor_media": "#341c30",
+					"referencia": "#341c30",
+					"rampa": [
+						"#341c30"
+					],
+					"matiz": 332,
+					"arquivo": "diorama/recortes/casa/casa64/parte_3.png",
+					"erro_volta_de": 0.0
+				}
+			]
+		},
+		"castelo68": {
+			"folha": "castelo",
+			"area": [
+				61,
+				20,
+				2,
+				3
+			],
+			"origem": "pecas.json",
+			"arquivo": "diorama/recortes/castelo/castelo68.png",
+			"base": "diorama/recortes/castelo/castelo68/base.png",
+			"folga": 1,
+			"tamanho": [
+				34,
+				50
+			],
+			"metodo": "final",
+			"fundos_atras": [
+				"parede",
+				"piso"
+			],
+			"fundo": null,
+			"celulas_sem_fundo": 6,
+			"borda_aberta": 1.0,
+			"pixels_peca": 1696,
+			"confianca": 1.0,
+			"incertos": 0,
+			"incertos_xy": [],
+			"notas": [],
+			"partes": [
+				{
+					"n": 0,
+					"pintavel": false,
+					"pixels": 160,
+					"cor_media": "#010000",
+					"referencia": "#010000",
+					"rampa": [
+						"#010000"
+					]
+				},
+				{
+					"n": 1,
+					"pintavel": true,
+					"pixels": 1228,
+					"cor_media": "#563c33",
+					"referencia": "#7d594d",
+					"rampa": [
+						"#231a2f",
+						"#321f29",
+						"#563c33",
+						"#444d61",
+						"#734234",
+						"#7d594d"
+					],
+					"matiz": 20,
+					"arquivo": "diorama/recortes/castelo/castelo68/parte_1.png",
+					"erro_volta_de": 7.05
+				},
+				{
+					"n": 2,
+					"pintavel": true,
+					"pixels": 268,
+					"cor_media": "#c19863",
+					"referencia": "#c19863",
+					"rampa": [
+						"#9c7657",
+						"#c19863"
+					],
+					"matiz": 75,
+					"arquivo": "diorama/recortes/castelo/castelo68/parte_2.png",
+					"erro_volta_de": 0.5
+				},
+				{
+					"n": 3,
+					"pintavel": true,
+					"pixels": 40,
+					"cor_media": "#919eaa",
+					"referencia": "#919eaa",
+					"rampa": [
+						"#919eaa"
+					],
+					"matiz": 255,
+					"arquivo": "diorama/recortes/castelo/castelo68/parte_3.png",
+					"erro_volta_de": 0.0
+				}
+			]
+		},
+		"casa@45,20": {
+			"folha": "casa",
+			"area": [
+				45,
+				20,
+				2,
+				2
+			],
+			"origem": "pecas.json",
+			"arquivo": "diorama/recortes/casa/casa_45_20.png",
+			"base": "diorama/recortes/casa/casa_45_20/base.png",
+			"folga": 1,
+			"tamanho": [
+				34,
+				34
+			],
+			"metodo": "final",
+			"fundos_atras": [
+				"parede",
+				"piso"
+			],
+			"fundo": null,
+			"celulas_sem_fundo": 4,
+			"borda_aberta": 0.0,
+			"pixels_peca": 1024,
+			"confianca": 1.0,
+			"incertos": 0,
+			"incertos_xy": [],
+			"notas": [],
+			"partes": [
+				{
+					"n": 0,
+					"pintavel": false,
+					"pixels": 252,
+					"cor_media": "#010000",
+					"referencia": "#010000",
+					"rampa": [
+						"#010000"
+					]
+				},
+				{
+					"n": 1,
+					"pintavel": true,
+					"pixels": 424,
+					"cor_media": "#a30500",
+					"referencia": "#d9260f",
+					"rampa": [
+						"#550600",
+						"#79010b",
+						"#a30500",
+						"#d9260f"
+					],
+					"matiz": 40,
+					"arquivo": "diorama/recortes/casa/casa_45_20/parte_1.png",
+					"erro_volta_de": 3.24
+				},
+				{
+					"n": 2,
+					"pintavel": true,
+					"pixels": 348,
+					"cor_media": "#9a9d9a",
+					"referencia": "#c2c3c6",
+					"rampa": [
+						"#34363c",
+						"#6d6d73",
+						"#9a9d9a",
+						"#c2c3c6"
+					],
+					"arquivo": "diorama/recortes/casa/casa_45_20/parte_2.png",
+					"erro_volta_de": 1.63
+				}
+			],
+			"mesma_area_que": "casa46"
+		},
+		"casa@45,22": {
+			"folha": "casa",
+			"area": [
+				45,
+				22,
+				2,
+				2
+			],
+			"origem": "pecas.json",
+			"arquivo": "diorama/recortes/casa/casa_45_22.png",
+			"base": "diorama/recortes/casa/casa_45_22/base.png",
+			"folga": 1,
+			"tamanho": [
+				34,
+				34
+			],
+			"metodo": "final",
+			"fundos_atras": [
+				"parede",
+				"piso"
+			],
+			"fundo": null,
+			"celulas_sem_fundo": 4,
+			"borda_aberta": 0.0,
+			"pixels_peca": 1024,
+			"confianca": 1.0,
+			"incertos": 0,
+			"incertos_xy": [],
+			"notas": [],
+			"partes": [
+				{
+					"n": 0,
+					"pintavel": false,
+					"pixels": 252,
+					"cor_media": "#010000",
+					"referencia": "#010000",
+					"rampa": [
+						"#010000"
+					]
+				},
+				{
+					"n": 1,
+					"pintavel": true,
+					"pixels": 424,
+					"cor_media": "#0c55c2",
+					"referencia": "#1e6de0",
+					"rampa": [
+						"#001855",
+						"#113b73",
+						"#003caa",
+						"#0c55c2",
+						"#1e6de0"
+					],
+					"matiz": 290,
+					"arquivo": "diorama/recortes/casa/casa_45_22/parte_1.png",
+					"erro_volta_de": 8.81
+				},
+				{
+					"n": 2,
+					"pintavel": true,
+					"pixels": 348,
+					"cor_media": "#9a9d9a",
+					"referencia": "#c2c3c6",
+					"rampa": [
+						"#34363c",
+						"#6d6d73",
+						"#9a9d9a",
+						"#c2c3c6"
+					],
+					"arquivo": "diorama/recortes/casa/casa_45_22/parte_2.png",
+					"erro_volta_de": 1.63
+				}
+			],
+			"mesma_area_que": "casa47"
+		},
+		"castelo@64,16": {
+			"folha": "castelo",
+			"area": [
+				64,
+				16,
+				2,
+				2
+			],
+			"origem": "pecas.json",
+			"arquivo": "diorama/recortes/castelo/castelo_64_16.png",
+			"base": "diorama/recortes/castelo/castelo_64_16/base.png",
+			"folga": 1,
+			"tamanho": [
+				34,
+				34
+			],
+			"metodo": "final",
+			"fundos_atras": [
+				"parede",
+				"piso"
+			],
+			"fundo": null,
+			"celulas_sem_fundo": 4,
+			"borda_aberta": 0.0,
+			"pixels_peca": 1024,
+			"confianca": 1.0,
+			"incertos": 0,
+			"incertos_xy": [],
+			"notas": [],
+			"partes": [
+				{
+					"n": 0,
+					"pintavel": false,
+					"pixels": 252,
+					"cor_media": "#010000",
+					"referencia": "#010000",
+					"rampa": [
+						"#010000"
+					]
+				},
+				{
+					"n": 1,
+					"pintavel": true,
+					"pixels": 424,
+					"cor_media": "#95211d",
+					"referencia": "#be3f35",
+					"rampa": [
+						"#59211d",
+						"#76211d",
+						"#95211d",
+						"#a73320",
+						"#be3f35"
+					],
+					"matiz": 34,
+					"arquivo": "diorama/recortes/castelo/castelo_64_16/parte_1.png",
+					"erro_volta_de": 4.1
+				},
+				{
+					"n": 2,
+					"pintavel": true,
+					"pixels": 348,
+					"cor_media": "#97979d",
+					"referencia": "#c2c2c2",
+					"rampa": [
+						"#36363b",
+						"#6d6d73",
+						"#97979d",
+						"#c2c2c2"
+					],
+					"arquivo": "diorama/recortes/castelo/castelo_64_16/parte_2.png",
+					"erro_volta_de": 2.04
+				}
+			]
+		},
+		"castelo@64,18": {
+			"folha": "castelo",
+			"area": [
+				64,
+				18,
+				2,
+				2
+			],
+			"origem": "pecas.json",
+			"arquivo": "diorama/recortes/castelo/castelo_64_18.png",
+			"base": "diorama/recortes/castelo/castelo_64_18/base.png",
+			"folga": 1,
+			"tamanho": [
+				34,
+				34
+			],
+			"metodo": "final",
+			"fundos_atras": [
+				"parede",
+				"piso"
+			],
+			"fundo": null,
+			"celulas_sem_fundo": 4,
+			"borda_aberta": 0.0,
+			"pixels_peca": 1024,
+			"confianca": 1.0,
+			"incertos": 0,
+			"incertos_xy": [],
+			"notas": [],
+			"partes": [
+				{
+					"n": 0,
+					"pintavel": false,
+					"pixels": 252,
+					"cor_media": "#010000",
+					"referencia": "#010000",
+					"rampa": [
+						"#010000"
+					]
+				},
+				{
+					"n": 1,
+					"pintavel": true,
+					"pixels": 424,
+					"cor_media": "#2658a7",
+					"referencia": "#326abb",
+					"rampa": [
+						"#1d2e59",
+						"#1d3b75",
+						"#1d4795",
+						"#2658a7",
+						"#326abb"
+					],
+					"matiz": 284,
+					"arquivo": "diorama/recortes/castelo/castelo_64_18/parte_1.png",
+					"erro_volta_de": 5.07
+				},
+				{
+					"n": 2,
+					"pintavel": true,
+					"pixels": 348,
+					"cor_media": "#97979d",
+					"referencia": "#c2c2c2",
+					"rampa": [
+						"#36363b",
+						"#6d6d73",
+						"#97979d",
+						"#c2c2c2"
+					],
+					"arquivo": "diorama/recortes/castelo/castelo_64_18/parte_2.png",
+					"erro_volta_de": 2.04
+				}
+			]
+		},
+		"casa79": {
+			"folha": "casa",
+			"area": [
+				61,
+				27,
+				3,
+				5
+			],
+			"origem": "pecas.json",
+			"arquivo": "diorama/recortes/casa/casa79.png",
+			"base": "diorama/recortes/casa/casa79/base.png",
+			"folga": 1,
+			"tamanho": [
+				50,
+				82
+			],
+			"metodo": "final",
+			"fundos_atras": [
+				"parede",
+				"piso"
+			],
+			"fundo": {
+				"fundo": "taco",
+				"deslocamento": [
+					32,
+					32
+				],
+				"iguais": 269
+			},
+			"celulas_sem_fundo": 12,
+			"borda_aberta": 0.0,
+			"pixels_peca": 3494,
+			"confianca": 1.0,
+			"incertos": 0,
+			"incertos_xy": [],
+			"notas": [],
+			"partes": [
+				{
+					"n": 0,
+					"pintavel": false,
+					"pixels": 1306,
+					"cor_media": "#010000",
+					"referencia": "#010000",
+					"rampa": [
+						"#010000",
+						"#0c0c1e"
+					]
+				},
+				{
+					"n": 1,
+					"pintavel": true,
+					"pixels": 1536,
+					"cor_media": "#42424e",
+					"referencia": "#605b6d",
+					"rampa": [
+						"#272936",
+						"#42424e",
+						"#605b6d"
+					],
+					"matiz": 292,
+					"arquivo": "diorama/recortes/casa/casa79/parte_1.png",
+					"erro_volta_de": 1.42
+				},
+				{
+					"n": 2,
+					"pintavel": true,
+					"pixels": 646,
+					"cor_media": "#797a86",
+					"referencia": "#bcbcc2",
+					"rampa": [
+						"#34363c",
+						"#797a86",
+						"#bcbcc2"
+					],
+					"arquivo": "diorama/recortes/casa/casa79/parte_2.png",
+					"erro_volta_de": 4.14
+				},
+				{
+					"n": -1,
+					"pintavel": false,
+					"pixels": 6,
+					"cor_media": "#3d1e0c",
+					"referencia": "#3d1e0c",
+					"rampa": [
+						"#3d1e0c",
+						"#673012"
+					]
+				}
+			]
+		},
+		"casa@1,0": {
+			"folha": "casa",
+			"area": [
+				1,
+				0,
+				1,
+				4
+			],
+			"origem": "pecas.json",
+			"arquivo": "diorama/recortes/casa/casa_1_0.png",
+			"base": "diorama/recortes/casa/casa_1_0/base.png",
+			"folga": 1,
+			"tamanho": [
+				18,
+				66
+			],
+			"metodo": "final",
+			"fundos_atras": [
+				"parede",
+				"piso"
+			],
+			"fundo": {
+				"fundo": "papel_azul",
+				"deslocamento": [
+					16,
+					21
+				],
+				"iguais": 608
+			},
+			"celulas_sem_fundo": 0,
+			"borda_aberta": 0.038,
+			"pixels_peca": 393,
+			"confianca": 0.982,
+			"incertos": 7,
+			"incertos_xy": [
+				[
+					3,
+					13
+				],
+				[
+					14,
+					13
+				],
+				[
+					3,
+					29
+				],
+				[
+					14,
+					29
+				],
+				[
+					14,
+					45
+				],
+				[
+					3,
+					61
+				],
+				[
+					14,
+					61
+				]
+			],
+			"notas": [],
+			"partes": [
+				{
+					"n": 0,
+					"pintavel": false,
+					"pixels": 54,
+					"cor_media": "#010000",
+					"referencia": "#010000",
+					"rampa": [
+						"#010000",
+						"#2a1812"
+					]
+				},
+				{
+					"n": 1,
+					"pintavel": true,
+					"pixels": 120,
+					"cor_media": "#ffa400",
+					"referencia": "#ffa400",
+					"rampa": [
+						"#ff9000",
+						"#ffa400"
+					],
+					"matiz": 70,
+					"arquivo": "diorama/recortes/casa/casa_1_0/parte_1.png",
+					"erro_volta_de": 4.56
+				},
+				{
+					"n": 2,
+					"pintavel": true,
+					"pixels": 70,
+					"cor_media": "#ffff12",
+					"referencia": "#ffff12",
+					"rampa": [
+						"#ffff12"
+					],
+					"matiz": 103,
+					"arquivo": "diorama/recortes/casa/casa_1_0/parte_2.png",
+					"erro_volta_de": 0.0
+				},
+				{
+					"n": 3,
+					"pintavel": true,
+					"pixels": 61,
+					"cor_media": "#d9260f",
+					"referencia": "#d9260f",
+					"rampa": [
+						"#d9260f"
+					],
+					"matiz": 40,
+					"arquivo": "diorama/recortes/casa/casa_1_0/parte_3.png",
+					"erro_volta_de": 0.0
+				},
+				{
+					"n": 4,
+					"pintavel": true,
+					"pixels": 48,
+					"cor_media": "#b86e4d",
+					"referencia": "#e08b55",
+					"rampa": [
+						"#7f4230",
+						"#b86e4d",
+						"#e08b55"
+					],
+					"matiz": 50,
+					"arquivo": "diorama/recortes/casa/casa_1_0/parte_4.png",
+					"erro_volta_de": 5.42
+				},
+				{
+					"n": 5,
+					"pintavel": true,
+					"pixels": 32,
+					"cor_media": "#fdffff",
+					"referencia": "#fdffff",
+					"rampa": [
+						"#fdffff"
+					],
+					"arquivo": "diorama/recortes/casa/casa_1_0/parte_5.png",
+					"erro_volta_de": 0.0
+				},
+				{
+					"n": 6,
+					"pintavel": true,
+					"pixels": 8,
+					"cor_media": "#113b73",
+					"referencia": "#113b73",
+					"rampa": [
+						"#113b73"
+					],
+					"matiz": 283,
+					"arquivo": "diorama/recortes/casa/casa_1_0/parte_6.png",
+					"erro_volta_de": 0.0
+				}
+			]
+		},
+		"casa@64,31": {
+			"folha": "casa",
+			"area": [
+				64,
+				31,
+				1,
+				1
+			],
+			"origem": "pecas.json",
+			"arquivo": "diorama/recortes/casa/casa_64_31.png",
+			"base": "diorama/recortes/casa/casa_64_31/base.png",
+			"folga": 1,
+			"tamanho": [
+				18,
+				18
+			],
+			"metodo": "final",
+			"fundos_atras": [
+				"parede",
+				"piso"
+			],
+			"fundo": {
+				"fundo": "papel_amarelo",
+				"deslocamento": [
+					0,
+					17
+				],
+				"iguais": 190
+			},
+			"celulas_sem_fundo": 0,
+			"borda_aberta": 0.1,
+			"pixels_peca": 68,
+			"confianca": 1.0,
+			"incertos": 0,
+			"incertos_xy": [],
+			"notas": [],
+			"partes": [
+				{
+					"n": 0,
+					"pintavel": false,
+					"pixels": 24,
+					"cor_media": "#010000",
+					"referencia": "#010000",
+					"rampa": [
+						"#010000",
+						"#19181b"
+					]
+				},
+				{
+					"n": 1,
+					"pintavel": true,
+					"pixels": 38,
+					"cor_media": "#b5b5b5",
+					"referencia": "#fdffff",
+					"rampa": [
+						"#575757",
+						"#b5b5b5",
+						"#d8d8d8",
+						"#fdffff"
+					],
+					"arquivo": "diorama/recortes/casa/casa_64_31/parte_1.png",
+					"erro_volta_de": 0.39
+				},
+				{
+					"n": -1,
+					"pintavel": false,
+					"pixels": 6,
+					"cor_media": "#00550c",
+					"referencia": "#00550c",
+					"rampa": [
+						"#00550c",
+						"#186f28",
+						"#483c1e"
+					]
+				}
+			],
+			"mesma_area_que": "lamp"
+		},
+		"castelo@8,0": {
+			"folha": "castelo",
+			"area": [
+				8,
+				0,
+				2,
+				4
+			],
+			"origem": "pecas.json",
+			"arquivo": "diorama/recortes/castelo/castelo_8_0.png",
+			"base": "diorama/recortes/castelo/castelo_8_0/base.png",
+			"folga": 1,
+			"tamanho": [
+				34,
+				66
+			],
+			"metodo": "final",
+			"fundos_atras": [
+				"parede",
+				"piso"
+			],
+			"fundo": {
+				"fundo": "face_pedra",
+				"deslocamento": [
+					127,
+					45
+				],
+				"iguais": 835
+			},
+			"celulas_sem_fundo": 0,
+			"borda_aberta": 0.032,
+			"pixels_peca": 463,
+			"confianca": 0.909,
+			"incertos": 42,
+			"incertos_xy": [
+				[
+					19,
+					6
+				],
+				[
+					20,
+					7
+				],
+				[
+					14,
+					8
+				],
+				[
+					21,
+					8
+				],
+				[
+					21,
+					9
+				],
+				[
+					22,
+					10
+				],
+				[
+					22,
+					11
+				],
+				[
+					22,
+					12
+				],
+				[
+					19,
+					17
+				],
+				[
+					20,
+					17
+				],
+				[
+					21,
+					17
+				],
+				[
+					19,
+					22
+				],
+				[
+					20,
+					23
+				],
+				[
+					21,
+					24
+				],
+				[
+					21,
+					25
+				],
+				[
+					12,
+					26
+				],
+				[
+					21,
+					26
+				],
+				[
+					22,
+					27
+				],
+				[
+					22,
+					28
+				],
+				[
+					19,
+					33
+				],
+				[
+					20,
+					33
+				],
+				[
+					21,
+					33
+				],
+				[
+					19,
+					37
+				],
+				[
+					20,
+					38
+				],
+				[
+					20,
+					39
+				],
+				[
+					20,
+					40
+				],
+				[
+					20,
+					41
+				],
+				[
+					12,
+					42
+				],
+				[
+					20,
+					42
+				],
+				[
+					21,
+					43
+				],
+				[
+					22,
+					44
+				],
+				[
+					19,
+					49
+				],
+				[
+					20,
+					49
+				],
+				[
+					21,
+					49
+				],
+				[
+					16,
+					54
+				],
+				[
+					19,
+					55
+				],
+				[
+					20,
+					56
+				],
+				[
+					21,
+					57
+				],
+				[
+					12,
+					58
+				],
+				[
+					21,
+					58
+				],
+				[
+					22,
+					59
+				],
+				[
+					22,
+					60
+				]
+			],
+			"notas": [],
+			"partes": [
+				{
+					"n": 0,
+					"pintavel": false,
+					"pixels": 132,
+					"cor_media": "#010000",
+					"referencia": "#010000",
+					"rampa": [
+						"#010000",
+						"#131312",
+						"#2a1812"
+					]
+				},
+				{
+					"n": 1,
+					"pintavel": true,
+					"pixels": 71,
+					"cor_media": "#ffaf00",
+					"referencia": "#ffaf00",
+					"rampa": [
+						"#ffaf00"
+					],
+					"matiz": 77,
+					"arquivo": "diorama/recortes/castelo/castelo_8_0/parte_1.png",
+					"erro_volta_de": 0.0
+				},
+				{
+					"n": 2,
+					"pintavel": true,
+					"pixels": 70,
+					"cor_media": "#ffff12",
+					"referencia": "#ffff12",
+					"rampa": [
+						"#ffff12"
+					],
+					"matiz": 103,
+					"arquivo": "diorama/recortes/castelo/castelo_8_0/parte_2.png",
+					"erro_volta_de": 0.0
+				},
+				{
+					"n": 3,
+					"pintavel": true,
+					"pixels": 61,
+					"cor_media": "#e70900",
+					"referencia": "#e70900",
+					"rampa": [
+						"#e70900"
+					],
+					"matiz": 40,
+					"arquivo": "diorama/recortes/castelo/castelo_8_0/parte_3.png",
+					"erro_volta_de": 0.0
+				},
+				{
+					"n": 4,
+					"pintavel": true,
+					"pixels": 49,
+					"cor_media": "#f96703",
+					"referencia": "#f96703",
+					"rampa": [
+						"#f96703"
+					],
+					"matiz": 53,
+					"arquivo": "diorama/recortes/castelo/castelo_8_0/parte_4.png",
+					"erro_volta_de": 0.0
+				},
+				{
+					"n": 5,
+					"pintavel": true,
+					"pixels": 48,
+					"cor_media": "#b3744f",
+					"referencia": "#e08b55",
+					"rampa": [
+						"#734234",
+						"#b3744f",
+						"#e08b55"
+					],
+					"matiz": 51,
+					"arquivo": "diorama/recortes/castelo/castelo_8_0/parte_5.png",
+					"erro_volta_de": 4.66
+				},
+				{
+					"n": 6,
+					"pintavel": true,
+					"pixels": 32,
+					"cor_media": "#fdffff",
+					"referencia": "#fdffff",
+					"rampa": [
+						"#fdffff"
+					],
+					"arquivo": "diorama/recortes/castelo/castelo_8_0/parte_6.png",
+					"erro_volta_de": 0.0
+				}
+			]
+		},
+		"castelo@10,0": {
+			"folha": "castelo",
+			"area": [
+				10,
+				0,
+				2,
+				4
+			],
+			"origem": "pecas.json",
+			"arquivo": "diorama/recortes/castelo/castelo_10_0.png",
+			"base": "diorama/recortes/castelo/castelo_10_0/base.png",
+			"folga": 1,
+			"tamanho": [
+				34,
+				66
+			],
+			"metodo": "final",
+			"fundos_atras": [
+				"parede",
+				"piso"
+			],
+			"fundo": {
+				"fundo": "muralha_lado",
+				"deslocamento": [
+					0,
+					0
+				],
+				"iguais": 145
+			},
+			"celulas_sem_fundo": 1,
+			"borda_aberta": 0.223,
+			"pixels_peca": 1485,
+			"confianca": 0.907,
+			"incertos": 138,
+			"incertos_xy": [
+				[
+					11,
+					1
+				],
+				[
+					15,
+					1
+				],
+				[
+					17,
+					1
+				],
+				[
+					21,
+					1
+				],
+				[
+					3,
+					2
+				],
+				[
+					30,
+					2
+				],
+				[
+					2,
+					3
+				],
+				[
+					31,
+					3
+				],
+				[
+					6,
+					5
+				],
+				[
+					7,
+					5
+				],
+				[
+					8,
+					5
+				],
+				[
+					9,
+					5
+				],
+				[
+					10,
+					5
+				],
+				[
+					25,
+					5
+				],
+				[
+					26,
+					5
+				],
+				[
+					27,
+					5
+				],
+				[
+					5,
+					6
+				],
+				[
+					28,
+					6
+				],
+				[
+					6,
+					7
+				],
+				[
+					27,
+					7
+				],
+				[
+					1,
+					17
+				],
+				[
+					19,
+					17
+				],
+				[
+					20,
+					17
+				],
+				[
+					21,
+					17
+				],
+				[
+					22,
+					17
+				],
+				[
+					23,
+					17
+				],
+				[
+					24,
+					17
+				],
+				[
+					25,
+					17
+				],
+				[
+					26,
+					17
+				],
+				[
+					27,
+					17
+				],
+				[
+					32,
+					17
+				],
+				[
+					30,
+					18
+				],
+				[
+					31,
+					19
+				],
+				[
+					20,
+					20
+				],
+				[
+					21,
+					21
+				],
+				[
+					22,
+					21
+				],
+				[
+					23,
+					21
+				],
+				[
+					24,
+					21
+				],
+				[
+					25,
+					21
+				],
+				[
+					26,
+					21
+				],
+				[
+					27,
+					21
+				],
+				[
+					28,
+					22
+				],
+				[
+					26,
+					23
+				],
+				[
+					27,
+					23
+				],
+				[
+					26,
+					24
+				],
+				[
+					26,
+					25
+				],
+				[
+					27,
+					26
+				],
+				[
+					6,
+					33
+				],
+				[
+					"…",
+					90
+				]
+			],
+			"notas": [],
+			"partes": [
+				{
+					"n": 0,
+					"pintavel": false,
+					"pixels": 309,
+					"cor_media": "#010000",
+					"referencia": "#010000",
+					"rampa": [
+						"#010000",
+						"#131312"
+					]
+				},
+				{
+					"n": 1,
+					"pintavel": true,
+					"pixels": 310,
+					"cor_media": "#f96703",
+					"referencia": "#f96703",
+					"rampa": [
+						"#f96703"
+					],
+					"matiz": 53,
+					"arquivo": "diorama/recortes/castelo/castelo_10_0/parte_1.png",
+					"erro_volta_de": 0.0
+				},
+				{
+					"n": 2,
+					"pintavel": true,
+					"pixels": 263,
+					"cor_media": "#ffaf00",
+					"referencia": "#ffaf00",
+					"rampa": [
+						"#ffaf00"
+					],
+					"matiz": 77,
+					"arquivo": "diorama/recortes/castelo/castelo_10_0/parte_2.png",
+					"erro_volta_de": 0.0
+				},
+				{
+					"n": 3,
+					"pintavel": true,
+					"pixels": 242,
+					"cor_media": "#ffff12",
+					"referencia": "#ffff12",
+					"rampa": [
+						"#ffff12"
+					],
+					"matiz": 103,
+					"arquivo": "diorama/recortes/castelo/castelo_10_0/parte_3.png",
+					"erro_volta_de": 0.0
+				},
+				{
+					"n": 4,
+					"pintavel": true,
+					"pixels": 180,
+					"cor_media": "#e70900",
+					"referencia": "#e70900",
+					"rampa": [
+						"#e70900"
+					],
+					"matiz": 40,
+					"arquivo": "diorama/recortes/castelo/castelo_10_0/parte_4.png",
+					"erro_volta_de": 0.0
+				},
+				{
+					"n": 5,
+					"pintavel": true,
+					"pixels": 171,
+					"cor_media": "#545148",
+					"referencia": "#a9a88e",
+					"rampa": [
+						"#2d2b25",
+						"#545148",
+						"#a9a88e"
+					],
+					"matiz": 103,
+					"arquivo": "diorama/recortes/castelo/castelo_10_0/parte_5.png",
+					"erro_volta_de": 1.23
+				},
+				{
+					"n": -1,
+					"pintavel": false,
+					"pixels": 10,
+					"cor_media": "#31394d",
+					"referencia": "#31394d",
+					"rampa": [
+						"#31394d",
+						"#321931"
+					]
+				}
+			]
+		},
+		"casa@58,31": {
+			"folha": "casa",
+			"area": [
+				58,
+				31,
+				1,
+				1
+			],
+			"origem": "pecas.json",
+			"arquivo": "diorama/recortes/casa/casa_58_31.png",
+			"base": "diorama/recortes/casa/casa_58_31/base.png",
+			"folga": 1,
+			"tamanho": [
+				18,
+				18
+			],
+			"metodo": "final",
+			"fundos_atras": [
+				"parede",
+				"piso"
+			],
+			"fundo": null,
+			"celulas_sem_fundo": 1,
+			"borda_aberta": 0.0,
+			"pixels_peca": 256,
+			"confianca": 1.0,
+			"incertos": 0,
+			"incertos_xy": [],
+			"notas": [],
+			"partes": [
+				{
+					"n": 0,
+					"pintavel": false,
+					"pixels": 256,
+					"cor_media": "#010000",
+					"referencia": "#010000",
+					"rampa": [
+						"#010000",
+						"#060008",
+						"#180c0c",
+						"#2a140c"
+					]
+				}
+			]
+		},
+		"casa@64,28": {
+			"folha": "casa",
+			"area": [
+				64,
+				28,
+				1,
+				1
+			],
+			"origem": "pecas.json",
+			"arquivo": "diorama/recortes/casa/casa_64_28.png",
+			"base": "diorama/recortes/casa/casa_64_28/base.png",
+			"folga": 1,
+			"tamanho": [
+				18,
+				18
+			],
+			"metodo": "final",
+			"fundos_atras": [
+				"parede",
+				"piso"
+			],
+			"fundo": null,
+			"celulas_sem_fundo": 1,
+			"borda_aberta": 0.45,
+			"pixels_peca": 284,
+			"confianca": 1.0,
+			"incertos": 0,
+			"incertos_xy": [],
+			"notas": [],
+			"partes": [
+				{
+					"n": 0,
+					"pintavel": false,
+					"pixels": 89,
+					"cor_media": "#010000",
+					"referencia": "#010000",
+					"rampa": [
+						"#010000",
+						"#0c0c1e"
+					]
+				},
+				{
+					"n": 1,
+					"pintavel": true,
+					"pixels": 79,
+					"cor_media": "#42424e",
+					"referencia": "#605b6d",
+					"rampa": [
+						"#42424e",
+						"#605b6d"
+					],
+					"matiz": 293,
+					"arquivo": "diorama/recortes/casa/casa_64_28/parte_1.png",
+					"erro_volta_de": 1.14
+				},
+				{
+					"n": 2,
+					"pintavel": true,
+					"pixels": 52,
+					"cor_media": "#797a86",
+					"referencia": "#fdffff",
+					"rampa": [
+						"#797a86",
+						"#fdffff"
+					],
+					"arquivo": "diorama/recortes/casa/casa_64_28/parte_2.png",
+					"erro_volta_de": 6.68
+				},
+				{
+					"n": 3,
+					"pintavel": true,
+					"pixels": 42,
+					"cor_media": "#bcbcc2",
+					"referencia": "#fdffff",
+					"rampa": [
+						"#797a86",
+						"#bcbcc2",
+						"#fdffff"
+					],
+					"arquivo": "diorama/recortes/casa/casa_64_28/parte_3.png",
+					"erro_volta_de": 3.62
+				},
+				{
+					"n": 4,
+					"pintavel": true,
+					"pixels": 8,
+					"cor_media": "#d9260f",
+					"referencia": "#d9260f",
+					"rampa": [
+						"#d9260f"
+					],
+					"matiz": 40,
+					"arquivo": "diorama/recortes/casa/casa_64_28/parte_4.png",
+					"erro_volta_de": 0.0
+				},
+				{
+					"n": 5,
+					"pintavel": true,
+					"pixels": 8,
+					"cor_media": "#ffa400",
+					"referencia": "#ffa400",
+					"rampa": [
+						"#ff9000",
+						"#ffa400"
+					],
+					"matiz": 71,
+					"arquivo": "diorama/recortes/casa/casa_64_28/parte_5.png",
+					"erro_volta_de": 2.79
+				},
+				{
+					"n": 6,
+					"pintavel": true,
+					"pixels": 6,
+					"cor_media": "#ffff12",
+					"referencia": "#ffff12",
+					"rampa": [
+						"#ffff12"
+					],
+					"matiz": 103,
+					"arquivo": "diorama/recortes/casa/casa_64_28/parte_6.png",
+					"erro_volta_de": 0.0
+				}
+			]
+		},
+		"castelo@56,31": {
+			"folha": "castelo",
+			"area": [
+				56,
+				31,
+				1,
+				1
+			],
+			"origem": "pecas.json",
+			"arquivo": "diorama/recortes/castelo/castelo_56_31.png",
+			"base": "diorama/recortes/castelo/castelo_56_31/base.png",
+			"folga": 1,
+			"tamanho": [
+				18,
+				18
+			],
+			"metodo": "final",
+			"fundos_atras": [
+				"parede",
+				"piso"
+			],
+			"fundo": {
+				"fundo": "face_pedra",
+				"deslocamento": [
+					49,
+					0
+				],
+				"iguais": 31
+			},
+			"celulas_sem_fundo": 0,
+			"borda_aberta": 0.517,
+			"pixels_peca": 240,
+			"confianca": 0.867,
+			"incertos": 32,
+			"incertos_xy": [
+				[
+					2,
+					1
+				],
+				[
+					1,
+					2
+				],
+				[
+					3,
+					2
+				],
+				[
+					4,
+					2
+				],
+				[
+					5,
+					2
+				],
+				[
+					6,
+					2
+				],
+				[
+					7,
+					2
+				],
+				[
+					8,
+					2
+				],
+				[
+					9,
+					2
+				],
+				[
+					10,
+					2
+				],
+				[
+					11,
+					2
+				],
+				[
+					12,
+					2
+				],
+				[
+					13,
+					2
+				],
+				[
+					14,
+					2
+				],
+				[
+					15,
+					2
+				],
+				[
+					16,
+					2
+				],
+				[
+					1,
+					6
+				],
+				[
+					2,
+					6
+				],
+				[
+					3,
+					6
+				],
+				[
+					4,
+					6
+				],
+				[
+					5,
+					6
+				],
+				[
+					6,
+					6
+				],
+				[
+					7,
+					6
+				],
+				[
+					8,
+					6
+				],
+				[
+					9,
+					6
+				],
+				[
+					10,
+					6
+				],
+				[
+					11,
+					6
+				],
+				[
+					12,
+					6
+				],
+				[
+					13,
+					6
+				],
+				[
+					14,
+					6
+				],
+				[
+					15,
+					6
+				],
+				[
+					16,
+					6
+				]
+			],
+			"notas": [],
+			"partes": [
+				{
+					"n": 0,
+					"pintavel": false,
+					"pixels": 84,
+					"cor_media": "#010000",
+					"referencia": "#010000",
+					"rampa": [
+						"#010000",
+						"#101010",
+						"#2a2a21"
+					]
+				},
+				{
+					"n": 1,
+					"pintavel": true,
+					"pixels": 141,
+					"cor_media": "#57524a",
+					"referencia": "#615b52",
+					"rampa": [
+						"#555046",
+						"#57524a",
+						"#55554b",
+						"#615b52"
+					],
+					"arquivo": "diorama/recortes/castelo/castelo_56_31/parte_1.png",
+					"erro_volta_de": 0.9
+				},
+				{
+					"n": 2,
+					"pintavel": true,
+					"pixels": 14,
+					"cor_media": "#968d7b",
+					"referencia": "#968d7b",
+					"rampa": [
+						"#434139",
+						"#968d7b"
+					],
+					"matiz": 89,
+					"arquivo": "diorama/recortes/castelo/castelo_56_31/parte_2.png",
+					"erro_volta_de": 0.07
+				},
+				{
+					"n": -1,
+					"pintavel": false,
+					"pixels": 1,
+					"cor_media": "#706d69",
+					"referencia": "#706d69",
+					"rampa": [
+						"#706d69"
+					]
+				}
+			]
+		},
+		"casa@40,25": {
+			"folha": "casa",
+			"area": [
+				40,
+				25,
+				3,
+				3
+			],
+			"origem": "pecas.json",
+			"arquivo": "diorama/recortes/casa/casa_40_25.png",
+			"base": "diorama/recortes/casa/casa_40_25/base.png",
+			"folga": 1,
+			"tamanho": [
+				50,
+				50
+			],
+			"metodo": "final",
+			"fundos_atras": [
+				"parede",
+				"piso"
+			],
+			"fundo": {
+				"fundo": "papel_azul#1",
+				"deslocamento": [
+					0,
+					0
+				],
+				"iguais": 243
+			},
+			"celulas_sem_fundo": 1,
+			"borda_aberta": 0.0,
+			"pixels_peca": 1932,
+			"confianca": 1.0,
+			"incertos": 0,
+			"incertos_xy": [],
+			"notas": [],
+			"partes": [
+				{
+					"n": 0,
+					"pintavel": false,
+					"pixels": 430,
+					"cor_media": "#010000",
+					"referencia": "#010000",
+					"rampa": [
+						"#010000",
+						"#2a1812"
+					]
+				},
+				{
+					"n": 1,
+					"pintavel": true,
+					"pixels": 962,
+					"cor_media": "#7f4230",
+					"referencia": "#e08b55",
+					"rampa": [
+						"#553018",
+						"#7f4230",
+						"#c45b43",
+						"#e08b55"
+					],
+					"matiz": 49,
+					"arquivo": "diorama/recortes/casa/casa_40_25/parte_1.png",
+					"erro_volta_de": 6.07
+				},
+				{
+					"n": 2,
+					"pintavel": true,
+					"pixels": 540,
+					"cor_media": "#fdffff",
+					"referencia": "#fdffff",
+					"rampa": [
+						"#d8d8d8",
+						"#fdffff"
+					],
+					"arquivo": "diorama/recortes/casa/casa_40_25/parte_2.png",
+					"erro_volta_de": 0.02
+				}
+			],
+			"mesma_area_que": "window"
+		},
+		"casa@62,24": {
+			"folha": "casa",
+			"area": [
+				62,
+				24,
+				3,
+				3
+			],
+			"origem": "pecas.json",
+			"arquivo": "diorama/recortes/casa/casa_62_24.png",
+			"base": "diorama/recortes/casa/casa_62_24/base.png",
+			"folga": 1,
+			"tamanho": [
+				50,
+				50
+			],
+			"metodo": "final",
+			"fundos_atras": [
+				"parede",
+				"piso"
+			],
+			"fundo": {
+				"fundo": "papel_amarelo",
+				"deslocamento": [
+					3,
+					1
+				],
+				"iguais": 204
+			},
+			"celulas_sem_fundo": 1,
+			"borda_aberta": 0.0,
+			"pixels_peca": 1932,
+			"confianca": 1.0,
+			"incertos": 0,
+			"incertos_xy": [],
+			"notas": [],
+			"partes": [
+				{
+					"n": 0,
+					"pintavel": false,
+					"pixels": 430,
+					"cor_media": "#010000",
+					"referencia": "#010000",
+					"rampa": [
+						"#010000",
+						"#2a1812"
+					]
+				},
+				{
+					"n": 1,
+					"pintavel": true,
+					"pixels": 962,
+					"cor_media": "#7f4230",
+					"referencia": "#e08b55",
+					"rampa": [
+						"#553018",
+						"#7f4230",
+						"#c45b43",
+						"#e08b55"
+					],
+					"matiz": 49,
+					"arquivo": "diorama/recortes/casa/casa_62_24/parte_1.png",
+					"erro_volta_de": 6.07
+				},
+				{
+					"n": 2,
+					"pintavel": true,
+					"pixels": 540,
+					"cor_media": "#fdffff",
+					"referencia": "#fdffff",
+					"rampa": [
+						"#d8d8d8",
+						"#fdffff"
+					],
+					"arquivo": "diorama/recortes/casa/casa_62_24/parte_2.png",
+					"erro_volta_de": 0.02
+				}
+			]
+		},
+		"casa@43,25": {
+			"folha": "casa",
+			"area": [
+				43,
+				25,
+				4,
+				3
+			],
+			"origem": "pecas.json",
+			"arquivo": "diorama/recortes/casa/casa_43_25.png",
+			"base": "diorama/recortes/casa/casa_43_25/base.png",
+			"folga": 1,
+			"tamanho": [
+				66,
+				50
+			],
+			"metodo": "final",
+			"fundos_atras": [
+				"parede",
+				"piso"
+			],
+			"fundo": {
+				"fundo": "lambri_amarelo",
+				"deslocamento": [
+					5,
+					12
+				],
+				"iguais": 137
+			},
+			"celulas_sem_fundo": 8,
+			"borda_aberta": 0.409,
+			"pixels_peca": 2945,
+			"confianca": 0.998,
+			"incertos": 6,
+			"incertos_xy": [
+				[
+					16,
+					42
+				],
+				[
+					26,
+					42
+				],
+				[
+					27,
+					42
+				],
+				[
+					38,
+					42
+				],
+				[
+					39,
+					42
+				],
+				[
+					49,
+					42
+				]
+			],
+			"notas": [],
+			"partes": [
+				{
+					"n": 0,
+					"pintavel": false,
+					"pixels": 353,
+					"cor_media": "#010000",
+					"referencia": "#010000",
+					"rampa": [
+						"#010000",
+						"#060000",
+						"#2a0000",
+						"#2a1812"
+					]
+				},
+				{
+					"n": 1,
+					"pintavel": true,
+					"pixels": 1632,
+					"cor_media": "#aa2a30",
+					"referencia": "#aa2a30",
+					"rampa": [
+						"#480006",
+						"#79010b",
+						"#a0171b",
+						"#aa2a30"
+					],
+					"matiz": 30,
+					"arquivo": "diorama/recortes/casa/casa_43_25/parte_1.png",
+					"erro_volta_de": 4.45
+				},
+				{
+					"n": 2,
+					"pintavel": true,
+					"pixels": 286,
+					"cor_media": "#7f4230",
+					"referencia": "#7f4230",
+					"rampa": [
+						"#7f4230",
+						"#b86e4d"
+					],
+					"matiz": 43,
+					"arquivo": "diorama/recortes/casa/casa_43_25/parte_2.png",
+					"erro_volta_de": 1.0
+				},
+				{
+					"n": 3,
+					"pintavel": true,
+					"pixels": 280,
+					"cor_media": "#b5b5b5",
+					"referencia": "#d8d8d8",
+					"rampa": [
+						"#6d7379",
+						"#b5b5b5",
+						"#d8d8d8"
+					],
+					"arquivo": "diorama/recortes/casa/casa_43_25/parte_3.png",
+					"erro_volta_de": 1.11
+				},
+				{
+					"n": 4,
+					"pintavel": true,
+					"pixels": 226,
+					"cor_media": "#ffffec",
+					"referencia": "#ffffec",
+					"rampa": [
+						"#ffffec"
+					],
+					"matiz": 109,
+					"arquivo": "diorama/recortes/casa/casa_43_25/parte_4.png",
+					"erro_volta_de": 0.0
+				},
+				{
+					"n": 5,
+					"pintavel": true,
+					"pixels": 126,
+					"cor_media": "#ffff98",
+					"referencia": "#ffff98",
+					"rampa": [
+						"#ffff98"
+					],
+					"matiz": 106,
+					"arquivo": "diorama/recortes/casa/casa_43_25/parte_5.png",
+					"erro_volta_de": 0.0
+				},
+				{
+					"n": -1,
+					"pintavel": false,
+					"pixels": 42,
+					"cor_media": "#431701",
+					"referencia": "#431701",
+					"rampa": [
+						"#431701",
+						"#553018",
+						"#734818",
+						"#79552a",
+						"#aa735b",
+						"#bc9185"
+					]
+				}
+			]
+		},
+		"casa@44,28": {
+			"folha": "casa",
+			"area": [
+				44,
+				28,
+				4,
+				3
+			],
+			"origem": "pecas.json",
+			"arquivo": "diorama/recortes/casa/casa_44_28.png",
+			"base": "diorama/recortes/casa/casa_44_28/base.png",
+			"folga": 1,
+			"tamanho": [
+				66,
+				50
+			],
+			"metodo": "final",
+			"fundos_atras": [
+				"parede",
+				"piso"
+			],
+			"fundo": {
+				"fundo": "lambri_amarelo",
+				"deslocamento": [
+					5,
+					12
+				],
+				"iguais": 137
+			},
+			"celulas_sem_fundo": 8,
+			"borda_aberta": 0.418,
+			"pixels_peca": 2947,
+			"confianca": 0.998,
+			"incertos": 6,
+			"incertos_xy": [
+				[
+					16,
+					42
+				],
+				[
+					26,
+					42
+				],
+				[
+					27,
+					42
+				],
+				[
+					38,
+					42
+				],
+				[
+					39,
+					42
+				],
+				[
+					49,
+					42
+				]
+			],
+			"notas": [],
+			"partes": [
+				{
+					"n": 0,
+					"pintavel": false,
+					"pixels": 361,
+					"cor_media": "#010000",
+					"referencia": "#010000",
+					"rampa": [
+						"#000600",
+						"#010000",
+						"#19181b",
+						"#2a1812"
+					]
+				},
+				{
+					"n": 1,
+					"pintavel": true,
+					"pixels": 1632,
+					"cor_media": "#487f31",
+					"referencia": "#55973c",
+					"rampa": [
+						"#103c05",
+						"#366d12",
+						"#487f31",
+						"#55973c"
+					],
+					"matiz": 133,
+					"arquivo": "diorama/recortes/casa/casa_44_28/parte_1.png",
+					"erro_volta_de": 4.39
+				},
+				{
+					"n": 2,
+					"pintavel": true,
+					"pixels": 306,
+					"cor_media": "#7f4230",
+					"referencia": "#7f4230",
+					"rampa": [
+						"#553018",
+						"#7f4230",
+						"#b86e4d"
+					],
+					"matiz": 44,
+					"arquivo": "diorama/recortes/casa/casa_44_28/parte_2.png",
+					"erro_volta_de": 1.39
+				},
+				{
+					"n": 3,
+					"pintavel": true,
+					"pixels": 296,
+					"cor_media": "#b5b5b5",
+					"referencia": "#d8d8d8",
+					"rampa": [
+						"#454045",
+						"#4e4a4a",
+						"#6d7379",
+						"#7e7e7e",
+						"#9a9d9a",
+						"#b5b5b5",
+						"#d8d8d8"
+					],
+					"arquivo": "diorama/recortes/casa/casa_44_28/parte_3.png",
+					"erro_volta_de": 1.19
+				},
+				{
+					"n": 4,
+					"pintavel": true,
+					"pixels": 226,
+					"cor_media": "#ffffec",
+					"referencia": "#ffffec",
+					"rampa": [
+						"#ffffec"
+					],
+					"matiz": 109,
+					"arquivo": "diorama/recortes/casa/casa_44_28/parte_4.png",
+					"erro_volta_de": 0.0
+				},
+				{
+					"n": 5,
+					"pintavel": true,
+					"pixels": 126,
+					"cor_media": "#ffff98",
+					"referencia": "#ffff98",
+					"rampa": [
+						"#ffff98"
+					],
+					"matiz": 106,
+					"arquivo": "diorama/recortes/casa/casa_44_28/parte_5.png",
+					"erro_volta_de": 0.0
+				}
+			]
+		},
+		"sofa": {
+			"folha": "casa",
+			"area": [
+				10,
+				20,
+				6,
+				2
+			],
+			"origem": "extras.json",
+			"arquivo": "diorama/recortes/casa/sofa.png",
+			"base": "diorama/recortes/casa/sofa/base.png",
+			"folga": 1,
+			"tamanho": [
+				98,
+				34
+			],
+			"metodo": "final",
+			"fundos_atras": [
+				"piso"
+			],
+			"fundo": {
+				"fundo": "diagonal_escuro",
+				"deslocamento": [
+					10,
+					24
+				],
+				"iguais": 3
+			},
+			"celulas_sem_fundo": 12,
+			"borda_aberta": 0.952,
+			"pixels_peca": 3316,
+			"confianca": 1.0,
+			"incertos": 0,
+			"incertos_xy": [],
+			"notas": [],
+			"partes": [
+				{
+					"n": 0,
+					"pintavel": false,
+					"pixels": 282,
+					"cor_media": "#010000",
+					"referencia": "#010000",
+					"rampa": [
+						"#010000"
+					]
+				},
+				{
+					"n": 1,
+					"pintavel": true,
+					"pixels": 3034,
+					"cor_media": "#854800",
+					"referencia": "#da8506",
+					"rampa": [
+						"#431701",
+						"#552406",
+						"#613600",
+						"#783c00",
+						"#854800",
+						"#ac6200",
+						"#da8506"
+					],
+					"matiz": 68,
+					"arquivo": "diorama/recortes/casa/sofa/parte_1.png",
+					"erro_volta_de": 2.9
+				}
+			]
+		},
+		"sofa_dourado": {
+			"folha": "casa",
+			"area": [
+				71,
+				30,
+				8,
+				2
+			],
+			"excluir": [
+				[
+					72,
+					30
+				],
+				[
+					73,
+					30
+				],
+				[
+					74,
+					30
+				],
+				[
+					75,
+					30
+				],
+				[
+					76,
+					30
+				],
+				[
+					77,
+					30
+				]
+			],
+			"origem": "extras.json",
+			"arquivo": "diorama/recortes/casa/sofa_dourado.png",
+			"base": "diorama/recortes/casa/sofa_dourado/base.png",
+			"folga": 1,
+			"tamanho": [
+				130,
+				34
+			],
+			"metodo": "final",
+			"fundos_atras": [
+				"parede",
+				"piso"
+			],
+			"fundo": {
+				"fundo": "diagonal_claro",
+				"deslocamento": [
+					47,
+					11
+				],
+				"iguais": 367
+			},
+			"celulas_sem_fundo": 2,
+			"borda_aberta": 0.536,
+			"pixels_peca": 2235,
+			"confianca": 0.961,
+			"incertos": 88,
+			"incertos_xy": [
+				[
+					112,
+					5
+				],
+				[
+					112,
+					6
+				],
+				[
+					112,
+					7
+				],
+				[
+					112,
+					8
+				],
+				[
+					112,
+					9
+				],
+				[
+					112,
+					10
+				],
+				[
+					112,
+					11
+				],
+				[
+					112,
+					12
+				],
+				[
+					112,
+					13
+				],
+				[
+					112,
+					14
+				],
+				[
+					112,
+					15
+				],
+				[
+					112,
+					16
+				],
+				[
+					56,
+					17
+				],
+				[
+					73,
+					17
+				],
+				[
+					39,
+					18
+				],
+				[
+					54,
+					18
+				],
+				[
+					59,
+					18
+				],
+				[
+					70,
+					18
+				],
+				[
+					75,
+					18
+				],
+				[
+					90,
+					18
+				],
+				[
+					37,
+					19
+				],
+				[
+					42,
+					19
+				],
+				[
+					87,
+					19
+				],
+				[
+					92,
+					19
+				],
+				[
+					43,
+					20
+				],
+				[
+					59,
+					20
+				],
+				[
+					60,
+					20
+				],
+				[
+					69,
+					20
+				],
+				[
+					70,
+					20
+				],
+				[
+					86,
+					20
+				],
+				[
+					38,
+					21
+				],
+				[
+					45,
+					21
+				],
+				[
+					50,
+					21
+				],
+				[
+					58,
+					21
+				],
+				[
+					71,
+					21
+				],
+				[
+					79,
+					21
+				],
+				[
+					84,
+					21
+				],
+				[
+					91,
+					21
+				],
+				[
+					33,
+					22
+				],
+				[
+					38,
+					22
+				],
+				[
+					57,
+					22
+				],
+				[
+					72,
+					22
+				],
+				[
+					91,
+					22
+				],
+				[
+					96,
+					22
+				],
+				[
+					32,
+					23
+				],
+				[
+					39,
+					23
+				],
+				[
+					55,
+					23
+				],
+				[
+					74,
+					23
+				],
+				[
+					"…",
+					40
+				]
+			],
+			"notas": [],
+			"partes": [
+				{
+					"n": 0,
+					"pintavel": false,
+					"pixels": 552,
+					"cor_media": "#010000",
+					"referencia": "#010000",
+					"rampa": [
+						"#010000",
+						"#2a1812"
+					]
+				},
+				{
+					"n": 1,
+					"pintavel": true,
+					"pixels": 1328,
+					"cor_media": "#ac6200",
+					"referencia": "#da8506",
+					"rampa": [
+						"#613600",
+						"#854800",
+						"#ac6200",
+						"#da8506"
+					],
+					"matiz": 69,
+					"arquivo": "diorama/recortes/casa/sofa_dourado/parte_1.png",
+					"erro_volta_de": 2.0
+				},
+				{
+					"n": 2,
+					"pintavel": true,
+					"pixels": 221,
+					"cor_media": "#7f4230",
+					"referencia": "#e08b55",
+					"rampa": [
+						"#553018",
+						"#7f4230",
+						"#e08b55"
+					],
+					"matiz": 51,
+					"arquivo": "diorama/recortes/casa/sofa_dourado/parte_2.png",
+					"erro_volta_de": 4.65
+				},
+				{
+					"n": 3,
+					"pintavel": true,
+					"pixels": 90,
+					"cor_media": "#552406",
+					"referencia": "#9d4818",
+					"rampa": [
+						"#431701",
+						"#552406",
+						"#9d4818"
+					],
+					"matiz": 52,
+					"arquivo": "diorama/recortes/casa/sofa_dourado/parte_3.png",
+					"erro_volta_de": 2.91
+				},
+				{
+					"n": -1,
+					"pintavel": false,
+					"pixels": 44,
+					"cor_media": "#e08b55",
+					"referencia": "#e08b55",
+					"rampa": [
+						"#e08b55"
+					]
+				}
+			]
+		}
+	}
+}

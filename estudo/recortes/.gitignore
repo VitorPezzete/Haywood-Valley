@@ -1,0 +1,4 @@
+# Prévias da etapa G (tools/recortes.py). As prévias por peça são pequenas e ficam no git; a folha montada é
+# só a proposta, regenerável com --montar, e fica de fora.
+montada/
+*.grande.png

@@ -1,0 +1,23 @@
+{
+	"versao": 1,
+	"nota": "Peças das folhas que ainda não estão em pecas.json mas entram nos recortes (etapa G). O sofá é o exemplo que o usuário deu em 2026-10-20 ('o sofá veio com a parte do fundo e do chão'). `excluir`: células da área que são de outra peça (o Aeko encaixou tiles de outras coisas no vão). Ids e áreas são palpite meu, conferidos a olho na folha; passar para pecas.json quando o catálogo ganhar o sofá.",
+	"pecas": [
+		{
+			"id": "sofa",
+			"nome": "sofá (de cima)",
+			"folha": "casa",
+			"area": [10, 20, 6, 2],
+			"tipo": "movel",
+			"fonte": "ESPECIFICACAO.md, SEAT_FACING: sofá [10–15, 20–21] → olhando 2"
+		},
+		{
+			"id": "sofa_dourado",
+			"nome": "sofá dourado (de frente)",
+			"folha": "casa",
+			"area": [71, 30, 8, 2],
+			"excluir": [[72, 30], [73, 30], [74, 30], [75, 30], [76, 30], [77, 30]],
+			"tipo": "movel",
+			"fonte": "folha casa, colunas 71–78, linhas 30–31 (palpite: os braços e o assento; o vão de cima tem outras peças)"
+		}
+	]
+}

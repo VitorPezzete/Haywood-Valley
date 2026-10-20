@@ -271,6 +271,20 @@
 						]
 					}
 				]
+			},
+			"recorte": {
+				"arquivo": "diorama/recortes/casa/chair.png",
+				"folga": 1,
+				"base": "diorama/recortes/casa/chair/base.png",
+				"partes": [
+					{
+						"n": 1,
+						"arquivo": "diorama/recortes/casa/chair/parte_1.png",
+						"referencia": "#aa6d3c",
+						"cor_media": "#a35536",
+						"pixels": 904
+					}
+				]
 			}
 		},
 		{
@@ -407,6 +421,20 @@
 								]
 							}
 						]
+					}
+				]
+			},
+			"recorte": {
+				"arquivo": "diorama/recortes/casa/table.png",
+				"folga": 1,
+				"base": "diorama/recortes/casa/table/base.png",
+				"partes": [
+					{
+						"n": 1,
+						"arquivo": "diorama/recortes/casa/table/parte_1.png",
+						"referencia": "#e0e0e0",
+						"cor_media": "#c2c3c6",
+						"pixels": 2961
 					}
 				]
 			}
@@ -603,6 +631,27 @@
 								]
 							}
 						]
+					}
+				]
+			},
+			"recorte": {
+				"arquivo": "diorama/recortes/casa/pot.png",
+				"folga": 1,
+				"base": "diorama/recortes/casa/pot/base.png",
+				"partes": [
+					{
+						"n": 1,
+						"arquivo": "diorama/recortes/casa/pot/parte_1.png",
+						"referencia": "#8c5b4a",
+						"cor_media": "#644342",
+						"pixels": 379
+					},
+					{
+						"n": 2,
+						"arquivo": "diorama/recortes/casa/pot/parte_2.png",
+						"referencia": "#bc9185",
+						"cor_media": "#bc9185",
+						"pixels": 180
 					}
 				]
 			}
@@ -859,6 +908,55 @@
 								]
 							}
 						]
+					}
+				]
+			},
+			"recorte": {
+				"arquivo": "diorama/recortes/casa/picture.png",
+				"folga": 1,
+				"base": "diorama/recortes/casa/picture/base.png",
+				"partes": [
+					{
+						"n": 1,
+						"arquivo": "diorama/recortes/casa/picture/parte_1.png",
+						"referencia": "#7f4230",
+						"cor_media": "#7f4230",
+						"pixels": 490
+					},
+					{
+						"n": 2,
+						"arquivo": "diorama/recortes/casa/picture/parte_2.png",
+						"referencia": "#6daa73",
+						"cor_media": "#4b7e52",
+						"pixels": 394
+					},
+					{
+						"n": 3,
+						"arquivo": "diorama/recortes/casa/picture/parte_3.png",
+						"referencia": "#f8aa6c",
+						"cor_media": "#f8aa6c",
+						"pixels": 322
+					},
+					{
+						"n": 4,
+						"arquivo": "diorama/recortes/casa/picture/parte_4.png",
+						"referencia": "#e08b55",
+						"cor_media": "#e08b55",
+						"pixels": 86
+					},
+					{
+						"n": 5,
+						"arquivo": "diorama/recortes/casa/picture/parte_5.png",
+						"referencia": "#b76820",
+						"cor_media": "#b76820",
+						"pixels": 60
+					},
+					{
+						"n": 6,
+						"arquivo": "diorama/recortes/casa/picture/parte_6.png",
+						"referencia": "#a4d6b7",
+						"cor_media": "#a4d6b7",
+						"pixels": 48
 					}
 				]
 			}
@@ -1225,6 +1323,27 @@
 						]
 					}
 				]
+			},
+			"recorte": {
+				"arquivo": "diorama/recortes/casa/window.png",
+				"folga": 1,
+				"base": "diorama/recortes/casa/window/base.png",
+				"partes": [
+					{
+						"n": 1,
+						"arquivo": "diorama/recortes/casa/window/parte_1.png",
+						"referencia": "#e08b55",
+						"cor_media": "#7f4230",
+						"pixels": 962
+					},
+					{
+						"n": 2,
+						"arquivo": "diorama/recortes/casa/window/parte_2.png",
+						"referencia": "#fdffff",
+						"cor_media": "#fdffff",
+						"pixels": 540
+					}
+				]
 			}
 		},
 		{
@@ -1325,6 +1444,41 @@
 								]
 							}
 						]
+					}
+				]
+			},
+			"recorte": {
+				"arquivo": "diorama/recortes/casa/shelf.png",
+				"folga": 1,
+				"base": "diorama/recortes/casa/shelf/base.png",
+				"partes": [
+					{
+						"n": 1,
+						"arquivo": "diorama/recortes/casa/shelf/parte_1.png",
+						"referencia": "#aa553c",
+						"cor_media": "#79361e",
+						"pixels": 1015
+					},
+					{
+						"n": 2,
+						"arquivo": "diorama/recortes/casa/shelf/parte_2.png",
+						"referencia": "#2cacb0",
+						"cor_media": "#005670",
+						"pixels": 138
+					},
+					{
+						"n": 3,
+						"arquivo": "diorama/recortes/casa/shelf/parte_3.png",
+						"referencia": "#69d470",
+						"cor_media": "#00550c",
+						"pixels": 138
+					},
+					{
+						"n": 4,
+						"arquivo": "diorama/recortes/casa/shelf/parte_4.png",
+						"referencia": "#9d5500",
+						"cor_media": "#783c00",
+						"pixels": 130
 					}
 				]
 			}
@@ -1730,6 +1884,41 @@
 						]
 					}
 				]
+			},
+			"recorte": {
+				"arquivo": "diorama/recortes/casa/bed.png",
+				"folga": 1,
+				"base": "diorama/recortes/casa/bed/base.png",
+				"partes": [
+					{
+						"n": 1,
+						"arquivo": "diorama/recortes/casa/bed/parte_1.png",
+						"referencia": "#b06da3",
+						"cor_media": "#b06da3",
+						"pixels": 2350
+					},
+					{
+						"n": 2,
+						"arquivo": "diorama/recortes/casa/bed/parte_2.png",
+						"referencia": "#c45b43",
+						"cor_media": "#553018",
+						"pixels": 1421
+					},
+					{
+						"n": 3,
+						"arquivo": "diorama/recortes/casa/bed/parte_3.png",
+						"referencia": "#fdffff",
+						"cor_media": "#fdffff",
+						"pixels": 659
+					},
+					{
+						"n": 4,
+						"arquivo": "diorama/recortes/casa/bed/parte_4.png",
+						"referencia": "#e08b55",
+						"cor_media": "#e08b55",
+						"pixels": 262
+					}
+				]
 			}
 		},
 		{
@@ -1782,6 +1971,48 @@
 						]
 					}
 				]
+			},
+			"recorte": {
+				"arquivo": "diorama/recortes/casa/torch.png",
+				"folga": 1,
+				"base": "diorama/recortes/casa/torch/base.png",
+				"partes": [
+					{
+						"n": 1,
+						"arquivo": "diorama/recortes/casa/torch/parte_1.png",
+						"referencia": "#ffa400",
+						"cor_media": "#ffa400",
+						"pixels": 32
+					},
+					{
+						"n": 2,
+						"arquivo": "diorama/recortes/casa/torch/parte_2.png",
+						"referencia": "#ffff12",
+						"cor_media": "#ffff12",
+						"pixels": 22
+					},
+					{
+						"n": 3,
+						"arquivo": "diorama/recortes/casa/torch/parte_3.png",
+						"referencia": "#d9260f",
+						"cor_media": "#d9260f",
+						"pixels": 15
+					},
+					{
+						"n": 4,
+						"arquivo": "diorama/recortes/casa/torch/parte_4.png",
+						"referencia": "#e08b55",
+						"cor_media": "#b86e4d",
+						"pixels": 12
+					},
+					{
+						"n": 5,
+						"arquivo": "diorama/recortes/casa/torch/parte_5.png",
+						"referencia": "#fdffff",
+						"cor_media": "#fdffff",
+						"pixels": 6
+					}
+				]
 			}
 		},
 		{
@@ -1829,6 +2060,20 @@
 						]
 					}
 				]
+			},
+			"recorte": {
+				"arquivo": "diorama/recortes/casa/lamp.png",
+				"folga": 1,
+				"base": "diorama/recortes/casa/lamp/base.png",
+				"partes": [
+					{
+						"n": 1,
+						"arquivo": "diorama/recortes/casa/lamp/parte_1.png",
+						"referencia": "#fdffff",
+						"cor_media": "#b5b5b5",
+						"pixels": 38
+					}
+				]
 			}
 		},
 		{
@@ -1851,7 +2096,49 @@
 				"5555",
 				"5555"
 			],
-			"bloqueia": false
+			"bloqueia": false,
+			"recorte": {
+				"arquivo": "diorama/recortes/casa/casa_0_24.png",
+				"folga": 1,
+				"base": "diorama/recortes/casa/casa_0_24/base.png",
+				"partes": [
+					{
+						"n": 1,
+						"arquivo": "diorama/recortes/casa/casa_0_24/parte_1.png",
+						"referencia": "#6daa73",
+						"cor_media": "#488b67",
+						"pixels": 2610
+					},
+					{
+						"n": 2,
+						"arquivo": "diorama/recortes/casa/casa_0_24/parte_2.png",
+						"referencia": "#553018",
+						"cor_media": "#3c1e18",
+						"pixels": 818
+					},
+					{
+						"n": 3,
+						"arquivo": "diorama/recortes/casa/casa_0_24/parte_3.png",
+						"referencia": "#c45b43",
+						"cor_media": "#553018",
+						"pixels": 699
+					},
+					{
+						"n": 4,
+						"arquivo": "diorama/recortes/casa/casa_0_24/parte_4.png",
+						"referencia": "#fdffff",
+						"cor_media": "#fdffff",
+						"pixels": 659
+					},
+					{
+						"n": 5,
+						"arquivo": "diorama/recortes/casa/casa_0_24/parte_5.png",
+						"referencia": "#e08b55",
+						"cor_media": "#e08b55",
+						"pixels": 262
+					}
+				]
+			}
 		},
 		{
 			"id": "casa@4,24",
@@ -1873,7 +2160,42 @@
 				"5555",
 				"5555"
 			],
-			"bloqueia": false
+			"bloqueia": false,
+			"recorte": {
+				"arquivo": "diorama/recortes/casa/casa_4_24.png",
+				"folga": 1,
+				"base": "diorama/recortes/casa/casa_4_24/base.png",
+				"partes": [
+					{
+						"n": 1,
+						"arquivo": "diorama/recortes/casa/casa_4_24/parte_1.png",
+						"referencia": "#b06da3",
+						"cor_media": "#b06da3",
+						"pixels": 2350
+					},
+					{
+						"n": 2,
+						"arquivo": "diorama/recortes/casa/casa_4_24/parte_2.png",
+						"referencia": "#c45b43",
+						"cor_media": "#553018",
+						"pixels": 1421
+					},
+					{
+						"n": 3,
+						"arquivo": "diorama/recortes/casa/casa_4_24/parte_3.png",
+						"referencia": "#fdffff",
+						"cor_media": "#fdffff",
+						"pixels": 659
+					},
+					{
+						"n": 4,
+						"arquivo": "diorama/recortes/casa/casa_4_24/parte_4.png",
+						"referencia": "#e08b55",
+						"cor_media": "#e08b55",
+						"pixels": 262
+					}
+				]
+			}
 		},
 		{
 			"id": "casa8",
@@ -1893,6 +2215,20 @@
 				"levanta": false,
 				"quebra": false,
 				"peso": 1
+			},
+			"recorte": {
+				"arquivo": "diorama/recortes/casa/casa8.png",
+				"folga": 1,
+				"base": "diorama/recortes/casa/casa8/base.png",
+				"partes": [
+					{
+						"n": 1,
+						"arquivo": "diorama/recortes/casa/casa8/parte_1.png",
+						"referencia": "#aa6d3c",
+						"cor_media": "#a35536",
+						"pixels": 904
+					}
+				]
 			}
 		},
 		{
@@ -1913,6 +2249,20 @@
 				"levanta": false,
 				"quebra": false,
 				"peso": 1
+			},
+			"recorte": {
+				"arquivo": "diorama/recortes/casa/casa9.png",
+				"folga": 1,
+				"base": "diorama/recortes/casa/casa9/base.png",
+				"partes": [
+					{
+						"n": 1,
+						"arquivo": "diorama/recortes/casa/casa9/parte_1.png",
+						"referencia": "#b66d42",
+						"cor_media": "#a35536",
+						"pixels": 439
+					}
+				]
 			}
 		},
 		{
@@ -1933,6 +2283,20 @@
 				"levanta": false,
 				"quebra": false,
 				"peso": 1
+			},
+			"recorte": {
+				"arquivo": "diorama/recortes/casa/casa10a.png",
+				"folga": 1,
+				"base": "diorama/recortes/casa/casa10a/base.png",
+				"partes": [
+					{
+						"n": 1,
+						"arquivo": "diorama/recortes/casa/casa10a/parte_1.png",
+						"referencia": "#aa6d3c",
+						"cor_media": "#a35536",
+						"pixels": 386
+					}
+				]
 			}
 		},
 		{
@@ -1953,6 +2317,20 @@
 				"levanta": false,
 				"quebra": false,
 				"peso": 1
+			},
+			"recorte": {
+				"arquivo": "diorama/recortes/casa/casa10b.png",
+				"folga": 1,
+				"base": "diorama/recortes/casa/casa10b/base.png",
+				"partes": [
+					{
+						"n": 1,
+						"arquivo": "diorama/recortes/casa/casa10b/parte_1.png",
+						"referencia": "#aa6d3c",
+						"cor_media": "#a35536",
+						"pixels": 386
+					}
+				]
 			}
 		},
 		{
@@ -1973,6 +2351,20 @@
 				"levanta": false,
 				"quebra": false,
 				"peso": 1
+			},
+			"recorte": {
+				"arquivo": "diorama/recortes/casa/casa11.png",
+				"folga": 1,
+				"base": "diorama/recortes/casa/casa11/base.png",
+				"partes": [
+					{
+						"n": 1,
+						"arquivo": "diorama/recortes/casa/casa11/parte_1.png",
+						"referencia": "#b66d42",
+						"cor_media": "#a35536",
+						"pixels": 430
+					}
+				]
 			}
 		},
 		{
@@ -1993,6 +2385,48 @@
 				"levanta": false,
 				"quebra": false,
 				"peso": 1
+			},
+			"recorte": {
+				"arquivo": "diorama/recortes/castelo/castelo14.png",
+				"folga": 1,
+				"base": "diorama/recortes/castelo/castelo14/base.png",
+				"partes": [
+					{
+						"n": 1,
+						"arquivo": "diorama/recortes/castelo/castelo14/parte_1.png",
+						"referencia": "#696969",
+						"cor_media": "#6e685e",
+						"pixels": 438
+					},
+					{
+						"n": 2,
+						"arquivo": "diorama/recortes/castelo/castelo14/parte_2.png",
+						"referencia": "#94653f",
+						"cor_media": "#94653f",
+						"pixels": 374
+					},
+					{
+						"n": 3,
+						"arquivo": "diorama/recortes/castelo/castelo14/parte_3.png",
+						"referencia": "#acaa92",
+						"cor_media": "#9e9d85",
+						"pixels": 366
+					},
+					{
+						"n": 4,
+						"arquivo": "diorama/recortes/castelo/castelo14/parte_4.png",
+						"referencia": "#935442",
+						"cor_media": "#935442",
+						"pixels": 44
+					},
+					{
+						"n": 5,
+						"arquivo": "diorama/recortes/castelo/castelo14/parte_5.png",
+						"referencia": "#31394d",
+						"cor_media": "#31394d",
+						"pixels": 30
+					}
+				]
 			}
 		},
 		{
@@ -2015,6 +2449,27 @@
 				"peso": 1,
 				"familia": "pot",
 				"variante": 0
+			},
+			"recorte": {
+				"arquivo": "diorama/recortes/casa/casa42.png",
+				"folga": 1,
+				"base": "diorama/recortes/casa/casa42/base.png",
+				"partes": [
+					{
+						"n": 1,
+						"arquivo": "diorama/recortes/casa/casa42/parte_1.png",
+						"referencia": "#8c5b4a",
+						"cor_media": "#644342",
+						"pixels": 379
+					},
+					{
+						"n": 2,
+						"arquivo": "diorama/recortes/casa/casa42/parte_2.png",
+						"referencia": "#bc9185",
+						"cor_media": "#bc9185",
+						"pixels": 180
+					}
+				]
 			}
 		},
 		{
@@ -2037,6 +2492,27 @@
 				"peso": 1,
 				"familia": "pot",
 				"variante": 1
+			},
+			"recorte": {
+				"arquivo": "diorama/recortes/casa/casa43.png",
+				"folga": 1,
+				"base": "diorama/recortes/casa/casa43/base.png",
+				"partes": [
+					{
+						"n": 1,
+						"arquivo": "diorama/recortes/casa/casa43/parte_1.png",
+						"referencia": "#8c5b4a",
+						"cor_media": "#644342",
+						"pixels": 379
+					},
+					{
+						"n": 2,
+						"arquivo": "diorama/recortes/casa/casa43/parte_2.png",
+						"referencia": "#bc9185",
+						"cor_media": "#bc9185",
+						"pixels": 180
+					}
+				]
 			}
 		},
 		{
@@ -2057,6 +2533,27 @@
 				"levanta": true,
 				"quebra": false,
 				"peso": 1
+			},
+			"recorte": {
+				"arquivo": "diorama/recortes/casa/casa67.png",
+				"folga": 1,
+				"base": "diorama/recortes/casa/casa67/base.png",
+				"partes": [
+					{
+						"n": 1,
+						"arquivo": "diorama/recortes/casa/casa67/parte_1.png",
+						"referencia": "#e0975b",
+						"cor_media": "#e0975b",
+						"pixels": 243
+					},
+					{
+						"n": 2,
+						"arquivo": "diorama/recortes/casa/casa67/parte_2.png",
+						"referencia": "#c45b43",
+						"cor_media": "#a0171b",
+						"pixels": 85
+					}
+				]
 			}
 		},
 		{
@@ -2077,6 +2574,27 @@
 				"levanta": false,
 				"quebra": false,
 				"peso": 2
+			},
+			"recorte": {
+				"arquivo": "diorama/recortes/casa/casa46.png",
+				"folga": 1,
+				"base": "diorama/recortes/casa/casa46/base.png",
+				"partes": [
+					{
+						"n": 1,
+						"arquivo": "diorama/recortes/casa/casa46/parte_1.png",
+						"referencia": "#d9260f",
+						"cor_media": "#a30500",
+						"pixels": 424
+					},
+					{
+						"n": 2,
+						"arquivo": "diorama/recortes/casa/casa46/parte_2.png",
+						"referencia": "#c2c3c6",
+						"cor_media": "#9a9d9a",
+						"pixels": 348
+					}
+				]
 			}
 		},
 		{
@@ -2097,6 +2615,27 @@
 				"levanta": false,
 				"quebra": false,
 				"peso": 2
+			},
+			"recorte": {
+				"arquivo": "diorama/recortes/casa/casa47.png",
+				"folga": 1,
+				"base": "diorama/recortes/casa/casa47/base.png",
+				"partes": [
+					{
+						"n": 1,
+						"arquivo": "diorama/recortes/casa/casa47/parte_1.png",
+						"referencia": "#1e6de0",
+						"cor_media": "#0c55c2",
+						"pixels": 424
+					},
+					{
+						"n": 2,
+						"arquivo": "diorama/recortes/casa/casa47/parte_2.png",
+						"referencia": "#c2c3c6",
+						"cor_media": "#9a9d9a",
+						"pixels": 348
+					}
+				]
 			}
 		},
 		{
@@ -2117,6 +2656,34 @@
 				"levanta": false,
 				"quebra": false,
 				"peso": 2
+			},
+			"recorte": {
+				"arquivo": "diorama/recortes/casa/casa64.png",
+				"folga": 1,
+				"base": "diorama/recortes/casa/casa64/base.png",
+				"partes": [
+					{
+						"n": 1,
+						"arquivo": "diorama/recortes/casa/casa64/parte_1.png",
+						"referencia": "#c2c3c6",
+						"cor_media": "#9a9d9a",
+						"pixels": 480
+					},
+					{
+						"n": 2,
+						"arquivo": "diorama/recortes/casa/casa64/parte_2.png",
+						"referencia": "#113b73",
+						"cor_media": "#113b73",
+						"pixels": 52
+					},
+					{
+						"n": 3,
+						"arquivo": "diorama/recortes/casa/casa64/parte_3.png",
+						"referencia": "#341c30",
+						"cor_media": "#341c30",
+						"pixels": 47
+					}
+				]
 			}
 		},
 		{
@@ -2137,6 +2704,34 @@
 				"levanta": false,
 				"quebra": false,
 				"peso": 2
+			},
+			"recorte": {
+				"arquivo": "diorama/recortes/castelo/castelo68.png",
+				"folga": 1,
+				"base": "diorama/recortes/castelo/castelo68/base.png",
+				"partes": [
+					{
+						"n": 1,
+						"arquivo": "diorama/recortes/castelo/castelo68/parte_1.png",
+						"referencia": "#7d594d",
+						"cor_media": "#563c33",
+						"pixels": 1228
+					},
+					{
+						"n": 2,
+						"arquivo": "diorama/recortes/castelo/castelo68/parte_2.png",
+						"referencia": "#c19863",
+						"cor_media": "#c19863",
+						"pixels": 268
+					},
+					{
+						"n": 3,
+						"arquivo": "diorama/recortes/castelo/castelo68/parte_3.png",
+						"referencia": "#919eaa",
+						"cor_media": "#919eaa",
+						"pixels": 40
+					}
+				]
 			}
 		},
 		{
@@ -2171,6 +2766,27 @@
 						46,
 						24
 					]
+				]
+			},
+			"recorte": {
+				"arquivo": "diorama/recortes/casa/casa_45_20.png",
+				"folga": 1,
+				"base": "diorama/recortes/casa/casa_45_20/base.png",
+				"partes": [
+					{
+						"n": 1,
+						"arquivo": "diorama/recortes/casa/casa_45_20/parte_1.png",
+						"referencia": "#d9260f",
+						"cor_media": "#a30500",
+						"pixels": 424
+					},
+					{
+						"n": 2,
+						"arquivo": "diorama/recortes/casa/casa_45_20/parte_2.png",
+						"referencia": "#c2c3c6",
+						"cor_media": "#9a9d9a",
+						"pixels": 348
+					}
 				]
 			}
 		},
@@ -2207,6 +2823,27 @@
 						23
 					]
 				]
+			},
+			"recorte": {
+				"arquivo": "diorama/recortes/casa/casa_45_22.png",
+				"folga": 1,
+				"base": "diorama/recortes/casa/casa_45_22/base.png",
+				"partes": [
+					{
+						"n": 1,
+						"arquivo": "diorama/recortes/casa/casa_45_22/parte_1.png",
+						"referencia": "#1e6de0",
+						"cor_media": "#0c55c2",
+						"pixels": 424
+					},
+					{
+						"n": 2,
+						"arquivo": "diorama/recortes/casa/casa_45_22/parte_2.png",
+						"referencia": "#c2c3c6",
+						"cor_media": "#9a9d9a",
+						"pixels": 348
+					}
+				]
 			}
 		},
 		{
@@ -2241,6 +2878,27 @@
 						65,
 						20
 					]
+				]
+			},
+			"recorte": {
+				"arquivo": "diorama/recortes/castelo/castelo_64_16.png",
+				"folga": 1,
+				"base": "diorama/recortes/castelo/castelo_64_16/base.png",
+				"partes": [
+					{
+						"n": 1,
+						"arquivo": "diorama/recortes/castelo/castelo_64_16/parte_1.png",
+						"referencia": "#be3f35",
+						"cor_media": "#95211d",
+						"pixels": 424
+					},
+					{
+						"n": 2,
+						"arquivo": "diorama/recortes/castelo/castelo_64_16/parte_2.png",
+						"referencia": "#c2c2c2",
+						"cor_media": "#97979d",
+						"pixels": 348
+					}
 				]
 			}
 		},
@@ -2277,6 +2935,27 @@
 						19
 					]
 				]
+			},
+			"recorte": {
+				"arquivo": "diorama/recortes/castelo/castelo_64_18.png",
+				"folga": 1,
+				"base": "diorama/recortes/castelo/castelo_64_18/base.png",
+				"partes": [
+					{
+						"n": 1,
+						"arquivo": "diorama/recortes/castelo/castelo_64_18/parte_1.png",
+						"referencia": "#326abb",
+						"cor_media": "#2658a7",
+						"pixels": 424
+					},
+					{
+						"n": 2,
+						"arquivo": "diorama/recortes/castelo/castelo_64_18/parte_2.png",
+						"referencia": "#c2c2c2",
+						"cor_media": "#97979d",
+						"pixels": 348
+					}
+				]
 			}
 		},
 		{
@@ -2302,6 +2981,27 @@
 					29,
 					30
 				]
+			},
+			"recorte": {
+				"arquivo": "diorama/recortes/casa/casa79.png",
+				"folga": 1,
+				"base": "diorama/recortes/casa/casa79/base.png",
+				"partes": [
+					{
+						"n": 1,
+						"arquivo": "diorama/recortes/casa/casa79/parte_1.png",
+						"referencia": "#605b6d",
+						"cor_media": "#42424e",
+						"pixels": 1536
+					},
+					{
+						"n": 2,
+						"arquivo": "diorama/recortes/casa/casa79/parte_2.png",
+						"referencia": "#bcbcc2",
+						"cor_media": "#797a86",
+						"pixels": 646
+					}
+				]
 			}
 		},
 		{
@@ -2323,6 +3023,55 @@
 					10
 				],
 				"chao": true
+			},
+			"recorte": {
+				"arquivo": "diorama/recortes/casa/casa_1_0.png",
+				"folga": 1,
+				"base": "diorama/recortes/casa/casa_1_0/base.png",
+				"partes": [
+					{
+						"n": 1,
+						"arquivo": "diorama/recortes/casa/casa_1_0/parte_1.png",
+						"referencia": "#ffa400",
+						"cor_media": "#ffa400",
+						"pixels": 120
+					},
+					{
+						"n": 2,
+						"arquivo": "diorama/recortes/casa/casa_1_0/parte_2.png",
+						"referencia": "#ffff12",
+						"cor_media": "#ffff12",
+						"pixels": 70
+					},
+					{
+						"n": 3,
+						"arquivo": "diorama/recortes/casa/casa_1_0/parte_3.png",
+						"referencia": "#d9260f",
+						"cor_media": "#d9260f",
+						"pixels": 61
+					},
+					{
+						"n": 4,
+						"arquivo": "diorama/recortes/casa/casa_1_0/parte_4.png",
+						"referencia": "#e08b55",
+						"cor_media": "#b86e4d",
+						"pixels": 48
+					},
+					{
+						"n": 5,
+						"arquivo": "diorama/recortes/casa/casa_1_0/parte_5.png",
+						"referencia": "#fdffff",
+						"cor_media": "#fdffff",
+						"pixels": 32
+					},
+					{
+						"n": 6,
+						"arquivo": "diorama/recortes/casa/casa_1_0/parte_6.png",
+						"referencia": "#113b73",
+						"cor_media": "#113b73",
+						"pixels": 8
+					}
+				]
 			}
 		},
 		{
@@ -2344,6 +3093,20 @@
 					10
 				],
 				"chao": true
+			},
+			"recorte": {
+				"arquivo": "diorama/recortes/casa/casa_64_31.png",
+				"folga": 1,
+				"base": "diorama/recortes/casa/casa_64_31/base.png",
+				"partes": [
+					{
+						"n": 1,
+						"arquivo": "diorama/recortes/casa/casa_64_31/parte_1.png",
+						"referencia": "#fdffff",
+						"cor_media": "#b5b5b5",
+						"pixels": 38
+					}
+				]
 			}
 		},
 		{
@@ -2366,6 +3129,55 @@
 				],
 				"coluna": 8,
 				"chao": true
+			},
+			"recorte": {
+				"arquivo": "diorama/recortes/castelo/castelo_8_0.png",
+				"folga": 1,
+				"base": "diorama/recortes/castelo/castelo_8_0/base.png",
+				"partes": [
+					{
+						"n": 1,
+						"arquivo": "diorama/recortes/castelo/castelo_8_0/parte_1.png",
+						"referencia": "#ffaf00",
+						"cor_media": "#ffaf00",
+						"pixels": 71
+					},
+					{
+						"n": 2,
+						"arquivo": "diorama/recortes/castelo/castelo_8_0/parte_2.png",
+						"referencia": "#ffff12",
+						"cor_media": "#ffff12",
+						"pixels": 70
+					},
+					{
+						"n": 3,
+						"arquivo": "diorama/recortes/castelo/castelo_8_0/parte_3.png",
+						"referencia": "#e70900",
+						"cor_media": "#e70900",
+						"pixels": 61
+					},
+					{
+						"n": 4,
+						"arquivo": "diorama/recortes/castelo/castelo_8_0/parte_4.png",
+						"referencia": "#f96703",
+						"cor_media": "#f96703",
+						"pixels": 49
+					},
+					{
+						"n": 5,
+						"arquivo": "diorama/recortes/castelo/castelo_8_0/parte_5.png",
+						"referencia": "#e08b55",
+						"cor_media": "#b3744f",
+						"pixels": 48
+					},
+					{
+						"n": 6,
+						"arquivo": "diorama/recortes/castelo/castelo_8_0/parte_6.png",
+						"referencia": "#fdffff",
+						"cor_media": "#fdffff",
+						"pixels": 32
+					}
+				]
 			}
 		},
 		{
@@ -2387,6 +3199,48 @@
 					8
 				],
 				"coluna": 10
+			},
+			"recorte": {
+				"arquivo": "diorama/recortes/castelo/castelo_10_0.png",
+				"folga": 1,
+				"base": "diorama/recortes/castelo/castelo_10_0/base.png",
+				"partes": [
+					{
+						"n": 1,
+						"arquivo": "diorama/recortes/castelo/castelo_10_0/parte_1.png",
+						"referencia": "#f96703",
+						"cor_media": "#f96703",
+						"pixels": 310
+					},
+					{
+						"n": 2,
+						"arquivo": "diorama/recortes/castelo/castelo_10_0/parte_2.png",
+						"referencia": "#ffaf00",
+						"cor_media": "#ffaf00",
+						"pixels": 263
+					},
+					{
+						"n": 3,
+						"arquivo": "diorama/recortes/castelo/castelo_10_0/parte_3.png",
+						"referencia": "#ffff12",
+						"cor_media": "#ffff12",
+						"pixels": 242
+					},
+					{
+						"n": 4,
+						"arquivo": "diorama/recortes/castelo/castelo_10_0/parte_4.png",
+						"referencia": "#e70900",
+						"cor_media": "#e70900",
+						"pixels": 180
+					},
+					{
+						"n": 5,
+						"arquivo": "diorama/recortes/castelo/castelo_10_0/parte_5.png",
+						"referencia": "#a9a88e",
+						"cor_media": "#545148",
+						"pixels": 171
+					}
+				]
 			}
 		},
 		{
@@ -2407,6 +3261,12 @@
 					8,
 					8
 				]
+			},
+			"recorte": {
+				"arquivo": "diorama/recortes/casa/casa_58_31.png",
+				"folga": 1,
+				"base": "diorama/recortes/casa/casa_58_31/base.png",
+				"partes": []
 			}
 		},
 		{
@@ -2426,6 +3286,55 @@
 				"centro": [
 					8,
 					4
+				]
+			},
+			"recorte": {
+				"arquivo": "diorama/recortes/casa/casa_64_28.png",
+				"folga": 1,
+				"base": "diorama/recortes/casa/casa_64_28/base.png",
+				"partes": [
+					{
+						"n": 1,
+						"arquivo": "diorama/recortes/casa/casa_64_28/parte_1.png",
+						"referencia": "#605b6d",
+						"cor_media": "#42424e",
+						"pixels": 79
+					},
+					{
+						"n": 2,
+						"arquivo": "diorama/recortes/casa/casa_64_28/parte_2.png",
+						"referencia": "#fdffff",
+						"cor_media": "#797a86",
+						"pixels": 52
+					},
+					{
+						"n": 3,
+						"arquivo": "diorama/recortes/casa/casa_64_28/parte_3.png",
+						"referencia": "#fdffff",
+						"cor_media": "#bcbcc2",
+						"pixels": 42
+					},
+					{
+						"n": 4,
+						"arquivo": "diorama/recortes/casa/casa_64_28/parte_4.png",
+						"referencia": "#d9260f",
+						"cor_media": "#d9260f",
+						"pixels": 8
+					},
+					{
+						"n": 5,
+						"arquivo": "diorama/recortes/casa/casa_64_28/parte_5.png",
+						"referencia": "#ffa400",
+						"cor_media": "#ffa400",
+						"pixels": 8
+					},
+					{
+						"n": 6,
+						"arquivo": "diorama/recortes/casa/casa_64_28/parte_6.png",
+						"referencia": "#ffff12",
+						"cor_media": "#ffff12",
+						"pixels": 6
+					}
 				]
 			}
 		},
@@ -2449,6 +3358,27 @@
 				],
 				"so_noite": true,
 				"pendurada": true
+			},
+			"recorte": {
+				"arquivo": "diorama/recortes/castelo/castelo_56_31.png",
+				"folga": 1,
+				"base": "diorama/recortes/castelo/castelo_56_31/base.png",
+				"partes": [
+					{
+						"n": 1,
+						"arquivo": "diorama/recortes/castelo/castelo_56_31/parte_1.png",
+						"referencia": "#615b52",
+						"cor_media": "#57524a",
+						"pixels": 141
+					},
+					{
+						"n": 2,
+						"arquivo": "diorama/recortes/castelo/castelo_56_31/parte_2.png",
+						"referencia": "#968d7b",
+						"cor_media": "#968d7b",
+						"pixels": 14
+					}
+				]
 			}
 		},
 		{
@@ -2467,6 +3397,27 @@
 			"noite": {
 				"coluna": 78,
 				"linha": 19
+			},
+			"recorte": {
+				"arquivo": "diorama/recortes/casa/casa_40_25.png",
+				"folga": 1,
+				"base": "diorama/recortes/casa/casa_40_25/base.png",
+				"partes": [
+					{
+						"n": 1,
+						"arquivo": "diorama/recortes/casa/casa_40_25/parte_1.png",
+						"referencia": "#e08b55",
+						"cor_media": "#7f4230",
+						"pixels": 962
+					},
+					{
+						"n": 2,
+						"arquivo": "diorama/recortes/casa/casa_40_25/parte_2.png",
+						"referencia": "#fdffff",
+						"cor_media": "#fdffff",
+						"pixels": 540
+					}
+				]
 			}
 		},
 		{
@@ -2485,6 +3436,27 @@
 			"noite": {
 				"coluna": 78,
 				"linha": 22
+			},
+			"recorte": {
+				"arquivo": "diorama/recortes/casa/casa_62_24.png",
+				"folga": 1,
+				"base": "diorama/recortes/casa/casa_62_24/base.png",
+				"partes": [
+					{
+						"n": 1,
+						"arquivo": "diorama/recortes/casa/casa_62_24/parte_1.png",
+						"referencia": "#e08b55",
+						"cor_media": "#7f4230",
+						"pixels": 962
+					},
+					{
+						"n": 2,
+						"arquivo": "diorama/recortes/casa/casa_62_24/parte_2.png",
+						"referencia": "#fdffff",
+						"cor_media": "#fdffff",
+						"pixels": 540
+					}
+				]
 			}
 		},
 		{
@@ -2503,6 +3475,48 @@
 			"noite": {
 				"coluna": 81,
 				"linha": 19
+			},
+			"recorte": {
+				"arquivo": "diorama/recortes/casa/casa_43_25.png",
+				"folga": 1,
+				"base": "diorama/recortes/casa/casa_43_25/base.png",
+				"partes": [
+					{
+						"n": 1,
+						"arquivo": "diorama/recortes/casa/casa_43_25/parte_1.png",
+						"referencia": "#aa2a30",
+						"cor_media": "#aa2a30",
+						"pixels": 1632
+					},
+					{
+						"n": 2,
+						"arquivo": "diorama/recortes/casa/casa_43_25/parte_2.png",
+						"referencia": "#7f4230",
+						"cor_media": "#7f4230",
+						"pixels": 286
+					},
+					{
+						"n": 3,
+						"arquivo": "diorama/recortes/casa/casa_43_25/parte_3.png",
+						"referencia": "#d8d8d8",
+						"cor_media": "#b5b5b5",
+						"pixels": 280
+					},
+					{
+						"n": 4,
+						"arquivo": "diorama/recortes/casa/casa_43_25/parte_4.png",
+						"referencia": "#ffffec",
+						"cor_media": "#ffffec",
+						"pixels": 226
+					},
+					{
+						"n": 5,
+						"arquivo": "diorama/recortes/casa/casa_43_25/parte_5.png",
+						"referencia": "#ffff98",
+						"cor_media": "#ffff98",
+						"pixels": 126
+					}
+				]
 			}
 		},
 		{
@@ -2521,6 +3535,48 @@
 			"noite": {
 				"coluna": 81,
 				"linha": 22
+			},
+			"recorte": {
+				"arquivo": "diorama/recortes/casa/casa_44_28.png",
+				"folga": 1,
+				"base": "diorama/recortes/casa/casa_44_28/base.png",
+				"partes": [
+					{
+						"n": 1,
+						"arquivo": "diorama/recortes/casa/casa_44_28/parte_1.png",
+						"referencia": "#55973c",
+						"cor_media": "#487f31",
+						"pixels": 1632
+					},
+					{
+						"n": 2,
+						"arquivo": "diorama/recortes/casa/casa_44_28/parte_2.png",
+						"referencia": "#7f4230",
+						"cor_media": "#7f4230",
+						"pixels": 306
+					},
+					{
+						"n": 3,
+						"arquivo": "diorama/recortes/casa/casa_44_28/parte_3.png",
+						"referencia": "#d8d8d8",
+						"cor_media": "#b5b5b5",
+						"pixels": 296
+					},
+					{
+						"n": 4,
+						"arquivo": "diorama/recortes/casa/casa_44_28/parte_4.png",
+						"referencia": "#ffffec",
+						"cor_media": "#ffffec",
+						"pixels": 226
+					},
+					{
+						"n": 5,
+						"arquivo": "diorama/recortes/casa/casa_44_28/parte_5.png",
+						"referencia": "#ffff98",
+						"cor_media": "#ffff98",
+						"pixels": 126
+					}
+				]
 			}
 		}
 	]
