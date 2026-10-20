@@ -234,24 +234,28 @@ export class SoundController implements OnStart {
 			if (os.clock() - this.mapChangedAt < TAP_SYNC_SECONDS || !this.scene.interior) return;
 			this.play(open ? "torneiraAbre" : "torneiraFecha", this.scene.interior.cellCenter(x, y));
 		});
-		// O baú abrindo e fechando e o fogão acendendo, onde mudou; o fogão aceso soa enquanto estiver aceso.
-		this.actions.onFixture((id, on, cells) => {
+		// O baú abrindo e fechando e o fogão acendendo, no meio dele; o fogão aceso soa enquanto estiver aceso. O
+		// baú-peça que fechou por sair do lugar fecha calado.
+		this.actions.onFixture((id, on, _cells, moved) => {
 			const stove = id.sub(1, 6) === "stove@";
 			if (stove) {
 				if (on) this.stovesOn.add(id);
 				else this.stovesOn.delete(id);
 			}
 			const interior = this.scene.interior;
-			if (cells.size() === 0 || !interior || os.clock() - this.mapChangedAt < TAP_SYNC_SECONDS) return;
-			const at = interior.cellCenter(cells[0][0], cells[0][1]);
+			const fixtures = this.actions.currentFixtures();
+			if (moved || !interior || !fixtures || os.clock() - this.mapChangedAt < TAP_SYNC_SECONDS) return;
+			// O retângulo do baú ou do fogão, e não as células desenhadas: voltar ao estado pintado no mapa (fechar o
+			// baú pintado fechado, reacender o fogão pintado aceso) não desenha nenhuma.
+			const area = fixtures.area(id);
+			if (!area) return;
+			const [x, y, w, h] = area;
+			const at = interior.cellCenter(x + (w - 1) / 2, y + (h - 1) / 2);
 			if (stove) {
 				if (on) this.play("fogaoAcende", at);
 				return;
 			}
-			const fixtures = this.actions.currentFixtures();
-			const fixture = fixtures?.fixture(id);
-			const open = fixture ? fixtures!.isOn(fixture) : (fixtures?.pieceOpen(id) ?? on);
-			this.play(open ? "bauAbre" : "bauFecha", at);
+			this.play(fixtures.isOpen(id) ? "bauAbre" : "bauFecha", at);
 		});
 		Events.pieceThrown.connect((map, _id, holder, x, y, mode) => {
 			if (!here(map) || mode !== 3) return;

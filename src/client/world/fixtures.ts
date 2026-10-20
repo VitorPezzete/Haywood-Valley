@@ -96,6 +96,25 @@ export class FixtureView {
 		}
 	}
 
+	/** Se o baú ou fogão `id` (fixo do mapa ou peça móvel) está aberto ou aceso agora. */
+	isOpen(id: string) {
+		const fixture = this.byId.get(id);
+		return fixture ? this.isOn(fixture) : this.pieceOpen(id);
+	}
+
+	/**
+	 * O retângulo (x, y, w, h) de `id` no bloco: o do baú fixo fechado ou do fogão, ou o da peça móvel onde ela está.
+	 * É de onde sai o som: as células desenhadas não servem, porque voltar ao estado pintado no mapa não desenha nada.
+	 */
+	area(id: string): [number, number, number, number] | undefined {
+		const fixture = this.byId.get(id);
+		if (fixture) return [fixture.x, fixture.y, fixture.w, fixture.h];
+		const piece = this.board.pieces.get(id);
+		if (!piece) return undefined;
+		const def = this.board.defOf(piece);
+		return [piece.x, piece.y, def.w, def.h];
+	}
+
 	/** As células acesas de `id`, com o tile de agora. */
 	cellsOf(id: string) {
 		return this.shown.get(id)?.cells ?? [];

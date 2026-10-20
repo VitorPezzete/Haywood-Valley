@@ -1,18 +1,32 @@
 import { OnStart, Service } from "@flamework/core";
 import { Players, Workspace } from "@rbxts/services";
 import { CLOCK_OFFSET_ATTRIBUTE, HOUR_TEST_ATTRIBUTE, secondsUntilWake, WAKE_HOUR } from "shared/clock";
-import { chestOfPiece, COOK_SECONDS, Fixture, FIXTURE_REACH, findFixtures, nearCells } from "shared/fixtures";
+import {
+	chestOfPiece,
+	COOK_SECONDS,
+	Fixture,
+	FIXTURE_REACH,
+	FIXTURE_SETTLE,
+	findFixtures,
+	nearCells,
+} from "shared/fixtures";
 import { Events } from "server/network";
 import { RATE, RateLimiter } from "server/rateLimit";
 import { PieceService, Room } from "server/services/PieceService";
 import { PlayerDataService } from "server/services/PlayerDataService";
 
-/** O baú, o fogão e as peças-baú de um mapa montado, com o estado da sessão. */
+/**
+ * O baú, o fogão e as peças-baú de um mapa montado, com o estado da sessão. `room` é o mapa de que ele saiu: a casa
+ * de um dono que saiu e voltou é um mapa novo com a mesma chave, e o estado da antiga não vale para ela.
+ */
 interface RoomFixtures {
+	room: Room;
 	fixtures: Map<string, Fixture>;
 	state: Map<string, boolean>;
 	openPieces: Map<string, [number, number]>;
 	lit: Map<string, number>;
+	/** Quando e por quem (`UserId`) cada um foi mexido por último (`FIXTURE_SETTLE`). */
+	touched: Map<string, [number, number]>;
 }
 
 /** De quanto em quanto tempo o servidor confere se quem pediu para dormir continua na cama, em segundos. */
@@ -68,6 +82,19 @@ export class FixtureService implements OnStart {
 			this.sleeping.delete(player);
 			// Quem saiu podia ser o último acordado.
 			task.defer(() => this.tryPassNight());
+			// A casa vazia de um dono que saiu é esquecida, como no `PieceService`.
+			task.defer(() => {
+				for (const [key, fixtures] of this.rooms) {
+					const room = fixtures.room;
+					if (
+						room.owner > 0 &&
+						this.pieces.playersIn(room).size() === 0 &&
+						Players.GetPlayerByUserId(room.owner) === undefined
+					) {
+						this.rooms.delete(key);
+					}
+				}
+			});
 		});
 		task.spawn(() => {
 			while (true) {
@@ -83,12 +110,12 @@ export class FixtureService implements OnStart {
 		const fixtures = new Map<string, Fixture>();
 		for (const fixture of findFixtures(room.board.map)) fixtures.set(fixture.id, fixture);
 		if (fixtures.size() > 0) print(`[Fixos] ${room.key}: ${fixtures.size()} baú(s) e fogão(ões)`);
-		return { fixtures, state: new Map(), openPieces: new Map(), lit: new Map() };
+		return { room, fixtures, state: new Map(), openPieces: new Map(), lit: new Map(), touched: new Map() };
 	}
 
 	private fixturesOf(room: Room) {
 		let fixtures = this.rooms.get(room.key);
-		if (!fixtures) {
+		if (!fixtures || fixtures.room !== room) {
 			fixtures = this.build(room);
 			this.rooms.set(room.key, fixtures);
 		}
@@ -109,6 +136,20 @@ export class FixtureService implements OnStart {
 		return feet ? [math.floor(feet.X / 16), math.floor(feet.Y / 16)] : undefined;
 	}
 
+	/** Se `id` pode ser mexido por `player` agora; se pode, marca que foi ele (`FIXTURE_SETTLE`). */
+	private settle(fixtures: RoomFixtures, player: Player, id: string) {
+		const now = os.clock();
+		const last = fixtures.touched.get(id);
+		if (last && last[1] !== player.UserId && now - last[0] < FIXTURE_SETTLE) return false;
+		fixtures.touched.set(id, [now, player.UserId]);
+		return true;
+	}
+
+	/**
+	 * O pedido de mexer em `id`, conferido no mapa do próprio jogador (`roomOf`, pelo atributo que o servidor
+	 * grava): o id só é procurado nesse mapa, e a distância é do pé dele nesse mapa. Baú ou fogão de outro mapa, ou
+	 * de outra casa, não é achado.
+	 */
 	private use(room: Room, player: Player, id: string) {
 		const fixtures = this.fixturesOf(room);
 		const cell = this.feetCell(room, player);
@@ -116,6 +157,7 @@ export class FixtureService implements OnStart {
 		const fixture = fixtures.fixtures.get(id);
 		if (fixture) {
 			if (!nearCells(cell[0], cell[1], fixture.x, fixture.y, fixture.w, fixture.h, FIXTURE_REACH)) return;
+			if (!this.settle(fixtures, player, id)) return;
 			const on = !(fixtures.state.get(id) ?? fixture.startsOn);
 			fixtures.state.set(id, on);
 			Events.fixtureChanged.fire(this.pieces.playersIn(room), room.key, id, on);
@@ -124,9 +166,11 @@ export class FixtureService implements OnStart {
 		}
 		// A peça móvel que é baú: abre e fecha no lugar, só no chão e sem ninguém segurando.
 		const piece = room.board.pieces.get(id);
-		if (!piece || piece.mode !== 0 || !chestOfPiece(room.board.defOf(piece))) return;
-		const def = piece.spot.def;
+		if (!piece || piece.mode !== 0) return;
+		const def = room.board.defOf(piece);
+		if (!chestOfPiece(def)) return;
 		if (!nearCells(cell[0], cell[1], piece.x, piece.y, def.w, def.h, FIXTURE_REACH)) return;
+		if (!this.settle(fixtures, player, id)) return;
 		const open = !this.pieceStillOpen(room, fixtures, id);
 		if (open) fixtures.openPieces.set(id, [piece.x, piece.y]);
 		else fixtures.openPieces.delete(id);

@@ -166,7 +166,7 @@ export class ActionController implements OnStart {
 	private sleepRequest?: { release: () => void; since: number };
 	private chestTap?: { id: string; since: number; x: number; y: number };
 	private decorListeners = new Array<(key: number, state: DecorState | undefined) => void>();
-	private fixtureListeners = new Array<(id: string, on: boolean, cells: FixtureCells) => void>();
+	private fixtureListeners = new Array<(id: string, on: boolean, cells: FixtureCells, moved: boolean) => void>();
 	private poses = new Map<Player, ActorPose>();
 	private remoteActions = new Map<Player, { raw: unknown; value: BodyAction | undefined }>();
 
@@ -199,9 +199,12 @@ export class ActionController implements OnStart {
 			});
 			Events.fixtureChanged.connect((map, id, on) => {
 				if (!here(map) || !this.fixtures) return;
+				// O servidor repete o estado a quem chega (`piecesReady`): o que já estava assim não toca som de novo.
+				const before = this.fixtures.isOpen(id);
 				this.fixtures.set(id, on);
+				if (this.fixtures.isOpen(id) === before) return;
 				const cells = this.fixtures.cellsOf(id);
-				for (const listener of this.fixtureListeners) listener(id, on, cells);
+				for (const listener of this.fixtureListeners) listener(id, on, cells, false);
 			});
 			Events.slept.connect((woke, waiting) => this.slept(woke, waiting));
 			this.useMap();
@@ -260,7 +263,11 @@ export class ActionController implements OnStart {
 		this.decorListeners.push(listener);
 	}
 
-	onFixture(listener: (id: string, on: boolean, cells: FixtureCells) => void) {
+	/**
+	 * Avisa quando um baú abre ou fecha ou um fogão acende ou apaga. `moved` é o baú-peça aberto que fechou por ter
+	 * saído do lugar (puxado, empurrado), sem ninguém pedir.
+	 */
+	onFixture(listener: (id: string, on: boolean, cells: FixtureCells, moved: boolean) => void) {
 		this.fixtureListeners.push(listener);
 	}
 
@@ -778,7 +785,7 @@ export class ActionController implements OnStart {
 		// O baú aberto que saiu do lugar (puxado, empurrado) fechou: as luzes e o som também ficam sabendo.
 		if (this.fixtures) {
 			for (const id of this.fixtures.update()) {
-				for (const listener of this.fixtureListeners) listener(id, false, []);
+				for (const listener of this.fixtureListeners) listener(id, false, [], true);
 			}
 		}
 

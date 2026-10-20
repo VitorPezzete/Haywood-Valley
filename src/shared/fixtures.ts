@@ -353,6 +353,12 @@ export function findFixtures(map: InteriorMap) {
 /** Distância máxima, em células, entre o pé do jogador e o baú ou o fogão que ele usa (o servidor confere). */
 export const FIXTURE_REACH = 2;
 /**
+ * Por quanto tempo, em segundos, o baú ou fogão que alguém acabou de mexer não atende outro jogador. O pedido só diz
+ * "mexe", não "abre" ou "fecha": sem isto, dois jogadores que apertam ao mesmo tempo para abrir fazem o segundo
+ * fechar o que o primeiro abriu.
+ */
+export const FIXTURE_SETTLE = 0.4;
+/**
  * O baú que é peça móvel se abre com um toque em F; segurar F mais que isto segura a peça para puxar (como antes).
  * Em segundos.
  */
