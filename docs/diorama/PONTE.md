@@ -1,15 +1,32 @@
 # Ponte do Diorama
 
-`tools/diorama_ponte.mjs`, `npm run diorama:ponte`. Servidor HTTP em `http://127.0.0.1:34873` (`--porta N` muda), sem autenticação, que só escuta no 127.0.0.1. Lê e grava `diorama/`, `assets/` e `docs/diorama/` na raiz do repositório e roda os geradores por `npm run`. Cada pedido sai no terminal como `GET /status -> 200 (3 ms)`, menos os que se repetem a cada poucos segundos quando dão certo (`/plugin/versao`, `/studio/presenca`, `/studio/proximo`, `/eventos`). O cliente do plugin é `plugin/src/ponte.ts`.
+`tools/diorama_ponte.mjs`, `npm run diorama:ponte`. Servidor HTTP em `http://127.0.0.1:34873` (`--porta N` muda; `--porta 0` pega uma livre e a diz na primeira linha), sem senha, que só escuta no 127.0.0.1 e recusa pedidos de páginas web (seção "Quem pode falar com a ponte"). Lê e grava `diorama/`, `assets/` e `docs/diorama/` na raiz do repositório e roda os geradores por `npm run`. Cada pedido sai no terminal como `GET /status -> 200 (3 ms)`, menos os que se repetem a cada poucos segundos quando dão certo (`/plugin/versao`, `/studio/presenca`, `/studio/proximo`, `/eventos`). O cliente do plugin é `plugin/src/ponte.ts`.
 
 Além do disco, a ponte é o centro das conexões de `CONEXOES.md`: serve o pacote do plugin para a recarga a quente (`/plugin/*`, código em `tools/diorama_lib/pacote.mjs`), leva comandos aos Studios (`/studio/*`), fala com o Aseprite por WebSocket (`/ws`, `/aseprite/*`) e anuncia eventos (`/eventos`); os canais estão em `tools/diorama_lib/canais.mjs` e guardam tudo em memória (reiniciar a ponte esquece sessões, comandos e eventos; o plugin se apresenta de novo em até 5 s). `npm run diorama:ponte -- --plugin-watch` roda junto o `rbxtsc -w` do plugin, com a saída prefixada por `[rbxtsc]`.
 
 Convenções:
 
-- Erros vêm como JSON `{ "erro": "..." }` com o status: `400` pedido ou conteúdo inválido, `404` não existe, `405` método errado na rota, `413` corpo maior que 16 MB, `500` erro interno.
-- Ids de mapa e nomes de catálogo: `[a-z0-9_]+`. Blocos: `<bx>_<by>` com inteiros não negativos. Nomes de folha e de documento: `[A-Za-z0-9_.-]+`.
-- O que a ponte grava sai com tabulação e quebra de linha no fim, como o Prettier do repositório.
+- Erros vêm como JSON `{ "erro": "..." }` com o status: `400` pedido ou conteúdo inválido (inclusive JSON que não é objeto onde se espera objeto, `%` mal formado no caminho e conexão que cai no meio do corpo), `403` pedido recusado (seção abaixo), `404` não existe, `405` método errado na rota, `413` corpo maior que 16 MB (pelo `Content-Length` ou ao passar do limite; o resto não é lido e a conexão fecha), `500` erro interno.
+- Ids de mapa e nomes de catálogo: `[a-z0-9_]+`. Blocos: `<bx>_<by>` com inteiros não negativos de até 6 dígitos. Nomes de folha e de documento: `[A-Za-z0-9_.-]+`, sem começar com `.`. Em todos, nomes que o Windows reserva (`con`, `nul`, `aux`, `prn`, `com1`…`com9`, `lpt1`…`lpt9`, com ou sem extensão) e nomes que terminam em ponto ou espaço dão `400`.
+- A ponte não segue links: um link simbólico ou junção no caminho de um mapa, bloco, catálogo, folha, imagem ou documento (ou dentro de um mapa que se quer apagar) dá `400`. Uma junção em `diorama/mapas` nem aparece em `GET /mapas`; um `mapa.json` quebrado aparece com `erro`, sem derrubar a lista.
+- O que a ponte grava (blocos, `mapa.json`, catálogos, `assets/enviadas.json`) sai com tabulação e quebra de linha no fim, como o Prettier do repositório, e de uma vez: escreve num temporário `.<nome>.<pid>.<n>.tmp` na mesma pasta e renomeia por cima (no Windows, tenta de novo por até 1 s se outro programa está com o arquivo aberto). Quem lê nunca vê arquivo pela metade.
+- Os geradores (`/gerar/*`, `/assets/enviadas`) rodam um de cada vez; o segundo pedido espera o primeiro.
 - Os caminhos que ela devolve são relativos à raiz do repositório, com o separador do sistema.
+- `DIORAMA_RAIZ` (variável de ambiente) troca a raiz do repositório; os testes (`npm run teste:ponte`, `tools/testes/ponte.test.mjs`) sobem a ponte numa cópia mínima numa pasta temporária.
+
+## Quem pode falar com a ponte
+
+A ponte só escuta no 127.0.0.1, mas uma página aberta no navegador também roda na máquina e poderia mandar `fetch("http://127.0.0.1:34873/...")`, postar um formulário para cá ou abrir `new WebSocket("ws://127.0.0.1:34873/ws?cliente=aseprite")`. O plugin (HttpService), o MCP (fetch do Node), o curl e a extensão do Aseprite não mandam `Origin` nem `Sec-Fetch-Site`; o navegador manda. Por isso a ponte responde `403` (e o WebSocket recusa o upgrade com `403`) quando:
+
+- vem `Origin` e ele não é a própria ponte (`http://127.0.0.1:<porta>` ou `http://localhost:<porta>`); `Origin: null` também é recusado;
+- vem `Sec-Fetch-Site` diferente de `none` e `same-origin` (pega o GET "no-cors" de `<img>` e `<script>`, que não leva `Origin`; sem isso uma página poderia consumir os comandos da fila do Studio com `/studio/proximo`);
+- o `Host` não é `127.0.0.1`, `localhost` nem `[::1]` (DNS rebinding: um domínio que passa a apontar para 127.0.0.1 chega com o próprio nome no `Host`);
+- o método é `OPTIONS` (a ponte não responde preflight de CORS, então o navegador nem manda o pedido de verdade com cabeçalho próprio);
+- o método é `POST`, `PUT` ou `DELETE` e falta `X-Diorama: 1`, quando a exigência está ligada. Um formulário HTML não consegue mandar cabeçalho próprio. `--exigir-cabecalho` liga e `--sem-exigir-cabecalho` desliga; o padrão está em `EXIGIR_CABECALHO_PADRAO` (ver `DUVIDAS.md`, item 29) e a segunda linha do terminal diz qual vale. O MCP e o plugin (`plugin/src/ponte.ts`) mandam o cabeçalho.
+
+Cada recusa sai no terminal como `[recusado] <método> <caminho>: <motivo>`. `executar_luau` passa pela ponte como qualquer comando, mas quem decide é o plugin: ele recusa enquanto "Permitir executar Luau" estiver desligado no painel Conexão.
+
+Com `curl`, os exemplos deste documento que mudam algo levam o cabeçalho: `curl -X PUT -H "X-Diorama: 1" -H "Content-Type: application/json" ...`.
 
 ## `GET /status`
 
@@ -20,7 +37,7 @@ GET /status
 
 200
 {
-	"versao": "0.4.0",
+	"versao": "0.5.0",
 	"raiz": "C:\\Users\\Szortek\\Documents\\Haywood-Valley",
 	"pastas": {
 		"mapas":    { "caminho": "diorama\\mapas",    "existe": true },
@@ -98,6 +115,14 @@ PUT /mapas/teste_d_destino/blocos/0_0
 
 O formato do `mapa.json` (`versao`, `id`, `nome`, `blocos`) é palpite desta reconstrução; a ponte só mantém a lista `blocos` e preserva o resto do arquivo.
 
+O bloco sem `nascimento` (ou com um que não é `[x, y]` de inteiros) é gravado, e a resposta traz `avisos` (o plugin deixa salvar sem; item 28 de `DUVIDAS.md`). O gerador põe o jogador na primeira célula livre (sem bloqueio, em ordem de leitura) ou em `[0, 0]`, e repete o aviso no log:
+
+```
+200
+{ "ok": true, "arquivo": "...", "mapa": {...},
+  "avisos": ["o bloco não tem nascimento: o gerador põe o jogador na primeira célula livre (ou em [0, 0]); marque o nascimento no editor"] }
+```
+
 ### `DELETE /mapas/<id>/blocos/<bx>_<by>`
 
 Apaga o arquivo do bloco e o tira do `mapa.json`. `404` se o bloco não existe. Resposta igual à do `PUT`.
@@ -135,7 +160,7 @@ PUT /catalogo/fundos
 
 ### `GET /folhas`
 
-As folhas em `diorama/folhas/*.png`, com o tamanho lido do cabeçalho do PNG.
+As folhas em `diorama/folhas/*.png`, com o tamanho lido do cabeçalho do PNG. Ficam de fora os arquivos que começam com `.` (os temporários do Aseprite, `.casa.salvando.png`) e os links; um PNG que não dá para medir sai com `erro` em vez de derrubar a lista.
 
 ```
 200
@@ -147,7 +172,7 @@ As folhas em `diorama/folhas/*.png`, com o tamanho lido do cabeçalho do PNG.
 
 ### `GET /folhas/<nome>.rgba?x=&y=&w=&h=`
 
-Um recorte da folha em pixels RGBA crus: `application/octet-stream`, 4 bytes por pixel, linha a linha, sem cabeçalho, do jeito que `EditableImage:WritePixelsBuffer` recebe (`buffer.fromstring(corpo)` no Luau). Os cabeçalhos `X-Largura` e `X-Altura` trazem o tamanho do recorte. Sem `x`, `y`, `w`, `h`, vem a folha inteira (2048×512×4 = 4 MB). `400` se o retângulo sai da folha. A folha fica decodificada em memória e é relida quando o arquivo muda.
+Um recorte da folha em pixels RGBA crus: `application/octet-stream`, 4 bytes por pixel, linha a linha, sem cabeçalho, do jeito que `EditableImage:WritePixelsBuffer` recebe (`buffer.fromstring(corpo)` no Luau). Os cabeçalhos `X-Largura` e `X-Altura` trazem o tamanho do recorte. Sem `x`, `y`, `w`, `h`, vem a folha inteira (2048×512×4 = 4 MB). `400` se o retângulo sai da folha (inclusive `x` ou `y` além da borda). A folha fica decodificada em memória e é relida quando o arquivo muda.
 
 ```
 GET /folhas/casa.rgba?x=0&y=32&w=16&h=16
@@ -265,14 +290,14 @@ As sessões vivas: `[{ sessao, place, placeId, versao, modo, origem, visto_ha_ms
 
 ### `POST /studio/comandos`
 
-`{ "tipo", "args"?, "sessao"? }` → `{ "id": "c17", "sessao": "…" }`. Sem `sessao`, vai para a sessão mais recente em modo `edicao` (ou, sem nenhuma, a mais recente viva). `503` se não há Studio conectado ou a sessão pedida não está. Um comando que ninguém buscou em 120 s falha.
+`{ "tipo", "args"?, "sessao"? }` → `{ "id": "c17", "sessao": "…" }`. Sem `sessao`, vai para a sessão mais recente em modo `edicao` (ou, sem nenhuma, a mais recente viva). `503` se não há Studio conectado ou a sessão pedida não está. `args`, quando vem, tem de ser um objeto. Um comando que ninguém buscou em 120 s falha. Um comando que o plugin buscou e não respondeu falha quando a sessão sai (15 s sem presença: "o Studio desta sessão saiu depois de receber o comando, sem responder") ou depois de 10 min. Se a conexão do long-poll cai entre a entrega e a escrita da resposta, o comando volta para a frente da fila.
 
 ### `GET /studio/respostas/<id>?espera=30`
 
 A resposta (`{ ok, valor | erro }`) quando chega, ou `202 { "pendente": true, "entregue": bool }` depois de `espera` segundos. As respostas ficam guardadas 10 min. `404` para id desconhecido.
 
 ```
-curl -s -X POST http://127.0.0.1:34873/studio/comandos -H "Content-Type: application/json" -d '{"tipo":"autoteste"}'
+curl -s -X POST http://127.0.0.1:34873/studio/comandos -H "X-Diorama: 1" -H "Content-Type: application/json" -d '{"tipo":"autoteste"}'
 { "id": "c3", "sessao": "480a4859-…" }
 curl -s "http://127.0.0.1:34873/studio/respostas/c3?espera=50"
 ```
@@ -281,7 +306,7 @@ curl -s "http://127.0.0.1:34873/studio/respostas/c3?espera=50"
 
 ### `/ws?cliente=aseprite` (WebSocket)
 
-A extensão do Aseprite se conecta aqui (protocolo em `CONEXOES.md`, seção 3). Uma conexão nova do Aseprite derruba a anterior (código 4000). A ponte manda um ping a cada 20 s e corta quem não responde. O evento `folha_salva` vira `recarregar_folhas { folha }` para cada Studio vivo em modo `edicao` e o evento de mesmo nome em `/eventos`. Qualquer outro `?cliente=` é um observador: recebe cada evento como `{ "tipo": "evento", "nome", "n", "dados", "em" }`.
+A extensão do Aseprite se conecta aqui (protocolo em `CONEXOES.md`, seção 3). Uma conexão nova do Aseprite derruba a anterior (código 4000), e os comandos que esperavam resposta pela velha falham na hora. Mensagens acima de 16 MB derrubam a conexão. Upgrade com `Origin` de página web ou `Host` que não é local: `403`. A ponte manda um ping a cada 20 s e corta quem não responde. O evento `folha_salva` vira `recarregar_folhas { folha }` para cada Studio vivo em modo `edicao` e o evento de mesmo nome em `/eventos`. Qualquer outro `?cliente=` é um observador: recebe cada evento como `{ "tipo": "evento", "nome", "n", "dados", "em" }`.
 
 ### `GET /aseprite/estado`
 
@@ -289,7 +314,7 @@ A extensão do Aseprite se conecta aqui (protocolo em `CONEXOES.md`, seção 3).
 
 ### `POST /aseprite/comandos`
 
-`{ "nome", "args"? }` → espera a resposta até 30 s: `200 { "ok": true, "valor" }` ou `{ "ok": false, "erro" }`; `503` sem o Aseprite conectado; `504` sem resposta no tempo.
+`{ "nome", "args"? }` → espera a resposta até 30 s: `200 { "ok": true, "valor" }` ou `{ "ok": false, "erro" }` (também quando o Aseprite cai antes de responder); `503` sem o Aseprite conectado; `504` sem resposta no tempo (um diálogo aberto no Aseprite, como o de permissão, segura os comandos).
 
 ## Eventos
 

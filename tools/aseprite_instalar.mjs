@@ -16,7 +16,13 @@ const NOME = "diorama";
 
 function argumento(nome) {
 	const i = process.argv.indexOf(nome);
-	return i >= 0 ? process.argv[i + 1] : undefined;
+	if (i < 0) return undefined;
+	const valor = process.argv[i + 1];
+	if (valor === undefined || valor.startsWith("--")) {
+		console.error(`${nome} precisa de uma pasta`);
+		process.exit(2);
+	}
+	return valor;
 }
 
 const pastaExtensoes =

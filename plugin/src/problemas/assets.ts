@@ -80,14 +80,30 @@ export function verificarAssets(conteudo: unknown): Problema[] {
 			});
 		}
 	}
-	if (semId.size() > 0) {
-		const mostrar = semId.size() > 12 ? `${semId.filter((_, i) => i < 12).join(", ")}… (+${semId.size() - 12})` : semId.join(", ");
+	// Imagens e sons sem id têm caminhos diferentes: a ferramenta Assets só envia imagem, e os sons sem arquivo se
+	// perderam (DUVIDAS.md, item 19). Um aviso por tipo, cada um com o que fazer.
+	const imagens = semId.filter((nome) => assets[nome].tipo !== "som");
+	const sons = semId.filter((nome) => assets[nome].tipo === "som");
+	const listar = (nomes: string[]) =>
+		nomes.size() > 12 ? `${nomes.filter((_, i) => i < 12).join(", ")}… (+${nomes.size() - 12})` : nomes.join(", ");
+	if (imagens.size() > 0) {
 		problemas.push({
 			gravidade: "aviso",
 			grupo: "assets",
 			onde,
-			oQue: `${semId.size()} de ${total} chave(s) sem id: ${mostrar}.`,
+			oQue: `${imagens.size()} de ${total} chave(s) de imagem sem id: ${listar(imagens)}.`,
 			comoCorrigir: "Envie as imagens (ferramenta Assets ou upload_image do MCP) e rode npm run assets -- --importar. O jogo avisa e segue sem elas.",
+		});
+	}
+	if (sons.size() > 0) {
+		const semArquivo = sons.filter((nome) => assets[nome].arquivo === undefined || assets[nome].arquivo === "").size();
+		problemas.push({
+			gravidade: "aviso",
+			grupo: "assets",
+			onde,
+			oQue: `${sons.size()} de ${total} chave(s) de som sem id${semArquivo > 0 ? ` (${semArquivo} sem arquivo)` : ""}: ${listar(sons)}.`,
+			comoCorrigir:
+				"A ferramenta Assets não envia som. Os sons sem arquivo se perderam e serão refeitos (docs/audio/ESTUDO_PACOTES_ABLETON.md); um som com arquivo vai pelo Creator Hub, e o id entra com npm run assets -- --importar. O jogo avisa [Som] e segue sem eles.",
 		});
 	}
 	return problemas;

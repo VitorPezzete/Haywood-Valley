@@ -138,6 +138,25 @@ export function gerarInterior(bloco) {
 		actions.push(linhaAcao);
 	}
 
+	// O nascimento (item 28 de DUVIDAS.md): o plugin salva bloco sem ele, com aviso. Sem um [x, y] de inteiros, o
+	// gerador assume a primeira célula livre (sem bloqueio, em ordem de leitura) ou [0, 0], e avisa; não falha.
+	const n = bloco.nascimento;
+	let spawn;
+	if (Array.isArray(n) && Number.isInteger(n[0]) && Number.isInteger(n[1])) {
+		spawn = [n[0], n[1]];
+	} else {
+		let livre;
+		for (let j = 0; j < height && !livre; j++) {
+			const i = blocks[j].indexOf(".");
+			if (i >= 0) livre = [x + i, y + j];
+		}
+		spawn = livre ?? [0, 0];
+		const veio = n === undefined ? "sem nascimento" : `nascimento inválido (${JSON.stringify(n)})`;
+		avisos.push(
+			`${veio}: o jogador nasce em [${spawn[0]}, ${spawn[1]}] (${livre ? "a primeira célula livre" : "nenhuma célula livre"}); marque o nascimento no editor`,
+		);
+	}
+
 	const data = {
 		id: bloco.mapa,
 		stamp: carimboDoBloco(bloco).carimbo,
@@ -151,7 +170,7 @@ export function gerarInterior(bloco) {
 		blocks,
 		actions,
 		backdrop: [bloco.vazio[0], bloco.vazio[1], bloco.vazio[2]],
-		spawn: [bloco.nascimento[0], bloco.nascimento[1]],
+		spawn,
 	};
 	if (exterior) {
 		const caixaMapa = { x, y, width, height };

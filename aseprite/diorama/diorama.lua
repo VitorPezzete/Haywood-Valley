@@ -10,7 +10,7 @@
 -- Também roda fora da interface (aseprite -b --script): `dofile` deste arquivo devolve a tabela M, com os comandos
 -- prontos para chamar. É assim que os testes em lote conferem a lógica sem a ponte.
 
-local VERSAO = "0.1.0"
+local VERSAO = "0.2.0"
 local RAIZ_PADRAO = [[C:\Users\Szortek\Documents\Haywood-Valley]]
 local URL_PADRAO = "ws://127.0.0.1:34873/ws?cliente=aseprite"
 local TILE = 16
@@ -185,13 +185,61 @@ local function achatar(spr)
 	return img
 end
 
+--- Erro legível se o sprite foi fechado (um sprite fechado vira um objeto que dá erro a qualquer acesso).
+local function conferirSprite(spr)
+	local ok = pcall(function()
+		return spr.width
+	end)
+	if not ok then
+		error("o sprite foi fechado no meio do comando", 0)
+	end
+	return spr
+end
+
 local function spriteAtivo()
 	local spr = app.sprite
 	if spr == nil then
 		error("nenhum sprite aberto no Aseprite", 0)
 	end
-	return spr
+	return conferirSprite(spr)
 end
+
+--- Grava `img` em `arquivo` sem deixar um PNG pela metade: salva num temporário da mesma pasta
+--- (`.<nome>.salvando.png`, que a ponte e o menu ignoram) e troca pelo original. O rename do Windows não
+--- substitui arquivo existente, então o original vai antes para `.<nome>.anterior.png` e volta se a troca falhar.
+local function gravarImagem(img, arquivo)
+	local pasta = app.fs.filePath(arquivo)
+	local titulo = app.fs.fileTitle(arquivo)
+	local tmp = app.fs.joinPath(pasta, "." .. titulo .. ".salvando.png")
+	local velho = app.fs.joinPath(pasta, "." .. titulo .. ".anterior.png")
+	if app.fs.isFile(tmp) then
+		os.remove(tmp)
+	end
+	img:saveAs(tmp)
+	if not app.fs.isFile(tmp) then
+		error("o Aseprite não conseguiu gravar " .. tmp, 0)
+	end
+	if app.fs.isFile(arquivo) then
+		if app.fs.isFile(velho) then
+			os.remove(velho)
+		end
+		local ok, e = os.rename(arquivo, velho)
+		if not ok then
+			os.remove(tmp)
+			error("não deu para trocar " .. arquivo .. " (aberto em outro programa?): " .. tostring(e), 0)
+		end
+	end
+	local ok, e = os.rename(tmp, arquivo)
+	if not ok then
+		os.rename(velho, arquivo)
+		os.remove(tmp)
+		error("não deu para gravar " .. arquivo .. ": " .. tostring(e), 0)
+	end
+	if app.fs.isFile(velho) then
+		os.remove(velho)
+	end
+end
+M.gravarImagem = gravarImagem
 
 --- De onde veio o sprite: propriedades gravadas por abrir_regiao; senão, o nome `folha@coluna,linha`.
 local function origemDoSprite(spr)
@@ -378,35 +426,45 @@ function comandos.salvar_regiao(args)
 	if x + w > inteira.width or y + h > inteira.height then
 		error("área fora da folha " .. folha, 0)
 	end
-	local nova = achatar(spr)
+	local nova = achatar(conferirSprite(spr))
 	local antiga = Image(inteira, Rectangle(x, y, w, h))
 	local mudados = contarDiferencas(antiga, nova)
-	local gravados = {}
 	if mudados > 0 then
 		colar(inteira, nova, x, y)
-		inteira:saveAs(arquivo)
-		gravados[#gravados + 1] = "diorama/folhas/" .. folha .. ".png"
 	end
 
-	-- As metades de 1024 de largura que o Roblox recebe: mesma região, recortada de cada lado.
+	-- As metades de 1024 de largura que o Roblox recebe: mesma região, recortada de cada lado. Uma área que cruza
+	-- o meio vai em parte para cada metade. Tudo é conferido antes de gravar qualquer arquivo, para um erro numa
+	-- metade não deixar a folha gravada e a metade velha.
 	local metade = inteira.width // 2
+	local trocas = {}
 	for i = 0, 1 do
 		local arqMetade = app.fs.joinPath(raiz(), "diorama", "folhas", folha .. "_" .. i .. ".png")
 		local x0 = i * metade
-		local cruza = x < x0 + metade and x + w > x0
-		if cruza and app.fs.isFile(arqMetade) then
+		local ini = math.max(x, x0)
+		local fim = math.min(x + w, x0 + metade)
+		if fim > ini and app.fs.isFile(arqMetade) then
 			local img = carregarImagem(arqMetade)
 			if img.width ~= metade or img.height ~= inteira.height then
-				error(string.format("%s_%d.png tem %d×%d; esperava %d×%d", folha, i, img.width, img.height, metade, inteira.height), 0)
+				error(string.format("%s_%d.png tem %d×%d; esperava %d×%d (nada foi gravado)", folha, i, img.width, img.height, metade, inteira.height), 0)
 			end
-			local recorte = Image(inteira, Rectangle(math.max(x, x0), y, math.min(x + w, x0 + metade) - math.max(x, x0), h))
-			local atual = Image(img, Rectangle(math.max(x, x0) - x0, y, recorte.width, h))
+			local recorte = Image(inteira, Rectangle(ini, y, fim - ini, h))
+			local atual = Image(img, Rectangle(ini - x0, y, fim - ini, h))
 			if contarDiferencas(atual, recorte) > 0 then
-				colar(img, recorte, math.max(x, x0) - x0, y)
-				img:saveAs(arqMetade)
-				gravados[#gravados + 1] = "diorama/folhas/" .. folha .. "_" .. i .. ".png"
+				colar(img, recorte, ini - x0, y)
+				trocas[#trocas + 1] = { img = img, arquivo = arqMetade, nome = "diorama/folhas/" .. folha .. "_" .. i .. ".png" }
 			end
 		end
+	end
+
+	local gravados = {}
+	if mudados > 0 then
+		gravarImagem(inteira, arquivo)
+		gravados[#gravados + 1] = "diorama/folhas/" .. folha .. ".png"
+	end
+	for _, t in ipairs(trocas) do
+		gravarImagem(t.img, t.arquivo)
+		gravados[#gravados + 1] = t.nome
 	end
 
 	return { folha = folha, area = area, pixels = mudados, arquivos = gravados }
@@ -486,19 +544,33 @@ end
 -- ---------------------------------------------------------------------------------------------------------------
 -- Conexão com a ponte
 
+-- O objeto WebSocket é criado uma vez por endereço e reaproveitado: recriá-lo pediria a permissão do WebSocket de
+-- novo a quem não marcou "não perguntar de novo". `ativo` diz se o usuário quer a conexão (menu); `conectado`, se
+-- ela está aberta agora.
 local ws = nil
+local wsUrl = nil
+local ativo = false
 local conectado = false
 -- O WebSocket do Aseprite não volta sozinho depois que a ponte cai (conferido no 1.3.18): um relógio de 3 s refaz a
--- conexão com o mesmo objeto (close + connect). Recriar o objeto pediria a permissão do WebSocket de novo a quem
--- não marcou "não perguntar de novo".
+-- conexão com o mesmo objeto (close + connect). Há um relógio só, criado na primeira conexão e parado/religado
+-- pelo menu; nunca um por conexão.
 local relogio = nil
 
 local function enviar(msg)
 	if ws == nil or not conectado then
 		return false
 	end
+	-- Codificar e mandar são separados: um valor que o json não codifica não é socket morto.
+	local okJson, texto = pcall(json.encode, msg)
+	if not okJson then
+		registrar("resposta sem JSON: " .. tostring(texto))
+		if msg.tipo ~= "resposta" then
+			return false
+		end
+		texto = json.encode({ tipo = "resposta", id = msg.id, ok = false, erro = "a resposta não virou JSON: " .. limparErro(texto) })
+	end
 	local ok, e = pcall(function()
-		ws:sendText(json.encode(msg))
+		ws:sendText(texto)
 	end)
 	if not ok then
 		-- Socket morto: o relógio reconecta no próximo tique.
@@ -515,7 +587,12 @@ end
 local function receber(tipo, dados)
 	if tipo == WebSocketMessageType.OPEN then
 		conectado = true
-		enviar({ tipo = "ola", versao = VERSAO, aseprite = tostring(app.version) })
+		local sprite = nil
+		if app.sprite ~= nil then
+			local ok, info = pcall(infoSprite, app.sprite)
+			sprite = ok and info or nil
+		end
+		enviar({ tipo = "ola", versao = VERSAO, aseprite = tostring(app.version), sprite = sprite })
 	elseif tipo == WebSocketMessageType.CLOSE then
 		-- ERROR só chega em tentativa de conexão que falhou (ainda desconectado); não mexe no estado.
 		conectado = false
@@ -526,67 +603,89 @@ local function receber(tipo, dados)
 		end
 		local resposta = M.executar(msg.nome, msg.args, msg.id)
 		enviar(resposta)
-		if resposta.ok and msg.nome == "salvar_regiao" and resposta.valor.pixels > 0 then
+		if resposta.ok and msg.nome == "salvar_regiao" and type(resposta.valor) == "table" and (resposta.valor.pixels or 0) > 0 then
 			avisarFolhaSalva(resposta.valor)
 		end
 	end
 end
 
-local function conectar()
-	if ws ~= nil then
+local function tique()
+	if not ativo or ws == nil then
 		return
 	end
+	if conectado then
+		-- O Aseprite não percebe sozinho que a ponte caiu (nenhum CLOSE chega): um ping num socket morto falha.
+		local ok, e = pcall(function()
+			ws:sendPing("diorama")
+		end)
+		if ok then
+			return
+		end
+		registrar("relógio: ping falhou — " .. tostring(e))
+		conectado = false
+	end
+	local ok, e = pcall(function()
+		ws:close()
+		ws:connect()
+	end)
+	registrar("relógio: reconectando" .. (ok and "" or (" — erro: " .. tostring(e))))
+end
+
+local function conectar()
 	prefs.conectar = true
-	ws = WebSocket{
-		url = urlPonte(),
-		deflate = false,
-		minreconnectwait = ESPERA_RECONEXAO,
-		maxreconnectwait = ESPERA_RECONEXAO,
-		onreceive = function(tipo, dados, motivo)
-			if tipo ~= WebSocketMessageType.TEXT then
-				registrar(string.format("ws tipo=%s motivo=%s", tostring(tipo), tostring(motivo)))
-			end
-			-- Erro aqui faria o Aseprite parar o WebSocket; por isso tudo passa por pcall.
-			local ok, e = pcall(receber, tipo, dados)
-			if not ok then
-				print("[Diorama] " .. limparErro(e))
-			end
-		end,
-	}
-	ws:connect()
-	registrar("conectando a " .. urlPonte())
-	if relogio == nil then
-		relogio = Timer{
-			interval = ESPERA_RECONEXAO,
-			ontick = function()
-				if ws == nil then
+	ativo = true
+	local url = urlPonte()
+	if ws ~= nil and wsUrl ~= url then
+		-- Endereço novo: o objeto velho é fechado e esquecido (as mensagens dele são ignoradas abaixo).
+		pcall(function()
+			ws:close()
+		end)
+		ws = nil
+		conectado = false
+	end
+	if ws == nil then
+		local este
+		este = WebSocket{
+			url = url,
+			deflate = false,
+			minreconnectwait = ESPERA_RECONEXAO,
+			maxreconnectwait = ESPERA_RECONEXAO,
+			onreceive = function(tipo, dados, motivo)
+				-- Mensagem de um objeto antigo (troca de endereço) ou com a conexão desligada pelo menu: ignorada.
+				if este ~= ws or not ativo then
 					return
 				end
-				if conectado then
-					-- O Aseprite não percebe sozinho que a ponte caiu (nenhum CLOSE chega): um ping num socket morto falha.
-					local ok, e = pcall(function()
-						ws:sendPing("diorama")
-					end)
-					if ok then
-						return
-					end
-					registrar("relógio: ping falhou — " .. tostring(e))
-					conectado = false
+				if tipo ~= WebSocketMessageType.TEXT then
+					registrar(string.format("ws tipo=%s motivo=%s", tostring(tipo), tostring(motivo)))
 				end
-				local ok, e = pcall(function()
-					ws:close()
-					ws:connect()
-				end)
-				registrar("relógio: reconectando" .. (ok and "" or (" — erro: " .. tostring(e))))
+				-- Erro aqui faria o Aseprite parar o WebSocket; por isso tudo passa por pcall.
+				local ok, e = pcall(receber, tipo, dados)
+				if not ok then
+					print("[Diorama] " .. limparErro(e))
+				end
 			end,
 		}
+		ws = este
+		wsUrl = url
 	end
-	relogio:start()
+	if not conectado then
+		pcall(function()
+			ws:connect()
+		end)
+		registrar("conectando a " .. url)
+	end
+	if relogio == nil then
+		relogio = Timer{ interval = ESPERA_RECONEXAO, ontick = tique }
+	end
+	if not relogio.isRunning then
+		relogio:start()
+	end
 end
 
 local function desconectar()
 	prefs.conectar = false
-	if relogio ~= nil then
+	ativo = false
+	if relogio ~= nil and relogio.isRunning then
 		relogio:stop()
 	end
 	if ws ~= nil then
@@ -594,12 +693,11 @@ local function desconectar()
 			ws:close()
 		end)
 	end
-	ws = nil
 	conectado = false
 end
 
 local function reconectar()
-	if ws ~= nil then
+	if ativo then
 		desconectar()
 		conectar()
 	end
@@ -643,7 +741,15 @@ local function dialogoAbrirRegiao()
 		app.alert{ title = "Diorama", text = "Não achei folhas em " .. app.fs.joinPath(raiz(), "diorama", "folhas") }
 		return
 	end
-	local ultima = type(prefs.ultima) == "table" and prefs.ultima or { folha = folhas[1], area = { 0, 0, 4, 4 } }
+	-- A última região usada (preferência salva pelo Aseprite); qualquer coisa estranha nela volta ao padrão.
+	local ultima = { folha = folhas[1], area = { 0, 0, 4, 4 } }
+	local p = prefs.ultima
+	if type(p) == "table" and type(p.folha) == "string" and type(p.area) == "table" then
+		local ok, area = pcall(lerArea, p.area)
+		if ok and area then
+			ultima = { folha = p.folha, area = area }
+		end
+	end
 	local dlg = Dialog("Abrir região da folha")
 	dlg:combobox{ id = "folha", label = "Folha", option = ultima.folha, options = folhas }
 	dlg:number{ id = "coluna", label = "Coluna", text = tostring(ultima.area[1]), decimals = 0 }
@@ -675,7 +781,7 @@ local function menuSalvarRegiao()
 	end
 	local v = r.valor
 	if v.pixels == 0 then
-		avisar("Nada mudou em " .. v.folha .. ".")
+		avisar(#v.arquivos > 0 and ("Folha igual; metades atualizadas: " .. table.concat(v.arquivos, ", ")) or ("Nada mudou em " .. v.folha .. "."))
 	else
 		avisarFolhaSalva(v)
 		avisar(string.format("%s: %d pixels gravados (%s)%s", v.folha, v.pixels, table.concat(v.arquivos, ", "),
@@ -720,7 +826,7 @@ function init(plugin)
 			return conectado
 		end,
 		onclick = function()
-			if ws ~= nil then
+			if ativo then
 				desconectar()
 				avisar("Desconectado da ponte.")
 			else

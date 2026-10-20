@@ -1,9 +1,13 @@
 // Ponte do Diorama: servidor HTTP local que dá ao plugin do Studio acesso ao disco do repositório.
 // Lê e grava `diorama/` (mapas, catálogo, folhas), `assets/` e `docs/diorama/`, e roda os geradores.
-// Só escuta em 127.0.0.1 e não tem autenticação. Rotas documentadas em docs/diorama/PONTE.md.
+// Só escuta em 127.0.0.1 e não tem senha; recusa pedidos de páginas web (Origin, Sec-Fetch-Site, Host) e
+// POST/PUT/DELETE sem `X-Diorama: 1` (a não ser com --sem-exigir-cabecalho). Rotas em docs/diorama/PONTE.md.
 //
-// Uso: npm run diorama:ponte            (ou: node tools/diorama_ponte.mjs [--porta 34873] [--plugin-watch])
+// Uso: npm run diorama:ponte            (ou: node tools/diorama_ponte.mjs [--porta 34873] [--plugin-watch]
+//                                             [--exigir-cabecalho | --sem-exigir-cabecalho])
 // Depende do Node, do pngjs (decodifica as folhas para GET /folhas/<nome>.rgba) e do ws (o canal do Aseprite).
+// DIORAMA_RAIZ (variável de ambiente) troca a raiz do repositório: os testes (tools/testes/ponte.test.mjs) sobem a
+// ponte numa cópia.
 //
 // Além do disco, a ponte é o centro das conexões (docs/diorama/CONEXOES.md): serve o pacote do plugin para a
 // recarga a quente (/plugin/*, diorama_lib/pacote.mjs), leva comandos ao Studio (/studio/*), fala com o Aseprite
@@ -18,7 +22,7 @@ import { PNG } from "pngjs";
 import { criarCanais } from "./diorama_lib/canais.mjs";
 import { observarPacote } from "./diorama_lib/pacote.mjs";
 
-export const VERSAO = "0.4.0";
+export const VERSAO = "0.5.0";
 const HOST = "127.0.0.1";
 const PORTA_PADRAO = 34873;
 const PORTA_ROJO = 34872;
@@ -28,8 +32,16 @@ const CORPO_MAXIMO = 16 * 1024 * 1024;
 const TEMPO_GERADOR = 120_000;
 /** Lado do bloco em células. */
 const LADO_BLOCO = 64;
+/**
+ * Se POST/PUT/DELETE precisam de `X-Diorama: 1` quando nenhuma opção diz o contrário. O MCP e os testes mandam o
+ * cabeçalho, e plugin/src/ponte.ts também, mas em 2026-10-20 o plugin/out compilado (o pacote que o Studio roda)
+ * ainda não mandava: desligado até lá (DUVIDAS.md, item 29). A extensão do Aseprite só usa o WebSocket.
+ */
+const EXIGIR_CABECALHO_PADRAO = false;
 
-export const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+export const RAIZ = process.env.DIORAMA_RAIZ
+	? path.resolve(process.env.DIORAMA_RAIZ)
+	: path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 export const PASTAS = {
 	mapas: path.join(RAIZ, "diorama", "mapas"),
 	catalogo: path.join(RAIZ, "diorama", "catalogo"),
@@ -44,11 +56,14 @@ const ARQUIVO_GRAAL = path.join(RAIZ, "src", "shared", "graalData.ts");
 const ARQUIVO_INTERIORS = path.join(RAIZ, "src", "shared", "interiors", "index.ts");
 
 const ID_MAPA = /^[a-z0-9_]+$/;
-const NOME_ARQUIVO = /^[A-Za-z0-9_.-]+$/;
+/** Nome de folha ou documento: não começa com "." (nem é "." ou ".."; os temporários começam com "."). */
+const NOME_ARQUIVO = /^[A-Za-z0-9_-][A-Za-z0-9_.-]*$/;
 const NOME_CATALOGO = /^[a-z0-9_]+$/;
-const BLOCO = /^(\d+)_(\d+)$/;
+const BLOCO = /^(\d{1,6})_(\d{1,6})$/;
 /** Um caminho de imagem: segmentos de nome de arquivo separados por "/", sem "." nem ".." como segmento. */
 const CAMINHO_IMAGEM = /^(?:[A-Za-z0-9_-][A-Za-z0-9_.-]*\/)*[A-Za-z0-9_-][A-Za-z0-9_.-]*$/;
+/** Nomes que o Windows reserva para dispositivos; valem com qualquer extensão (`con.json`, `nul.png`). */
+const NOME_RESERVADO = /^(con|prn|aux|nul|com[0-9¹²³]|lpt[0-9¹²³]|conin\$|conout\$|clock\$)$/i;
 
 // ---------------------------------------------------------------------------------------------------------------
 // Respostas e erros
@@ -74,21 +89,42 @@ function texto(res, status, conteudo, tipo = "text/plain; charset=utf-8") {
 	res.end(conteudo);
 }
 
+/**
+ * Lê o corpo inteiro. Corpo acima de CORPO_MAXIMO dá 413 sem ler o resto (pelo Content-Length, quando vem, ou ao
+ * passar do limite); a conexão é fechada depois da resposta. Conexão que cai no meio dá 400.
+ */
 function lerCorpo(req) {
 	return new Promise((resolve, reject) => {
+		const declarado = Number(req.headers["content-length"]);
+		const grande = () => {
+			req.corpoGrande = true; // atender() fecha a conexão depois de responder
+			req.removeAllListeners("data");
+			req.resume(); // descarta o resto sem guardar
+			reject(new ErroHttp(413, `corpo maior que ${CORPO_MAXIMO} bytes`));
+		};
+		if (Number.isFinite(declarado) && declarado > CORPO_MAXIMO) {
+			grande();
+			return;
+		}
 		const partes = [];
 		let tamanho = 0;
+		let terminou = false;
 		req.on("data", (parte) => {
 			tamanho += parte.length;
 			if (tamanho > CORPO_MAXIMO) {
-				reject(new ErroHttp(413, `corpo maior que ${CORPO_MAXIMO} bytes`));
-				req.destroy();
+				grande();
 				return;
 			}
 			partes.push(parte);
 		});
-		req.on("end", () => resolve(Buffer.concat(partes)));
-		req.on("error", reject);
+		req.on("end", () => {
+			terminou = true;
+			resolve(Buffer.concat(partes));
+		});
+		req.on("error", (erro) => reject(new ErroHttp(400, `o pedido caiu no meio: ${erro.message}`)));
+		req.on("close", () => {
+			if (!terminou) reject(new ErroHttp(400, "a conexão caiu antes do fim do corpo"));
+		});
 	});
 }
 
@@ -102,6 +138,15 @@ async function lerJson(req) {
 	}
 }
 
+/** Como lerJson, mas o corpo tem de ser um objeto JSON ({ ... }). */
+async function lerObjeto(req, oQue = "o corpo") {
+	const valor = await lerJson(req);
+	if (typeof valor !== "object" || valor === null || Array.isArray(valor)) {
+		throw new ErroHttp(400, `${oQue} precisa ser um objeto JSON`);
+	}
+	return valor;
+}
+
 function existe(caminho) {
 	try {
 		fs.accessSync(caminho);
@@ -112,29 +157,102 @@ function existe(caminho) {
 }
 
 function lerJsonDoDisco(caminho) {
-	return JSON.parse(fs.readFileSync(caminho, "utf8"));
+	const texto = fs.readFileSync(caminho, "utf8");
+	try {
+		return JSON.parse(texto);
+	} catch (erro) {
+		throw new ErroHttp(500, `${path.relative(RAIZ, caminho)} tem JSON inválido: ${erro.message}`);
+	}
 }
 
-/** Grava JSON com tabulação, como o Prettier do repositório, e quebra de linha no fim. */
-function gravarJson(caminho, valor) {
+// ---------------------------------------------------------------------------------------------------------------
+// Caminhos seguros: nomes conferidos e nada de links
+
+/** Recusa nomes que o Windows trata como dispositivo (`con`, `nul.json`) ou que ele encurta (ponto ou espaço no fim). */
+function conferirNome(nome, oQue) {
+	if (NOME_RESERVADO.test(nome.split(".")[0])) throw new ErroHttp(400, `${oQue} inválido: ${nome} (nome reservado do Windows)`);
+	if (/[. ]$/.test(nome)) throw new ErroHttp(400, `${oQue} inválido: ${nome} (termina em ponto ou espaço)`);
+	return nome;
+}
+
+/**
+ * Confere que `alvo` fica dentro de `base` e que nenhum pedaço do caminho entre eles (nem a própria base) é link
+ * simbólico ou junção: um link dentro de diorama/ levaria a leitura ou a gravação para fora do repositório.
+ * Partes que ainda não existem são aceitas (a gravação vai criá-las).
+ */
+function semLinks(base, alvo) {
+	const relativo = path.relative(base, alvo);
+	if (relativo.startsWith("..") || path.isAbsolute(relativo)) throw new ErroHttp(400, `caminho fora de ${path.relative(RAIZ, base)}`);
+	let atual = base;
+	for (const parte of ["", ...relativo.split(path.sep).filter(Boolean)]) {
+		atual = parte === "" ? atual : path.join(atual, parte);
+		let estat;
+		try {
+			estat = fs.lstatSync(atual);
+		} catch {
+			return alvo; // daqui para baixo não existe
+		}
+		if (estat.isSymbolicLink()) {
+			throw new ErroHttp(400, `a ponte não segue links: ${path.relative(RAIZ, atual) || atual} é um link simbólico ou junção`);
+		}
+	}
+	return alvo;
+}
+
+/** Espera `ms` sem devolver o controle (só para as tentativas de renomear, poucos milissegundos). */
+function pausar(ms) {
+	Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+}
+
+/**
+ * Grava um arquivo de uma vez: escreve num temporário na mesma pasta (`.<nome>.<pid>.<n>.tmp`) e renomeia por cima.
+ * Quem lê nunca vê o arquivo pela metade, e uma queda no meio deixa o original inteiro. No Windows o renomear falha
+ * enquanto outro programa está com o arquivo aberto; tenta de novo por até ~1 s.
+ */
+let contadorTemporario = 0;
+export function gravarAtomico(caminho, conteudo) {
 	fs.mkdirSync(path.dirname(caminho), { recursive: true });
-	fs.writeFileSync(caminho, JSON.stringify(valor, null, "\t") + "\n");
+	const temporario = path.join(path.dirname(caminho), `.${path.basename(caminho)}.${process.pid}.${++contadorTemporario}.tmp`);
+	fs.writeFileSync(temporario, conteudo, { flag: "wx" });
+	try {
+		for (let tentativa = 0; ; tentativa++) {
+			try {
+				fs.renameSync(temporario, caminho);
+				return;
+			} catch (erro) {
+				if (tentativa >= 20 || !["EPERM", "EACCES", "EBUSY"].includes(erro.code)) throw erro;
+				pausar(50);
+			}
+		}
+	} catch (erro) {
+		fs.rmSync(temporario, { force: true });
+		throw new ErroHttp(500, `não deu para gravar ${path.relative(RAIZ, caminho)}: ${erro.message}`);
+	}
+}
+
+/** Grava JSON com tabulação, como o Prettier do repositório, e quebra de linha no fim (de uma vez, sem links). */
+function gravarJson(base, caminho, valor) {
+	semLinks(base, caminho);
+	gravarAtomico(caminho, JSON.stringify(valor, null, "\t") + "\n");
 }
 
 // ---------------------------------------------------------------------------------------------------------------
 // Mapas e blocos
 
+/** A pasta de um mapa, conferida: id válido, sem nome reservado do Windows e sem link no caminho. */
 function pastaMapa(id) {
 	if (!ID_MAPA.test(id)) throw new ErroHttp(400, `id de mapa inválido: ${id} (só letras minúsculas, números e _)`);
-	return path.join(PASTAS.mapas, id);
+	conferirNome(id, "id de mapa");
+	return semLinks(PASTAS.mapas, path.join(PASTAS.mapas, id));
 }
 
 function lerBlocos(id) {
-	const pasta = path.join(pastaMapa(id), "blocos");
+	const pasta = semLinks(PASTAS.mapas, path.join(pastaMapa(id), "blocos"));
 	if (!existe(pasta)) return [];
 	return fs
-		.readdirSync(pasta)
-		.filter((nome) => nome.endsWith(".json") && BLOCO.test(nome.slice(0, -5)))
+		.readdirSync(pasta, { withFileTypes: true })
+		.filter((e) => e.isFile() && e.name.endsWith(".json") && BLOCO.test(e.name.slice(0, -5)))
+		.map((e) => e.name)
 		.sort()
 		.map((nome) => {
 			const [, bx, by] = BLOCO.exec(nome.slice(0, -5));
@@ -143,7 +261,7 @@ function lerBlocos(id) {
 }
 
 function lerMapaJson(id) {
-	const caminho = path.join(pastaMapa(id), "mapa.json");
+	const caminho = semLinks(PASTAS.mapas, path.join(pastaMapa(id), "mapa.json"));
 	return existe(caminho) ? lerJsonDoDisco(caminho) : null;
 }
 
@@ -151,14 +269,15 @@ function listarMapas() {
 	if (!existe(PASTAS.mapas)) return [];
 	return fs
 		.readdirSync(PASTAS.mapas, { withFileTypes: true })
-		.filter((entrada) => entrada.isDirectory() && ID_MAPA.test(entrada.name))
+		.filter((entrada) => entrada.isDirectory() && ID_MAPA.test(entrada.name) && !NOME_RESERVADO.test(entrada.name))
 		.map((entrada) => {
-			const mapa = lerMapaJson(entrada.name);
-			return {
-				id: entrada.name,
-				nome: mapa?.nome ?? entrada.name,
-				blocos: lerBlocos(entrada.name).map((b) => b.bloco),
-			};
+			// Um mapa com mapa.json quebrado não derruba a lista: sai com o erro.
+			try {
+				const mapa = lerMapaJson(entrada.name);
+				return { id: entrada.name, nome: mapa?.nome ?? entrada.name, blocos: lerBlocos(entrada.name).map((b) => b.bloco) };
+			} catch (erro) {
+				return { id: entrada.name, nome: entrada.name, blocos: [], erro: erro.message };
+			}
 		});
 }
 
@@ -167,7 +286,7 @@ function lerMapa(id) {
 	if (!existe(pasta)) throw new ErroHttp(404, `mapa não encontrado: ${id}`);
 	const blocos = lerBlocos(id).map((b) => ({
 		...b,
-		conteudo: lerJsonDoDisco(path.join(pasta, "blocos", b.arquivo)),
+		conteudo: lerJsonDoDisco(semLinks(PASTAS.mapas, path.join(pasta, "blocos", b.arquivo))),
 	}));
 	return { id, mapa: lerMapaJson(id), blocos };
 }
@@ -201,7 +320,7 @@ export function validarBloco(bloco, id, [bx, by]) {
 	) {
 		problemas.push("vazio precisa ser [folha, coluna, linha]");
 	}
-	if (typeof bloco.camadas !== "object" || bloco.camadas === null) {
+	if (typeof bloco.camadas !== "object" || bloco.camadas === null || Array.isArray(bloco.camadas)) {
 		problemas.push("camadas precisa ser um objeto com chao, objeto e frente");
 	} else {
 		for (const nome of Object.keys(bloco.camadas)) {
@@ -236,15 +355,33 @@ export function validarBloco(bloco, id, [bx, by]) {
 	return problemas;
 }
 
+/**
+ * O que o bloco tem de estranho mas não impede gravar (vai em `avisos` na resposta do PUT). Hoje: o nascimento,
+ * que o plugin deixa salvar sem; o gerador assume a primeira célula livre (item 28 de DUVIDAS.md).
+ */
+export function avisosDoBloco(bloco) {
+	const avisos = [];
+	const n = bloco.nascimento;
+	if (n === undefined) {
+		avisos.push("o bloco não tem nascimento: o gerador põe o jogador na primeira célula livre (ou em [0, 0]); marque o nascimento no editor");
+	} else if (!Array.isArray(n) || n.length !== 2 || !Number.isInteger(n[0]) || !Number.isInteger(n[1])) {
+		avisos.push(`nascimento precisa ser [x, y] com inteiros (veio ${JSON.stringify(n)}): o gerador vai usar a primeira célula livre`);
+	}
+	return avisos;
+}
+
 /** Garante o mapa.json do mapa e anota o bloco nele (ou o tira, com `remover`). O formato do mapa.json é palpite. */
 function atualizarMapaJson(id, [bx, by], remover = false) {
 	const caminho = path.join(pastaMapa(id), "mapa.json");
 	const mapa = existe(caminho) ? lerJsonDoDisco(caminho) : { versao: 1, id, nome: id, blocos: [] };
+	if (typeof mapa !== "object" || mapa === null || Array.isArray(mapa)) {
+		throw new ErroHttp(500, `${path.relative(RAIZ, caminho)} não é um objeto JSON; conserte o arquivo`);
+	}
 	if (!Array.isArray(mapa.blocos)) mapa.blocos = [];
-	mapa.blocos = mapa.blocos.filter((b) => !(Array.isArray(b) && b[0] === bx && b[1] === by));
+	mapa.blocos = mapa.blocos.filter((b) => Array.isArray(b) && !(b[0] === bx && b[1] === by));
 	if (!remover) mapa.blocos.push([bx, by]);
 	mapa.blocos.sort((a, b) => a[1] - b[1] || a[0] - b[0]);
-	gravarJson(caminho, mapa);
+	gravarJson(PASTAS.mapas, caminho, mapa);
 	return mapa;
 }
 
@@ -290,14 +427,15 @@ export function gravarBloco(id, coordenadas, bloco) {
 	if (problemas.length > 0) throw new ErroHttp(400, `bloco inválido: ${problemas.join("; ")}`);
 	const [bx, by] = coordenadas;
 	const caminho = path.join(pastaMapa(id), "blocos", `${bx}_${by}.json`);
-	gravarJson(caminho, normalizarBloco(bloco));
+	gravarJson(PASTAS.mapas, caminho, normalizarBloco(bloco));
 	const mapa = atualizarMapaJson(id, coordenadas);
-	return { ok: true, arquivo: path.relative(RAIZ, caminho), mapa };
+	const avisos = avisosDoBloco(bloco);
+	return { ok: true, arquivo: path.relative(RAIZ, caminho), mapa, ...(avisos.length > 0 ? { avisos } : {}) };
 }
 
 function apagarBloco(id, coordenadas) {
 	const [bx, by] = coordenadas;
-	const caminho = path.join(pastaMapa(id), "blocos", `${bx}_${by}.json`);
+	const caminho = semLinks(PASTAS.mapas, path.join(pastaMapa(id), "blocos", `${bx}_${by}.json`));
 	if (!existe(caminho)) throw new ErroHttp(404, `bloco não encontrado: ${id}/${bx}_${by}`);
 	fs.unlinkSync(caminho);
 	const mapa = atualizarMapaJson(id, coordenadas, true);
@@ -308,6 +446,10 @@ function apagarBloco(id, coordenadas) {
 function apagarMapa(id) {
 	const pasta = pastaMapa(id);
 	if (!existe(pasta)) throw new ErroHttp(404, `mapa não encontrado: ${id}`);
+	// Um link dentro da pasta (blocos/ como junção) faria o rm recursivo apagar o que está do outro lado.
+	for (const entrada of fs.readdirSync(pasta, { withFileTypes: true, recursive: true })) {
+		if (entrada.isSymbolicLink()) throw new ErroHttp(400, `a ponte não apaga mapa com link dentro: ${entrada.name}`);
+	}
 	fs.rmSync(pasta, { recursive: true, force: true });
 	return { ok: true, pasta: path.relative(RAIZ, pasta) };
 }
@@ -316,8 +458,9 @@ function apagarMapa(id) {
 // Catálogo
 
 function caminhoCatalogo(nome) {
-	if (!NOME_CATALOGO.test(nome)) throw new ErroHttp(400, `nome de catálogo inválido: ${nome}`);
-	return path.join(PASTAS.catalogo, `${nome}.json`);
+	if (!NOME_CATALOGO.test(nome)) throw new ErroHttp(400, `nome de catálogo inválido: ${nome} (só letras minúsculas, números e _)`);
+	conferirNome(nome, "nome de catálogo");
+	return semLinks(PASTAS.catalogo, path.join(PASTAS.catalogo, `${nome}.json`));
 }
 
 // ---------------------------------------------------------------------------------------------------------------
@@ -339,10 +482,18 @@ function medirPng(caminho) {
 function listarFolhas() {
 	if (!existe(PASTAS.folhas)) return [];
 	return fs
-		.readdirSync(PASTAS.folhas)
-		.filter((nome) => nome.endsWith(".png"))
+		.readdirSync(PASTAS.folhas, { withFileTypes: true })
+		// Só arquivos de verdade com nome válido: os temporários do Aseprite (".casa.salvando.png") e links ficam de fora.
+		.filter((e) => e.isFile() && e.name.endsWith(".png") && NOME_ARQUIVO.test(e.name.slice(0, -4)))
+		.map((e) => e.name)
 		.sort()
-		.map((nome) => ({ nome: nome.slice(0, -4), ...medirPng(path.join(PASTAS.folhas, nome)) }));
+		.map((nome) => {
+			try {
+				return { nome: nome.slice(0, -4), ...medirPng(path.join(PASTAS.folhas, nome)) };
+			} catch (erro) {
+				return { nome: nome.slice(0, -4), erro: erro.message };
+			}
+		});
 }
 
 /** Imagens decodificadas, pelo caminho, com a data do arquivo para reler quando ele mudar. */
@@ -359,29 +510,38 @@ function decodificarPng(caminho, nome) {
 	} catch (erro) {
 		throw new ErroHttp(500, `não deu para decodificar ${nome}: ${erro.message}`);
 	}
+	imagensDecodificadas.delete(caminho);
 	imagensDecodificadas.set(caminho, { mtime, png });
+	// Guarda no máximo uns 256 MB de pixels: o envio de assets pelo Studio lê o registro inteiro.
+	let total = 0;
+	for (const { png: p } of imagensDecodificadas.values()) total += p.data.length;
+	for (const [chave, { png: p }] of imagensDecodificadas) {
+		if (total <= 256 * 1024 * 1024 || chave === caminho) break;
+		imagensDecodificadas.delete(chave);
+		total -= p.data.length;
+	}
 	return png;
 }
 
 function lerFolha(nome) {
 	if (!NOME_ARQUIVO.test(nome)) throw new ErroHttp(400, `nome de folha inválido: ${nome}`);
-	return decodificarPng(path.join(PASTAS.folhas, `${nome}.png`), `folha ${nome}`);
+	conferirNome(nome, "nome de folha");
+	return decodificarPng(semLinks(PASTAS.folhas, path.join(PASTAS.folhas, `${nome}.png`)), `folha ${nome}`);
 }
 
 /**
  * Um PNG de `assets/` ou `diorama/folhas/` pelo caminho relativo à raiz sem o `.png` (`assets/ui/atlas`,
- * `diorama/folhas/casa`). Só essas duas pastas, sem `..`; o caminho é conferido depois de resolvido.
+ * `diorama/folhas/casa`). Só essas duas pastas, sem `..`, sem nome reservado e sem link no caminho; o caminho é
+ * conferido depois de resolvido.
  */
 function lerImagem(caminho) {
 	const limpo = caminho.replaceAll("\\", "/").replace(/\.png$/i, "");
 	if (!CAMINHO_IMAGEM.test(limpo)) throw new ErroHttp(400, `caminho de imagem inválido: ${caminho}`);
+	for (const parte of limpo.split("/")) conferirNome(parte, "caminho de imagem");
 	const absoluto = path.resolve(RAIZ, `${limpo}.png`);
-	const dentro = PASTAS_IMAGENS.some((pasta) => {
-		const base = path.resolve(RAIZ, pasta) + path.sep;
-		return absoluto.startsWith(base);
-	});
-	if (!dentro) throw new ErroHttp(400, `a ponte só serve imagens de ${PASTAS_IMAGENS.join(" e ")}: ${caminho}`);
-	return decodificarPng(absoluto, limpo);
+	const base = PASTAS_IMAGENS.map((pasta) => path.resolve(RAIZ, pasta)).find((b) => absoluto.startsWith(b + path.sep));
+	if (!base) throw new ErroHttp(400, `a ponte só serve imagens de ${PASTAS_IMAGENS.join(" e ")}: ${caminho}`);
+	return decodificarPng(semLinks(base, absoluto), limpo);
 }
 
 function numeroDaBusca(busca, chave, padrao) {
@@ -396,6 +556,9 @@ function numeroDaBusca(busca, chave, padrao) {
 function recortar(png, nome, busca) {
 	const x = numeroDaBusca(busca, "x", 0);
 	const y = numeroDaBusca(busca, "y", 0);
+	if (x >= png.width || y >= png.height) {
+		throw new ErroHttp(400, `recorte fora de ${nome} (${png.width}×${png.height}): x=${x} y=${y}`);
+	}
 	const w = numeroDaBusca(busca, "w", png.width - x);
 	const h = numeroDaBusca(busca, "h", png.height - y);
 	if (w === 0 || h === 0 || x + w > png.width || y + h > png.height) {
@@ -461,8 +624,20 @@ function comandoNpm() {
 	return { programa: process.platform === "win32" ? "npm.cmd" : "npm", prefixo: [], shell: process.platform === "win32" };
 }
 
+/**
+ * Os geradores rodam um de cada vez: dois `diorama:jogo` ao mesmo tempo gravariam o mesmo index.ts juntos.
+ * O segundo pedido espera o primeiro terminar.
+ */
+let filaNpm = Promise.resolve();
+
 /** Roda `npm run <script> -- <args>` na raiz e devolve o log inteiro (stdout e stderr misturados). */
 function rodarNpm(script, args = []) {
+	const vez = filaNpm.then(() => rodarNpmAgora(script, args));
+	filaNpm = vez.catch(() => {});
+	return vez;
+}
+
+function rodarNpmAgora(script, args) {
 	return new Promise((resolve) => {
 		const npm = comandoNpm();
 		const comando = ["run", script, "--", ...args];
@@ -553,7 +728,8 @@ function listarDocs() {
 
 function lerDoc(nome) {
 	if (!NOME_ARQUIVO.test(nome)) throw new ErroHttp(400, `nome de documento inválido: ${nome}`);
-	const caminho = path.join(PASTAS.docs, `${nome}.md`);
+	conferirNome(nome, "nome de documento");
+	const caminho = semLinks(PASTAS.docs, path.join(PASTAS.docs, `${nome}.md`));
 	if (!existe(caminho)) throw new ErroHttp(404, `documento não encontrado: ${nome}`);
 	return fs.readFileSync(caminho, "utf8");
 }
@@ -561,7 +737,7 @@ function lerDoc(nome) {
 // ---------------------------------------------------------------------------------------------------------------
 // Pacote do plugin e canais (CONEXOES.md)
 
-const canais = criarCanais({ ErroHttp, lerJson });
+const canais = criarCanais({ ErroHttp, lerJson: lerObjeto });
 const PROJETO_PLUGIN = path.join(RAIZ, "plugin", "default.project.json");
 let observador;
 
@@ -628,8 +804,11 @@ const ROTAS = [
 		"PUT",
 		/^\/mapas\/([^/]+)\/blocos\/([^/]+)$/,
 		async ([id, bloco], req) => {
-			const r = gravarBloco(id, lerCoordenadas(bloco), await lerJson(req));
+			const coordenadas = lerCoordenadas(bloco);
+			pastaMapa(id); // confere o id antes de ler o corpo
+			const r = gravarBloco(id, coordenadas, await lerObjeto(req, "o bloco"));
 			canais.emitir("mapa_gravado", { mapa: id, bloco, arquivo: r.arquivo });
+			if (r.avisos) console.log(`[mapas] ${id}/${bloco}: ${r.avisos.join("; ")}`);
 			return { json: r };
 		},
 	],
@@ -666,7 +845,7 @@ const ROTAS = [
 		/^\/catalogo\/([^/]+)$/,
 		async ([nome], req) => {
 			const caminho = caminhoCatalogo(nome);
-			gravarJson(caminho, await lerJson(req));
+			gravarJson(PASTAS.catalogo, caminho, await lerJson(req));
 			return { json: { ok: true, arquivo: path.relative(RAIZ, caminho) } };
 		},
 	],
@@ -716,7 +895,7 @@ const ROTAS = [
 		"GET",
 		/^\/assets$/,
 		() => {
-			const caminho = path.join(PASTAS.assets, "registro.json");
+			const caminho = semLinks(PASTAS.assets, path.join(PASTAS.assets, "registro.json"));
 			if (!existe(caminho)) throw new ErroHttp(404, "assets/registro.json ainda não existe");
 			return { texto: fs.readFileSync(caminho, "utf8"), tipo: "application/json; charset=utf-8" };
 		},
@@ -725,14 +904,11 @@ const ROTAS = [
 		"POST",
 		/^\/assets\/enviadas$/,
 		async (_grupos, req) => {
-			const enviadas = await lerJson(req);
 			// O formato de tools/assets.mjs --importar: { "<chave, caminho ou nome do arquivo>": id }.
-			if (typeof enviadas !== "object" || enviadas === null || Array.isArray(enviadas)) {
-				throw new ErroHttp(400, 'enviadas precisa ser um objeto { "<chave>": id }');
-			}
+			const enviadas = await lerObjeto(req, 'enviadas ({ "<chave>": id })');
 			const ruim = Object.entries(enviadas).find(([, id]) => typeof id !== "number" && typeof id !== "string");
 			if (ruim) throw new ErroHttp(400, `enviadas: o id de "${ruim[0]}" precisa ser um número ou texto`);
-			gravarJson(path.join(PASTAS.assets, "enviadas.json"), enviadas);
+			gravarJson(PASTAS.assets, path.join(PASTAS.assets, "enviadas.json"), enviadas);
 			return { json: await rodarNpm("assets", ["--importar"]) };
 		},
 	],
@@ -741,13 +917,67 @@ const ROTAS = [
 	["GET", /^\/docs\/([^/]+)$/, ([nome]) => ({ texto: lerDoc(nome.endsWith(".md") ? nome.slice(0, -3) : nome) })],
 ];
 
+// ---------------------------------------------------------------------------------------------------------------
+// Quem pode falar com a ponte
+//
+// A ponte escuta só em 127.0.0.1, mas uma página aberta no navegador também roda no 127.0.0.1 e pode tentar
+// `fetch("http://127.0.0.1:34873/...")`, um formulário que posta para cá ou `new WebSocket("ws://127.0.0.1:34873/ws")`.
+// O plugin (HttpService), o MCP (fetch do Node), o curl e a extensão do Aseprite não mandam `Origin` nem
+// `Sec-Fetch-Site`; o navegador manda. Então:
+// - `Origin` presente e que não seja a própria ponte: recusado (403). Vale também para o WebSocket.
+// - `Sec-Fetch-Site` presente e diferente de `none`/`same-origin`: recusado (pega o GET "no-cors" de <img>/<script>,
+//   que não leva Origin).
+// - `Host` que não seja 127.0.0.1, localhost ou [::1]: recusado (DNS rebinding: um domínio que passa a apontar para
+//   127.0.0.1 chega com o próprio nome no Host).
+// - POST/PUT/DELETE sem `X-Diorama: 1`, quando a exigência está ligada: recusado. Um formulário não manda cabeçalho
+//   próprio, e um fetch com cabeçalho próprio faz antes o preflight OPTIONS, que a ponte recusa.
+
+const HOSTS_LOCAIS = new Set(["127.0.0.1", "localhost", "[::1]"]);
+
+/** Devolve o motivo da recusa, ou undefined se o pedido pode passar. `metodo` undefined: o upgrade do WebSocket. */
+export function motivoRecusa(req, { exigirCabecalho = false } = {}) {
+	const host = req.headers.host;
+	if (host !== undefined) {
+		const m = /^(\[[^\]]+\]|[^:]+)(?::(\d+))?$/.exec(host.toLowerCase());
+		if (!m || !HOSTS_LOCAIS.has(m[1])) return `Host ${JSON.stringify(host)} não é local`;
+	}
+	const origem = req.headers.origin;
+	if (origem !== undefined) {
+		let local = false;
+		try {
+			const u = new URL(origem);
+			local = (u.protocol === "http:" || u.protocol === "ws:") && HOSTS_LOCAIS.has(u.hostname) && Number(u.port || 80) === req.socket.localPort;
+		} catch {
+			local = false;
+		}
+		if (!local) return `pedido de página web (Origin ${origem})`;
+	}
+	const site = req.headers["sec-fetch-site"];
+	if (site !== undefined && site !== "none" && site !== "same-origin") return `pedido de página web (Sec-Fetch-Site ${site})`;
+	if (req.method === "OPTIONS") return "a ponte não aceita CORS (preflight OPTIONS)";
+	if (exigirCabecalho && ["POST", "PUT", "DELETE", "PATCH"].includes(req.method) && req.headers["x-diorama"] !== "1") {
+		return "falta o cabeçalho X-Diorama: 1 (exigido em POST, PUT e DELETE)";
+	}
+	return undefined;
+}
+
+let opcoesServidor = { exigirCabecalho: EXIGIR_CABECALHO_PADRAO };
+
 async function atender(req, res) {
 	const inicio = Date.now();
-	const url = new URL(req.url, `http://${HOST}`);
-	const caminho = decodeURIComponent(url.pathname);
+	let caminho = req.url;
 	let statusFinal = 200;
 	let silenciosa = false;
 	try {
+		const recusa = motivoRecusa(req, opcoesServidor);
+		if (recusa) throw new ErroHttp(403, `recusado: ${recusa}`);
+		const url = new URL(req.url, `http://${HOST}`);
+		try {
+			caminho = decodeURIComponent(url.pathname);
+		} catch {
+			throw new ErroHttp(400, `caminho com % inválido: ${url.pathname}`);
+		}
+		if (caminho.includes("\0")) throw new ErroHttp(400, "caminho com caractere nulo");
 		let rotaDoCaminho = false;
 		for (const [metodo, padrao, acao] of ROTAS) {
 			const m = padrao.exec(caminho);
@@ -783,7 +1013,10 @@ async function atender(req, res) {
 	} catch (erro) {
 		statusFinal = erro instanceof ErroHttp ? erro.status : 500;
 		if (statusFinal === 500) console.error(erro);
+		// Corpo grande demais ou pedido recusado: fecha a conexão depois de responder (o resto do corpo não é lido).
+		if (req.corpoGrande || statusFinal === 403) res.setHeader("Connection", "close");
 		if (!res.headersSent && !res.destroyed) json(res, statusFinal, { erro: erro.message });
+		if (statusFinal === 403) console.log(`[recusado] ${req.method} ${req.url}: ${erro.message}`);
 	} finally {
 		if (!silenciosa) console.log(`${req.method} ${caminho} -> ${statusFinal} (${Date.now() - inicio} ms)`);
 	}
@@ -792,17 +1025,19 @@ async function atender(req, res) {
 // ---------------------------------------------------------------------------------------------------------------
 // Início
 
-export function criarServidor() {
+/** `exigirCabecalho`: POST/PUT/DELETE sem `X-Diorama: 1` dão 403 (padrão: EXIGIR_CABECALHO_PADRAO). */
+export function criarServidor({ exigirCabecalho = EXIGIR_CABECALHO_PADRAO } = {}) {
+	opcoesServidor = { exigirCabecalho };
 	const servidor = http.createServer((req, res) => {
 		atender(req, res).catch((erro) => {
 			console.error(erro);
-			if (!res.headersSent) json(res, 500, { erro: erro.message });
+			if (!res.headersSent && !res.destroyed) json(res, 500, { erro: erro.message });
 		});
 	});
 	// O keep-alive precisa durar mais que o intervalo entre os pedidos do plugin (presença a cada 5 s).
 	servidor.keepAliveTimeout = 65_000;
 	servidor.headersTimeout = 66_000;
-	canais.aoAtualizar(servidor);
+	canais.aoAtualizar(servidor, (req) => motivoRecusa(req));
 	return servidor;
 }
 
@@ -830,8 +1065,9 @@ function lerPorta() {
 	const i = process.argv.indexOf("--porta");
 	if (i === -1) return PORTA_PADRAO;
 	const porta = Number(process.argv[i + 1]);
-	if (!Number.isInteger(porta) || porta <= 0) {
-		console.error("--porta precisa de um número");
+	// 0: uma porta livre qualquer (os testes usam; a porta escolhida sai na primeira linha do terminal).
+	if (!Number.isInteger(porta) || porta < 0 || porta > 65535) {
+		console.error("--porta precisa de um número de 0 a 65535");
 		process.exit(2);
 	}
 	return porta;
@@ -839,7 +1075,12 @@ function lerPorta() {
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
 	const porta = lerPorta();
-	const servidor = criarServidor();
+	const exigirCabecalho = process.argv.includes("--exigir-cabecalho")
+		? true
+		: process.argv.includes("--sem-exigir-cabecalho")
+			? false
+			: EXIGIR_CABECALHO_PADRAO;
+	const servidor = criarServidor({ exigirCabecalho });
 	servidor.on("error", (erro) => {
 		if (erro.code === "EADDRINUSE") {
 			console.error(`A porta ${porta} já está em uso. Outra ponte rodando? Feche-a ou use --porta.`);
@@ -849,7 +1090,12 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
 		process.exit(1);
 	});
 	servidor.listen(porta, HOST, () => {
-		console.log(`Ponte do Diorama ${VERSAO} em http://${HOST}:${porta} (raiz: ${RAIZ}). Ctrl+C encerra.`);
+		console.log(`Ponte do Diorama ${VERSAO} em http://${HOST}:${servidor.address().port} (raiz: ${RAIZ}). Ctrl+C encerra.`);
+		console.log(
+			exigirCabecalho
+				? "POST/PUT/DELETE exigem o cabeçalho X-Diorama: 1 (--sem-exigir-cabecalho desliga)."
+				: "POST/PUT/DELETE sem o cabeçalho X-Diorama passam (--exigir-cabecalho liga a exigência).",
+		);
 		// Monta o pacote já (o observador anuncia a versão no terminal).
 		const p = estadoPacote();
 		if (p.erro) console.log(`[plugin] pacote indisponível: ${p.erro}`);
@@ -865,4 +1111,8 @@ if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.me
 	};
 	process.on("SIGINT", encerrar);
 	process.on("SIGTERM", encerrar);
+	// Um erro fora de um pedido (um socket que cai num momento ruim) não derruba a ponte: o plugin e o Aseprite
+	// perderiam a conexão. Sai no terminal e a ponte segue.
+	process.on("uncaughtException", (erro) => console.error("[erro não tratado]", erro));
+	process.on("unhandledRejection", (erro) => console.error("[promessa rejeitada]", erro));
 }

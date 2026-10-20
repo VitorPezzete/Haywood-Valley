@@ -31,9 +31,11 @@ Menu **Arquivo > Diorama**:
 | Salvar região na folha | Grava o sprite atual (camadas visíveis do quadro atual, achatadas) de volta na região de onde veio, regrava `diorama/folhas/<folha>.png` e as metades `<folha>_0.png`/`_1.png`, e avisa a ponte (`folha_salva`), que manda o Studio recarregar a prévia. |
 | Raiz do repositório… | A pasta do repositório (padrão `C:\Users\Szortek\Documents\Haywood-Valley`) e o endereço da ponte (padrão `ws://127.0.0.1:34873/ws?cliente=aseprite`). Mudar o endereço reconecta. |
 
-Ao abrir, a extensão conecta sozinha e, se a ponte não estiver no ar, tenta de novo a cada 3 s. Ao conectar, manda `{ "tipo": "ola", "versao": "0.1.0", "aseprite": "1.3.18.6" }`.
+Ao abrir, a extensão conecta sozinha e, se a ponte não estiver no ar, tenta de novo a cada 3 s. Ao conectar, manda `{ "tipo": "ola", "versao": "0.2.0", "aseprite": "1.3.18.6", "sprite"?: {…} }` (o sprite aberto, se houver).
 
 Reconexão: o WebSocket do Aseprite 1.3.18 não percebe quando a ponte cai (nenhum `CLOSE` chega ao Lua) e não volta sozinho. Por isso um relógio de 3 s manda um ping enquanto está conectado; quando o ping falha, ou enquanto está desconectado, refaz a conexão com o mesmo objeto (`close` + `connect`). Recriar o objeto pediria de novo a permissão do WebSocket. Medido: a ponte cai e volta, e o `ola` chega de novo em 4 a 7 s.
+
+Desde a 0.2.0 (2026-10-20): há um relógio só, criado na primeira conexão; o menu para e religa o mesmo relógio, e desligar e ligar pelo menu reaproveita o mesmo objeto WebSocket (antes cada religada criava um objeto novo e pedia a permissão de novo). Só uma troca de endereço (Raiz do repositório…) cria outro objeto, e as mensagens do velho são ignoradas. Uma resposta que o `json` não consegue codificar volta como `ok: false` em vez de derrubar o estado da conexão (antes o erro de codificação era tomado por socket morto e a ponte esperava 30 s).
 
 O sprite aberto por "Abrir região" lembra a folha e a área (propriedade `diorama` do sprite e o próprio nome). "Salvar região" lê dali; o tamanho do sprite tem de continuar igual ao da área. O Ctrl+S do Aseprite **não** grava na folha: ele pergunta onde salvar um `.aseprite`, como qualquer sprite novo. Para gravar na folha é o item do menu (ou o comando `salvar_regiao`).
 
@@ -59,6 +61,9 @@ Detalhes de `salvar_regiao`:
 - Sem `folha`/`area`, usa a origem do sprite (o que `abrir_regiao` gravou ou o nome `folha@coluna,linha`, com largura e altura tiradas do tamanho do sprite).
 - Copia os pixels trocando (inclusive a transparência), sem misturar com o que havia.
 - A folha inteira é regravada só se algum pixel mudou. As metades (`_0` = colunas 0 a 1023, `_1` = 1024 a 2047) recebem o mesmo recorte de cada lado; só é gravada a metade que a área toca e que mudou. Uma área que cruza o meio grava as duas.
+- Tudo é conferido antes de gravar qualquer arquivo (desde a 0.2.0): uma metade com tamanho errado dá erro "(nada foi gravado)" e deixa a folha como estava. Antes, a folha já tinha sido gravada quando a metade dava erro, e o `folha_salva` não saía.
+- Cada PNG é gravado de uma vez: o Aseprite salva em `.<nome>.salvando.png` na mesma pasta e troca pelo original (o original passa por `.<nome>.anterior.png` e volta se a troca falhar, porque o rename do Windows não substitui arquivo existente). A ponte e o menu ignoram os arquivos que começam com `.`. Um Aseprite que fecha no meio não deixa a folha pela metade.
+- Se o sprite é fechado no meio (por exemplo durante o diálogo de permissão), o comando responde "o sprite foi fechado no meio do comando" ou "nenhum sprite aberto no Aseprite"; todo comando roda dentro de `pcall`, então nenhum erro de Lua chega a derrubar a extensão.
 - As folhas e as metades precisam ser PNG RGBA (são). O Aseprite grava o PNG com um bloco `sRGB` que o original não tinha; os pixels são os mesmos.
 
 ## Testar
@@ -86,6 +91,8 @@ O servidor usado em 2026-10-20 (fica fora do repositório, na pasta temporária 
 
 Com a variável `DIORAMA_LOG=<arquivo>`, a extensão anota nesse arquivo o que acontece com a conexão (tentativas, abre, fecha, ping que falhou). Os erros dentro dos comandos voltam na resposta (`ok: false`).
 
+Conferido em 2026-10-20 com a 0.2.0, em lote (`-b`, numa cópia de `diorama/folhas`): região que cruza o meio (`casa [63,20,2,2]`, 16 px de cada lado) grava a folha e as duas metades com os pixels certos; salvar de novo não grava nada; nenhum temporário fica na pasta; metade com tamanho errado dá erro e a folha não muda; sem sprite, `salvar_regiao` e `sprite_atual` respondem sem erro de Lua; área fora da folha, folha com `..` e comando desconhecido dão `ok: false`. A conexão nova (relógio único, objeto reaproveitado) não foi conferida com a interface aberta: o Aseprite do usuário estava aberto e o modo `-b` não tem WebSocket.
+
 Também foi conferido contra a ponte de verdade (a 0.4.0, subida numa porta separada, `node tools/diorama_ponte.mjs --porta 34876`): `GET /aseprite/estado` mostra a extensão conectada, `POST /aseprite/comandos` com `ping`, `abrir_regiao castelo [4,2,3,2]`, `sprite_atual`, `pixel`, `salvar_regiao` e um comando desconhecido respondem, e o `folha_salva` aparece em `GET /eventos`.
 
 Para testar sem fechar o Aseprite do usuário, o teste usou uma cópia portátil: a pasta do Aseprite copiada para outro lugar com um `aseprite.ini` ao lado do `.exe` (o Aseprite passa a guardar configuração e extensões nessa pasta), a extensão instalada com `--destino <cópia>\extensions` e a confiança total gravada de antemão no `aseprite.ini` da cópia (seção `[script_access]`, SHA-1 do caminho do `diorama.lua`, valor 31), para o diálogo de permissão não travar o teste.
@@ -97,5 +104,6 @@ Para testar sem fechar o Aseprite do usuário, o teste usou uma cópia portátil
 - Só folhas RGBA; sprite de região em modo indexado ou cinza é achatado para RGBA ao salvar.
 - `salvar_regiao` grava o quadro atual; outros quadros do sprite são ignorados.
 - Um comando por vez: enquanto o Aseprite está num diálogo modal (inclusive o de permissão), as mensagens esperam.
+- `abrir` e `exportar` aceitam caminho absoluto, como diz o contrato: quem fala com a ponte pode mandar o Aseprite abrir ou gravar PNG em qualquer pasta. A ponte só aceita pedidos locais que não venham de página web (`PONTE.md`, "Quem pode falar com a ponte"), e o WebSocket recusa `Origin` de site.
 - Uma queda da ponte leva até uns 7 s para ser notada (dois tiques do relógio).
 - O que não foi conferido com o Aseprite aberto: os itens do menu e os diálogos (abrir região, salvar pelo menu, raiz do repositório) não foram clicados; só se sabe que foram registrados sem erro (o `init` chega até o fim e conecta). O diálogo de permissão como o usuário vai vê-lo também não (o teste usou a confiança gravada de antemão). O aviso `app.tip` do "Salvar região" cai num `app.alert` se a função não aceitar os argumentos; não foi visto.

@@ -16,7 +16,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 
-const VERSAO = "0.1.0";
+const VERSAO = "0.2.0";
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const ARQUIVO_PONTE = path.join(RAIZ, "tools", "diorama_ponte.mjs");
 const PONTE = (process.env.DIORAMA_PONTE ?? "http://127.0.0.1:34873").replace(/\/+$/, "");
@@ -113,14 +113,18 @@ function garantirPonte() {
 	return subindo;
 }
 
-function erroDeConexao(erro) {
-	const causa = erro?.cause?.code ?? erro?.code;
-	return erro?.name === "TypeError" || ["ECONNREFUSED", "ECONNRESET", "UND_ERR_SOCKET"].includes(causa);
-}
+const causaDoErro = (erro) => erro?.cause?.code ?? erro?.code;
+/** A conexão nem abriu: a ponte não está no ar. Repetir é seguro para qualquer método. */
+const naoConectou = (erro) => ["ECONNREFUSED", "ECONNABORTED", "EADDRNOTAVAIL"].includes(causaDoErro(erro));
+/** A conexão abriu e caiu (a ponte fechou no meio): o pedido pode ou não ter sido feito. */
+const caiuNoMeio = (erro) =>
+	["ECONNRESET", "UND_ERR_SOCKET", "EPIPE", "UND_ERR_CLOSED"].includes(causaDoErro(erro)) || erro?.name === "TypeError";
 
 /**
  * Um pedido à ponte. Devolve { status, dados } (dados: JSON lido, ou o texto se não for JSON).
- * Se a ponte não responde, tenta subi-la uma vez e repete. 404 de "rota desconhecida" vira a mensagem de atualizar.
+ * Se a ponte não está no ar, tenta subi-la uma vez e repete. Se a conexão cai no meio, só repete GET: um POST ou PUT
+ * repetido poderia rodar duas vezes (um gerador, um comando ao Studio). 404 de "rota desconhecida" vira a mensagem
+ * de atualizar. Todo pedido leva `X-Diorama: 1`, que a ponte exige em POST/PUT/DELETE.
  * @param {string} metodo @param {string} caminho @param {{ corpo?: unknown, tempoMs?: number, aceitar?: number[] }} [opcoes]
  */
 async function pedir(metodo, caminho, opcoes = {}) {
@@ -128,25 +132,42 @@ async function pedir(metodo, caminho, opcoes = {}) {
 	const fazer = () =>
 		fetch(PONTE + caminho, {
 			method: metodo,
-			headers: corpo === undefined ? {} : { "Content-Type": "application/json; charset=utf-8" },
+			headers: { "X-Diorama": "1", ...(corpo === undefined ? {} : { "Content-Type": "application/json; charset=utf-8" }) },
 			body: corpo === undefined ? undefined : JSON.stringify(corpo),
 			signal: AbortSignal.timeout(tempoMs),
 		});
+	const tempoEsgotado = () => new ErroPonte(`A ponte não respondeu a ${metodo} ${caminho} em ${Math.round(tempoMs / 1000)} s.`);
 	let resposta;
 	try {
 		resposta = await fazer();
 	} catch (erro) {
-		if (erro?.name === "TimeoutError") {
-			throw new ErroPonte(`A ponte não respondeu a ${metodo} ${caminho} em ${Math.round(tempoMs / 1000)} s.`);
+		if (erro?.name === "TimeoutError") throw tempoEsgotado();
+		if (!naoConectou(erro)) {
+			if (!caiuNoMeio(erro)) throw erro;
+			if (metodo !== "GET") {
+				throw new ErroPonte(
+					`A conexão com a ponte caiu no meio de ${metodo} ${caminho}: não dá para saber se o pedido foi feito. Confira o resultado (ponte_status, mapa_ler, eventos) antes de repetir. ${DICA_PONTE}`,
+				);
+			}
 		}
-		if (!erroDeConexao(erro)) throw erro;
 		const noAr = await garantirPonte();
 		if (!noAr) {
 			throw new ErroPonte(`A ponte não responde em ${PONTE} e não consegui subi-la em 5 s. ${DICA_PONTE}`);
 		}
-		resposta = await fazer();
+		try {
+			resposta = await fazer();
+		} catch (erro2) {
+			if (erro2?.name === "TimeoutError") throw tempoEsgotado();
+			throw new ErroPonte(`A ponte subiu mas ${metodo} ${caminho} falhou: ${erro2?.cause?.message ?? erro2?.message}. ${DICA_PONTE}`);
+		}
 	}
-	const texto = await resposta.text();
+	let texto;
+	try {
+		texto = await resposta.text();
+	} catch (erro) {
+		if (erro?.name === "TimeoutError") throw tempoEsgotado();
+		throw new ErroPonte(`A conexão com a ponte caiu enquanto a resposta de ${metodo} ${caminho} chegava (${erro?.message}). ${DICA_PONTE}`);
+	}
 	let dados = texto;
 	if (texto !== "") {
 		try {
@@ -161,6 +182,12 @@ async function pedir(metodo, caminho, opcoes = {}) {
 	if ((status >= 200 && status < 300) || aceitar.includes(status)) return { status, dados };
 	const mensagem = typeof dados === "object" && dados !== null && "erro" in dados ? String(dados.erro) : texto;
 	if (status === 404 && /^rota desconhecida/.test(mensagem)) throw erroRotaFaltando(metodo, caminho.split("?")[0]);
+	if (status === 403) {
+		throw new ErroPonte(
+			`A ponte recusou ${metodo} ${caminho}: ${mensagem}. A ponte só aceita pedidos locais sem Origin de página web e com o cabeçalho X-Diorama: 1 (docs/diorama/PONTE.md); se DIORAMA_PONTE aponta para outro endereço, confira.`,
+			{ status, dados },
+		);
+	}
 	throw new ErroPonte(`A ponte respondeu ${status} a ${metodo} ${caminho}: ${mensagem}`, { status, dados });
 }
 
@@ -331,24 +358,43 @@ async function comandoStudio(tipo, args, sessao, limiteS = ESPERA_STUDIO_S) {
 	if (!id) throw new ErroPonte("A ponte aceitou o comando mas não devolveu o id.", { dados: enviado.dados });
 	const inicio = Date.now();
 	const limite = inicio + limiteS * 1000;
+	let entregue = false;
 	for (;;) {
 		const restante = Math.ceil((limite - Date.now()) / 1000);
 		if (restante <= 0) {
+			const situacao = entregue
+				? "O plugin recebeu o comando e ainda não respondeu (ocupado, ou travou no meio)."
+				: "Nenhum plugin buscou o comando ainda (o Studio pode estar num diálogo, em Play ou sem o canal ligado).";
 			throw new ErroPonte(
-				`O Studio não respondeu ao comando "${tipo}" (id ${id}) em ${limiteS} s. O plugin pode estar ocupado, parado ou sem buscar comandos. A resposta ainda pode chegar: GET ${PONTE}/studio/respostas/${id}?espera=30. ${DICA_STUDIO}`,
+				`O Studio não respondeu ao comando "${tipo}" (id ${id}) em ${limiteS} s. ${situacao} Não repita o comando às cegas: a resposta ainda pode chegar em GET ${PONTE}/studio/respostas/${id}?espera=30. ${DICA_STUDIO}`,
 			);
 		}
 		const espera = Math.min(30, restante);
-		const { status, dados } = await pedir("GET", `/studio/respostas/${encodeURIComponent(id)}?espera=${espera}`, {
-			tempoMs: (espera + 10) * 1000,
-			aceitar: [202],
-		});
-		if (status === 202) continue;
+		let status;
+		let dados;
+		try {
+			({ status, dados } = await pedir("GET", `/studio/respostas/${encodeURIComponent(id)}?espera=${espera}`, {
+				tempoMs: (espera + 10) * 1000,
+				aceitar: [202],
+			}));
+		} catch (erro) {
+			if (erro instanceof ErroPonte && erro.status === 404) {
+				// A ponte não conhece mais o id: ela reiniciou no meio (guarda os comandos só em memória).
+				throw new ErroPonte(
+					`A ponte esqueceu o comando "${tipo}" (id ${id}): ela reiniciou enquanto o MCP esperava a resposta. Não dá para saber se o Studio chegou a rodá-lo; confira (studio_comando "estado", studio_output) antes de repetir.`,
+				);
+			}
+			throw erro;
+		}
+		if (status === 202) {
+			entregue = dados?.entregue === true;
+			continue;
+		}
 		const segundos = ((Date.now() - inicio) / 1000).toFixed(1);
 		if (dados?.ok === false) {
 			const desconhecido = /comando desconhecido/i.test(String(dados.erro ?? ""));
 			throw new ErroPonte(
-				`O Studio recusou "${tipo}" (id ${id}): ${dados.erro}` +
+				`O comando "${tipo}" (id ${id}) falhou: ${dados.erro}` +
 					(desconhecido
 						? "\nO pacote do plugin em uso não tem este comando: recompile o plugin (npm run plugin:compile, a ponte entrega o pacote novo) ou confira o nome na tabela da seção 2 de docs/diorama/CONEXOES.md."
 						: ""),
@@ -479,7 +525,7 @@ servidor.registerTool(
 	{
 		title: "Gravar bloco de mapa",
 		description:
-			"Grava um bloco de mapa (formato 1, docs/diorama/GERADOR.md) em diorama/mapas/<id>/blocos/<bx>_<by>.json pela ponte, criando a pasta e anotando o bloco no mapa.json. Confere antes o mínimo: versao 1, mapa igual ao id, bloco igual às coordenadas, folhas, vazio [folha, coluna, linha] e camadas chao/objeto/frente com células [x, y, folha, coluna, linha] (x e y de 0 a 63). Substitui o bloco inteiro: leia com mapa_ler, mude e mande o bloco completo. Depois rode mapa_gerar para o jogo receber.",
+			"Grava um bloco de mapa (formato 1, docs/diorama/GERADOR.md) em diorama/mapas/<id>/blocos/<bx>_<by>.json pela ponte, criando a pasta e anotando o bloco no mapa.json. Confere antes o mínimo: versao 1, mapa igual ao id, bloco igual às coordenadas, folhas, vazio [folha, coluna, linha] e camadas chao/objeto/frente com células [x, y, folha, coluna, linha] (x e y de 0 a 63). Substitui o bloco inteiro: leia com mapa_ler, mude e mande o bloco completo. Sem `nascimento` [x, y] o bloco é gravado com aviso, e o gerador põe o jogador na primeira célula livre. Depois rode mapa_gerar para o jogo receber.",
 		inputSchema: {
 			id: zIdMapa,
 			bloco: z
@@ -497,7 +543,8 @@ servidor.registerTool(
 		if (problemas.length > 0) return falha(`Bloco inválido, nada foi gravado:\n- ${problemas.join("\n- ")}`);
 		const [bx, by] = coordenadas;
 		const { dados } = await pedir("PUT", `/mapas/${encodeURIComponent(id)}/blocos/${bx}_${by}`, { corpo: bloco });
-		return resultado(`Bloco ${id} ${bx}_${by} gravado em ${dados?.arquivo ?? "?"}. Rode mapa_gerar para atualizar o módulo do jogo.`, dados);
+		const avisos = Array.isArray(dados?.avisos) && dados.avisos.length > 0 ? `\nAvisos:\n- ${dados.avisos.join("\n- ")}` : "";
+		return resultado(`Bloco ${id} ${bx}_${by} gravado em ${dados?.arquivo ?? "?"}. Rode mapa_gerar para atualizar o módulo do jogo.${avisos}`, dados);
 	}),
 );
 
@@ -641,7 +688,7 @@ servidor.registerTool(
 	{
 		title: "Assets sem id",
 		description:
-			"Lista as chaves de assets/registro.json ainda sem id do Roblox (o mesmo que `npm run assets -- --faltam`), com o arquivo e a origem de cada uma: o que falta enviar pelo Studio (ferramenta Assets do plugin).",
+			"Lista as chaves de assets/registro.json ainda sem id do Roblox (o mesmo que `npm run assets -- --faltam`), separadas em imagens e sons, com o arquivo e a origem de cada uma. Imagens se enviam pelo Studio (ferramenta Assets do plugin); sons sem arquivo se perderam e serão refeitos (DUVIDAS.md, item 19), e um som com arquivo vai pelo Creator Hub. Depois do envio: npm run assets -- --importar.",
 		inputSchema: {},
 		annotations: somenteLeitura,
 	},
@@ -649,8 +696,23 @@ servidor.registerTool(
 		const registro = await lerRegistro();
 		const faltam = Object.entries(registro.assets ?? {})
 			.filter(([, e]) => semId(e))
-			.map(([chave, e]) => ({ chave, tipo: e.tipo, arquivo: e.arquivo, origem: e.origem }));
-		return resultado(faltam.length === 0 ? "Todas as chaves têm id." : `${faltam.length} chave(s) sem id.`, faltam);
+			.map(([chave, e]) => ({ chave, tipo: e?.tipo, arquivo: e?.arquivo, origem: e?.origem }));
+		if (faltam.length === 0) return resultado("Todas as chaves têm id.", []);
+		const imagens = faltam.filter((f) => f.tipo === "imagem");
+		const sons = faltam.filter((f) => f.tipo === "som");
+		const outros = faltam.filter((f) => f.tipo !== "imagem" && f.tipo !== "som");
+		const linhas = [`${faltam.length} chave(s) sem id.`];
+		if (imagens.length > 0) {
+			linhas.push(`- ${imagens.length} imagem(ns): envie pela ferramenta Assets do plugin no Studio (ou pelo Creator Hub) e rode npm run assets -- --importar.`);
+		}
+		if (sons.length > 0) {
+			const semArquivo = sons.filter((f) => !f.arquivo).length;
+			linhas.push(
+				`- ${sons.length} som(ns)${semArquivo > 0 ? `, ${semArquivo} sem arquivo` : ""}: a ferramenta Assets não envia som. Os sons sem arquivo se perderam e serão refeitos (docs/diorama/DUVIDAS.md, item 19; docs/audio/ESTUDO_PACOTES_ABLETON.md); um som com arquivo vai pelo Creator Hub, e o id entra com npm run assets -- --importar. O jogo segue sem eles (avisa [Som]).`,
+			);
+		}
+		if (outros.length > 0) linhas.push(`- ${outros.length} de tipo desconhecido: corrija o tipo no registro (imagem ou som).`);
+		return resultado(linhas.join("\n"), { imagens, sons, ...(outros.length > 0 ? { outros } : {}) });
 	}),
 );
 
@@ -696,7 +758,7 @@ servidor.registerTool(
 	{
 		title: "Comando ao Studio",
 		description:
-			"Manda um comando ao plugin Diorama no Studio e espera a resposta. Tipos (docs/diorama/CONEXOES.md, seção 2): ping, estado, abrir_ferramenta {id}, abrir_mapa {id}, testar_mapa {id, celula?}, parar_teste, diagnosticar, autoteste {ferramentas?}, output {desde?, filtro?}, recarregar_folhas {folha?}, executar_luau {codigo} (só se o usuário ligou \"Permitir executar Luau\" no painel Conexão). Precisa da ponte e de um Studio aberto com o plugin. Há atalhos para os mais usados (studio_abrir_mapa, studio_testar_mapa, studio_autoteste, studio_diagnosticar, studio_output).",
+			"Manda um comando ao plugin Diorama no Studio e espera a resposta. Tipos (docs/diorama/CONEXOES.md, seção 2 e nota do topo): ping, estado, abrir_ferramenta {id}, abrir_mapa {id, descartar?}, testar_mapa {id, celula?}, parar_teste, diagnosticar, autoteste {ferramentas?, espera?, remontar?}, output {desde?, filtro?, limite?}, recarregar_folhas {folha?, ligar?, desligar?, pixel?}, executar_luau {codigo} (o plugin recusa se o usuário não ligou \"Permitir executar Luau\" no painel Conexão). Precisa da ponte e de um Studio aberto com o plugin. Há atalhos para os mais usados (studio_abrir_mapa, studio_testar_mapa, studio_autoteste, studio_diagnosticar, studio_output).",
 		inputSchema: {
 			tipo: z.string().min(1).describe('O tipo do comando, ex. "ping" ou "estado".'),
 			args: z.record(z.string(), z.unknown()).optional().describe("Argumentos do comando (objeto)."),
@@ -774,10 +836,11 @@ servidor.registerTool(
 	{
 		title: "Output do Studio",
 		description:
-			"Lê as mensagens do Output do Studio que o plugin Diorama guardou, com número de ordem. Passe `desde` (o último número visto + 1) para só as novas e `filtro` para só as que contêm um texto (ex. \"[Diorama]\" ou \"error\"). Precisa da ponte e de um Studio com o plugin.",
+			"Lê as mensagens do Output do Studio que o plugin Diorama guardou: { mensagens: [{ n, nivel, hora, texto }], proximo }. Passe `desde` (o `proximo` da leitura anterior) para só as novas, `filtro` para só as que contêm um texto (ex. \"[Diorama]\" ou \"error\") e `limite` para no máximo tantas. Precisa da ponte e de um Studio com o plugin.",
 		inputSchema: {
 			desde: z.number().int().min(0).optional().describe("Só mensagens a partir deste número de ordem."),
 			filtro: z.string().optional().describe("Só mensagens que contêm este texto."),
+			limite: z.number().int().min(1).max(2000).optional().describe("No máximo tantas mensagens."),
 			sessao: zSessao,
 			limite_s: zLimite(ESPERA_STUDIO_S),
 		},
@@ -785,7 +848,11 @@ servidor.registerTool(
 	},
 	ferramentaStudio(
 		"output",
-		({ desde, filtro }) => ({ ...(desde !== undefined ? { desde } : {}), ...(filtro !== undefined ? { filtro } : {}) }),
+		({ desde, filtro, limite }) => ({
+			...(desde !== undefined ? { desde } : {}),
+			...(filtro !== undefined ? { filtro } : {}),
+			...(limite !== undefined ? { limite } : {}),
+		}),
 		ESPERA_STUDIO_S,
 	),
 );

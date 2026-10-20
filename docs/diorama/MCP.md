@@ -22,6 +22,8 @@ O caminho é relativo porque o Claude Code sobe os servidores stdio no diretóri
 
 Ao abrir, e sempre que um pedido não conecta, o MCP confere `GET /status`. Se a ponte não responde, ele roda `node tools/diorama_ponte.mjs` destacado (processo separado, sem janela, que continua depois que a sessão do Claude fecha), espera até 5 s e segue; o resultado da ferramenta seguinte começa com "A ponte não estava no ar; subi-a em segundo plano". Para parar essa ponte: fechar o processo `node` de `tools/diorama_ponte.mjs` (Gerenciador de Tarefas, ou `Get-NetTCPConnection -LocalPort 34873` para achar o PID).
 
+Se a ponte cai no meio de um pedido (2026-10-20): um `GET` é repetido depois de subir a ponte; um `POST`, `PUT` ou `DELETE` não é repetido (um gerador ou um comando ao Studio rodaria duas vezes), e a ferramenta diz que não dá para saber se o pedido foi feito. Se ela reinicia enquanto `studio_*` espera a resposta, a ponte nova não conhece mais o comando (guarda tudo em memória) e a ferramenta diz isso, em vez de esperar até o limite. Todo pedido leva o cabeçalho `X-Diorama: 1`, que a ponte exige em `POST`/`PUT`/`DELETE` (`PONTE.md`, "Quem pode falar com a ponte"); um `403` vira a mensagem de que a ponte recusou e por quê.
+
 Uma ponte que já estava no ar continua sendo usada como está, mesmo que `tools/diorama_ponte.mjs` tenha mudado no disco. Rota que a ponte em execução não conhece (`404 rota desconhecida`) vira a mensagem "a ponte ainda não tem esta rota (...): atualize": feche a ponte e chame qualquer ferramenta, ou suba com `npm run diorama:ponte`.
 
 ## Resultado das ferramentas
@@ -37,12 +39,12 @@ Texto curto dizendo o que aconteceu, uma linha em branco e o JSON da resposta da
 | `ponte_status` | — | `GET /status` | versão, raiz, pastas, Rojo, contagens, mapas gerados |
 | `mapas_listar` | — | `GET /mapas` | id, nome e blocos de cada mapa |
 | `mapa_ler` | `id`, `bloco?` (`"0_0"`), `resumo?` | `GET /mapas/<id>` | `mapa.json` e blocos; `resumo` troca células e terreno por contagens |
-| `mapa_gravar_bloco` | `id`, `bloco` (o bloco inteiro) | `PUT /mapas/<id>/blocos/<bx>_<by>` | confere o mínimo do formato 1 antes de mandar; as coordenadas vêm de `bloco.bloco` |
+| `mapa_gravar_bloco` | `id`, `bloco` (o bloco inteiro) | `PUT /mapas/<id>/blocos/<bx>_<by>` | confere o mínimo do formato 1 antes de mandar; as coordenadas vêm de `bloco.bloco`; os `avisos` da ponte (bloco sem `nascimento`) saem no texto |
 | `mapa_gerar` | `id` (ou `"decorar"`) | `POST /gerar/<id>`, `POST /gerar/decorar` | roda o gerador; devolve `ok`, `codigo`, `log` (até 120 s) |
 | `catalogo_ler` | `nome`, `id?`, `resumo?` | `GET /catalogo/<nome>` | `id` devolve só os itens com esse id; `resumo`, as chaves e os ids das listas |
 | `catalogo_gravar` | `nome`, `conteudo` | `PUT /catalogo/<nome>` | grava o catálogo inteiro |
 | `assets_listar` | `filtro?`, `antigos?` | `GET /assets` | o registro, filtrado por pedaço da chave |
-| `assets_faltam` | — | `GET /assets` | chaves sem id do Roblox (igual a `npm run assets -- --faltam`) |
+| `assets_faltam` | — | `GET /assets` | chaves sem id do Roblox (igual a `npm run assets -- --faltam`), separadas em `imagens` e `sons`, com o que fazer em cada caso: imagem pela ferramenta Assets do plugin; som não passa por ela (os sem arquivo serão refeitos, item 19 de `DUVIDAS.md`) |
 | `eventos` | `desde?`, `espera?` (0–25 s) | `GET /eventos` | eventos da ponte; passar o `proximo` de volta em `desde` |
 
 ### Studio (ponte + Studio aberto com o plugin Diorama)
@@ -57,9 +59,9 @@ Os comandos vão por `POST /studio/comandos` e a resposta é esperada com `GET /
 | `studio_testar_mapa` | `id`, `celula?` `[x, y]` | `testar_mapa` (desfazer: `studio_comando` com `parar_teste`) |
 | `studio_autoteste` | `ferramentas?` | `autoteste` |
 | `studio_diagnosticar` | — | `diagnosticar` |
-| `studio_output` | `desde?`, `filtro?` | `output` |
+| `studio_output` | `desde?`, `filtro?`, `limite?` | `output` |
 
-`comando desconhecido` vindo do plugin vira a dica de recompilar o plugin (`npm run plugin:compile`; a ponte entrega o pacote novo).
+`comando desconhecido` vindo do plugin vira a dica de recompilar o plugin (`npm run plugin:compile`; a ponte entrega o pacote novo). Quando o limite passa, a mensagem diz se o plugin chegou a buscar o comando (então está ocupado ou travou) ou não (Studio num diálogo, em Play ou sem o canal), e não repete o comando: a resposta ainda pode chegar em `GET /studio/respostas/<id>`. Comando que o plugin buscou e nunca respondeu falha quando a sessão sai (`PONTE.md`).
 
 ### Aseprite (ponte + Aseprite aberto com a extensão Diorama)
 

@@ -2,14 +2,15 @@
 // o do Aseprite (WebSocket em /ws) e os eventos (/eventos, long-poll). Tudo em memória: reiniciar a ponte esquece
 // sessões, comandos e eventos.
 //
-// `criarCanais({ ErroHttp, lerJson })` devolve `{ rotas, emitir, aoAtualizar(servidor), fechar }`: as rotas no
-// formato de diorama_ponte.mjs, `emitir(tipo, dados)` para a ponte anunciar os próprios eventos, e o
-// `aoAtualizar` que liga o WebSocket ao servidor HTTP.
+// `criarCanais({ ErroHttp, lerJson })` devolve `{ rotas, emitir, aoAtualizar(servidor, recusar), fechar }`: as rotas
+// no formato de diorama_ponte.mjs, `emitir(tipo, dados)` para a ponte anunciar os próprios eventos, e o
+// `aoAtualizar` que liga o WebSocket ao servidor HTTP (`recusar(req)` diz por que recusar um upgrade). `lerJson(req)`
+// tem de devolver um objeto JSON (ou lançar ErroHttp 400).
 
 import { WebSocketServer } from "ws";
 
-/** Uma sessão some depois deste tempo sem presença (nem pedido de comando). */
-const SESSAO_EXPIRA_MS = 15_000;
+/** Uma sessão some depois deste tempo sem presença (nem pedido de comando). DIORAMA_SESSAO_EXPIRA_MS: só os testes. */
+const SESSAO_EXPIRA_MS = Number(process.env.DIORAMA_SESSAO_EXPIRA_MS) || 15_000;
 /** Espera máxima de um long-poll, em segundos. */
 const ESPERA_MAXIMA_S = 55;
 /** Quantos eventos ficam guardados. */
@@ -18,8 +19,12 @@ const EVENTOS_GUARDADOS = 500;
 const RESPOSTA_GUARDADA_MS = 10 * 60_000;
 /** Um comando que nenhum Studio buscou em tanto tempo falha. */
 const COMANDO_EXPIRA_MS = 120_000;
+/** Um comando entregue que o Studio não respondeu em tanto tempo falha (o autoteste leva até uns 2 min). */
+const ENTREGUE_EXPIRA_MS = 10 * 60_000;
 /** Espera da resposta do Aseprite. */
 const ESPERA_ASEPRITE_MS = 30_000;
+/** Maior mensagem aceita no WebSocket. */
+const WS_MAXIMO = 16 * 1024 * 1024;
 
 function esperaDaBusca(busca, padrao) {
 	const v = busca.get("espera");
@@ -139,11 +144,19 @@ export function criarCanais({ ErroHttp, lerJson, log = console.log }) {
 			emitir("studio_saiu", resumoSessao(s, agora));
 		}
 		for (const [id, c] of comandos) {
-			if (c.resposta && agora - c.respondido > RESPOSTA_GUARDADA_MS) comandos.delete(id);
-			else if (!c.resposta && !c.entregue && agora - c.criado > COMANDO_EXPIRA_MS) {
+			if (c.resposta) {
+				if (agora - c.respondido > RESPOSTA_GUARDADA_MS) comandos.delete(id);
+				continue;
+			}
+			if (!c.entregue && agora - c.criado > COMANDO_EXPIRA_MS) {
 				const s = sessoes.get(c.sessao);
 				if (s) s.fila = s.fila.filter((x) => x !== c);
 				responder(c, { ok: false, erro: `nenhum Studio buscou o comando em ${COMANDO_EXPIRA_MS / 1000} s` });
+			} else if (c.entregue && !sessoes.has(c.sessao)) {
+				// O plugin buscou o comando e sumiu (Studio fechado, plugin travado) sem responder.
+				responder(c, { ok: false, erro: "o Studio desta sessão saiu depois de receber o comando, sem responder" });
+			} else if (c.entregue && agora - c.entregue > ENTREGUE_EXPIRA_MS) {
+				responder(c, { ok: false, erro: `o Studio recebeu o comando e não respondeu em ${ENTREGUE_EXPIRA_MS / 60_000} min` });
 			}
 		}
 	}, 2_000);
@@ -216,6 +229,11 @@ export function criarCanais({ ErroHttp, lerJson, log = console.log }) {
 		});
 		s.visto = Date.now();
 		if (!comando) return { status: 204, vazio: true };
+		if (res.destroyed || res.writableEnded) {
+			// A conexão caiu entre a entrega e a escrita: o comando volta para a frente da fila.
+			s.fila.unshift(comando);
+			return { status: 204, vazio: true };
+		}
 		comando.entregue = Date.now();
 		return { json: { id: comando.id, tipo: comando.tipo, args: comando.args } };
 	}
@@ -226,12 +244,15 @@ export function criarCanais({ ErroHttp, lerJson, log = console.log }) {
 		const corpo = await lerJson(req);
 		if (corpo.devolver === true) {
 			// O plugin recebeu o comando enquanto parava (recarga): volta para a frente da fila da sessão.
+			if (comando.resposta) return { json: { ok: true, devolvido: false } };
 			const s = sessoes.get(comando.sessao);
-			if (s && !comando.resposta) {
-				comando.entregue = undefined;
-				s.fila.unshift(comando);
-				entregar(s);
+			if (!s) {
+				responder(comando, { ok: false, erro: "o Studio devolveu o comando e a sessão dele já saiu" });
+				return { json: { ok: true, devolvido: false } };
 			}
+			comando.entregue = undefined;
+			if (!s.fila.includes(comando)) s.fila.unshift(comando);
+			entregar(s);
 			return { json: { ok: true, devolvido: true } };
 		}
 		const resposta = corpo.ok === true ? { ok: true, valor: corpo.valor ?? null } : { ok: false, erro: String(corpo.erro ?? "erro sem mensagem") };
@@ -262,7 +283,10 @@ export function criarCanais({ ErroHttp, lerJson, log = console.log }) {
 	async function comandoPost(req) {
 		const corpo = await lerJson(req);
 		if (typeof corpo.tipo !== "string" || corpo.tipo === "") throw new ErroHttp(400, "comando sem tipo");
-		const args = corpo.args && typeof corpo.args === "object" ? corpo.args : {};
+		if (corpo.args !== undefined && corpo.args !== null && (typeof corpo.args !== "object" || Array.isArray(corpo.args))) {
+			throw new ErroHttp(400, "args precisa ser um objeto");
+		}
+		const args = corpo.args ?? {};
 		const comando = enfileirar(corpo.tipo, args, textoOuNada(corpo.sessao));
 		return { json: { id: comando.id, sessao: comando.sessao } };
 	}
@@ -373,17 +397,29 @@ export function criarCanais({ ErroHttp, lerJson, log = console.log }) {
 		return new Promise((resolve) => {
 			const timer = setTimeout(() => {
 				pendentesAseprite.delete(id);
-				resolve({ ok: false, erro: `o Aseprite não respondeu em ${ESPERA_ASEPRITE_MS / 1000} s`, tempo: true });
+				resolve({
+					ok: false,
+					erro: `o Aseprite não respondeu em ${ESPERA_ASEPRITE_MS / 1000} s (um diálogo aberto no Aseprite, como o de permissão, segura os comandos)`,
+					tempo: true,
+				});
 			}, ESPERA_ASEPRITE_MS);
 			pendentesAseprite.set(id, { resolve, timer, nome });
-			ws.send(JSON.stringify({ tipo: "comando", id, nome, args }));
+			ws.send(JSON.stringify({ tipo: "comando", id, nome, args }), (erro) => {
+				if (!erro || !pendentesAseprite.has(id)) return;
+				clearTimeout(timer);
+				pendentesAseprite.delete(id);
+				resolve({ ok: false, erro: `não deu para mandar o comando ao Aseprite: ${erro.message}`, semConexao: true });
+			});
 		});
 	}
 
 	async function asepriteComandoPost(req) {
 		const corpo = await lerJson(req);
 		if (typeof corpo.nome !== "string" || corpo.nome === "") throw new ErroHttp(400, "comando sem nome");
-		const r = await comandoAseprite(corpo.nome, corpo.args && typeof corpo.args === "object" ? corpo.args : {});
+		if (corpo.args !== undefined && corpo.args !== null && (typeof corpo.args !== "object" || Array.isArray(corpo.args))) {
+			throw new ErroHttp(400, "args precisa ser um objeto");
+		}
+		const r = await comandoAseprite(corpo.nome, corpo.args ?? {});
 		const status = r.semConexao ? 503 : r.tempo ? 504 : 200;
 		return { status, json: { ok: r.ok, ...(r.ok ? { valor: r.valor } : { erro: r.erro }) } };
 	}
@@ -391,7 +427,7 @@ export function criarCanais({ ErroHttp, lerJson, log = console.log }) {
 	// ----------------------------------------------------------------------------------------------------------
 	// WebSocket
 
-	const wss = new WebSocketServer({ noServer: true });
+	const wss = new WebSocketServer({ noServer: true, maxPayload: WS_MAXIMO });
 	const vivoWs = new WeakMap();
 	const batimento = setInterval(() => {
 		for (const ws of wss.clients) {
@@ -419,7 +455,11 @@ export function criarCanais({ ErroHttp, lerJson, log = console.log }) {
 			aseprite.ws = ws;
 			aseprite.conectado_em = new Date().toISOString();
 			aseprite.sprite = undefined;
-			if (anterior && anterior !== ws) anterior.close(4000, "outra conexão do Aseprite entrou");
+			if (anterior && anterior !== ws) {
+				// As respostas dos comandos pendentes viriam pela conexão velha, que vai fechar.
+				falharPendentesAseprite("outra conexão do Aseprite entrou antes da resposta");
+				anterior.close(4000, "outra conexão do Aseprite entrou");
+			}
 			log("[aseprite] conectou");
 			emitir("aseprite_conectou", {});
 			ws.on("message", (dados) => aoMensagemAseprite(ws, dados));
@@ -438,12 +478,27 @@ export function criarCanais({ ErroHttp, lerJson, log = console.log }) {
 		ws.on("error", (e) => log(`[ws] ${cliente}: ${e.message}`));
 	});
 
-	function aoAtualizar(servidor) {
+	/** Liga o WebSocket ao servidor. `recusar(req)` devolve o motivo para recusar o upgrade (Origin de página web...). */
+	function aoAtualizar(servidor, recusar = () => undefined) {
 		servidor.on("upgrade", (req, socket, cabeca) => {
-			const url = new URL(req.url, "http://127.0.0.1");
-			if (url.pathname !== "/ws") {
-				socket.write("HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n");
-				socket.destroy();
+			socket.on("error", () => {}); // conexão que cai no meio do aperto de mão não derruba a ponte
+			let url;
+			try {
+				url = new URL(req.url, "http://127.0.0.1");
+			} catch {
+				url = undefined;
+			}
+			if (!url || url.pathname !== "/ws") {
+				socket.end("HTTP/1.1 404 Not Found\r\nConnection: close\r\nContent-Length: 0\r\n\r\n");
+				return;
+			}
+			const motivo = recusar(req);
+			if (motivo) {
+				log(`[ws] recusado: ${motivo}`);
+				const corpo = JSON.stringify({ erro: `recusado: ${motivo}` });
+				socket.end(
+					`HTTP/1.1 403 Forbidden\r\nConnection: close\r\nContent-Type: application/json; charset=utf-8\r\nContent-Length: ${Buffer.byteLength(corpo)}\r\n\r\n${corpo}`,
+				);
 				return;
 			}
 			wss.handleUpgrade(req, socket, cabeca, (ws) => wss.emit("connection", ws, req));
