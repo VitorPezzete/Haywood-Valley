@@ -1,0 +1,5 @@
+# Saídas do estudo do Aeko (tools/estudo_aeko.py, estilo_aeko.py, comparar_estilos.py).
+# As peças recoloridas uma a uma são regeneráveis e muitas (947): fora do git.
+recoloridas/
+# PNG grande demais para o repositório (nenhuma das folhas de comparação passa de 2 MB hoje).
+*.grande.png
