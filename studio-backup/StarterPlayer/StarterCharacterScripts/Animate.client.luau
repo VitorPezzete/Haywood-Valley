@@ -1,0 +1,3 @@
+-- Animate vazio (fase 1 do PLANO_OTIMIZACAO.md): com um script de nome "Animate" em StarterCharacterScripts, o
+-- Roblox não põe o dele no personagem. O personagem do Roblox é invisível (o boneco é desenhado em cada cliente,
+-- CharacterController) e não tem juntas, então não há o que animar.
