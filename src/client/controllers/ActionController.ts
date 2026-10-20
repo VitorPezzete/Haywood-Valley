@@ -11,7 +11,7 @@ import {
 	SIT_TURN_HOLD,
 } from "shared/actions";
 import { TAP_CLOSED } from "shared/interiorMap";
-import { decorItem } from "shared/decor";
+import { decorItem, decorParts, parseColors } from "shared/decor";
 import { chestOfPiece, CHEST_TAP_SECONDS } from "shared/fixtures";
 import {
 	canLift,
@@ -194,8 +194,8 @@ export class ActionController implements OnStart {
 				else this.closedTaps.add(key);
 				this.scene.interior?.setAnimatedTile(x, y, open ? undefined : TAP_CLOSED);
 			});
-			Events.decorChanged.connect((map, key, item, form, variant, x, y, ax, ay) => {
-				if (here(map)) this.decorChanged(key, item, form, variant, x, y, ax, ay);
+			Events.decorChanged.connect((map, key, item, form, variant, x, y, ax, ay, colors) => {
+				if (here(map)) this.decorChanged(key, item, form, variant, x, y, ax, ay, colors);
 			});
 			Events.fixtureChanged.connect((map, id, on) => {
 				if (!here(map) || !this.fixtures) return;
@@ -288,6 +288,7 @@ export class ActionController implements OnStart {
 		y: number,
 		ax: number,
 		ay: number,
+		text: string,
 	) {
 		const board = this.board!;
 		const item = decorItem(id);
@@ -297,7 +298,8 @@ export class ActionController implements OnStart {
 			for (const listener of this.decorListeners) listener(key, undefined);
 			return;
 		}
-		const state = { key, item, form, variant, x, y, ax, ay } as DecorState;
+		const colors = parseColors(text, decorParts(item)) ?? [];
+		const state: DecorState = { key, item, form, variant, x, y, ax, ay, colors };
 		board.setDecor(state);
 		this.view?.refreshDecor(state);
 		for (const listener of this.decorListeners) listener(key, state);

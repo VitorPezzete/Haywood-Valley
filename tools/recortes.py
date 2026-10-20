@@ -19,7 +19,7 @@ Uso (na raiz do repositório):
     python -I tools/recortes.py --validar       só a conferência com o gabarito
     python -I tools/recortes.py --evolucao      a tabela de evolução do método contra o gabarito
     python -I tools/recortes.py --sintetico     a validação sintética (peças coladas em fundos conhecidos)
-    python -I tools/recortes.py --montar        a proposta da folha montada (estudo/recortes/montada/, não enviada)
+    python -I tools/recortes.py --montar        a folha montada (assets/recortes/) e src/shared/recortes.ts
 Opções: --sem-catalogo (não grava pecas.json), --sem-previas.
 
 docs/diorama/RECORTES.md explica o método, os números e como o jogo e o plugin vão usar.
@@ -286,9 +286,11 @@ FOLHA_MONTADA = 1024
 
 
 def montar(resumo: dict) -> dict:
-    """Proposta da folha montada (não é enviada): cada peça vira um bloco com a base e, à direita, as máscaras das
-    partes, do mesmo tamanho, lado a lado; os blocos entram em prateleiras de altura decrescente, folha a folha.
-    Peças com a mesma área (cadeira e casa8) usam o mesmo bloco. Grava em estudo/recortes/montada/."""
+    """A folha montada: cada peça vira um bloco com a base e, à direita, as máscaras das partes, do mesmo tamanho,
+    lado a lado; os blocos entram em prateleiras de altura decrescente, folha a folha. Peças com a mesma área
+    (cadeira e casa8) usam o mesmo bloco. Grava as folhas em assets/recortes/recortes_<n>.png (ainda sem id no
+    registro: arte derivada do Aeko, o envio espera o aval do usuário), o mapa em estudo/recortes/montada/ e o
+    módulo do jogo src/shared/recortes.ts (`gravar_ts`)."""
     blocos = []
     vistos = {}
     for id_, info in resumo["pecas"].items():
@@ -319,18 +321,155 @@ def montar(resumo: dict) -> dict:
             mapa[id_] = registro
         x += largura + 1
         altura = max(altura, h)
-    pasta = PREVIAS / "montada"
-    pasta.mkdir(parents=True, exist_ok=True)
+    # As folhas vão para assets/recortes/ (chaves recortes.<n> no registro); o mapa em json fica no estudo.
+    FOLHAS_MONTADAS.mkdir(parents=True, exist_ok=True)
     for n, folha in enumerate(folhas):
         usada = int(np.nonzero(folha[..., 3].any(axis=1))[0].max()) + 1
-        Image.fromarray(folha, "RGBA").save(pasta / f"recortes_{n}.png", optimize=True)
-        print(f"recortes_{n}.png: {usada} de {FOLHA_MONTADA} linhas usadas")
-    dados = {"nota": "Proposta (não enviada): chaves de registro diorama.recortes.<n>; retângulos [x, y, largura, altura].",
-             "folhas": len(folhas), "pecas": mapa}
+        Image.fromarray(folha, "RGBA").save(FOLHAS_MONTADAS / f"recortes_{n}.png", optimize=True)
+        print(f"{rel(FOLHAS_MONTADAS / f'recortes_{n}.png')}: {usada} de {FOLHA_MONTADA} linhas usadas")
+    pasta = PREVIAS / "montada"
+    pasta.mkdir(parents=True, exist_ok=True)
+    dados = {"nota": "Folhas em assets/recortes/recortes_<n>.png (chaves recortes.<n> no registro); retângulos "
+             "[x, y, largura, altura].", "folhas": len(folhas), "pecas": mapa}
     (pasta / "recortes.json").write_text(
         json.dumps(dados, ensure_ascii=False, indent="\t") + "\n", encoding="utf-8", newline="\n"
     )
+    gravar_ts(resumo, mapa)
     return dados
+
+
+#: Onde ficam as folhas montadas e o módulo do jogo que diz onde cada peça está nelas.
+FOLHAS_MONTADAS = F.RAIZ / "assets" / "recortes"
+DECOR_CATALOGO = F.RAIZ / "src" / "shared" / "decorCatalog.ts"
+RECORTES_TS = F.RAIZ / "src" / "shared" / "recortes.ts"
+
+
+def itens_do_decorar() -> list[dict]:
+    """As peças do Decorar (`DECOR_ITEMS` de src/shared/decorCatalog.ts, gerado pelo diorama_jogo.mjs): o trecho é
+    quase JSON (chaves sem aspas e vírgula no fim)."""
+    import re
+
+    texto = DECOR_CATALOGO.read_text(encoding="utf-8")
+    inicio = texto.index("export const DECOR_ITEMS")
+    corpo = texto[texto.index("= [", inicio) + 2 : texto.rindex("];") + 1]
+    corpo = re.sub(r"^(\s*)(\w+):", r'\1"\2":', corpo, flags=re.M)
+    corpo = re.sub(r",(\s*[\]}])", r"\1", corpo)
+    return json.loads(corpo)
+
+
+def area_da_variante(variante: dict):
+    """A área da folha que a variante mostra, se as células dela são um retângulo da folha na mesma ordem (a
+    célula (dx, dy) é o tile (coluna + dx, linha + dy)); senão nada (a tocha, cuja célula de baixo é a parede)."""
+    celulas = variante["cells"]
+    c0 = min(c[2] - c[0] for c in celulas)
+    l0 = min(c[3] - c[1] for c in celulas)
+    if any(c[2] - c[0] != c0 or c[3] - c[1] != l0 for c in celulas):
+        return None
+    if len(celulas) != variante["w"] * variante["h"]:
+        return None
+    return (c0, l0, variante["w"], variante["h"])
+
+
+def gravar_ts(resumo: dict, mapa: dict) -> None:
+    """Grava src/shared/recortes.ts: por peça do Decorar, em cada direção e variante, o recorte que a cena desenha
+    (base e máscaras na folha montada, com a cor original de cada parte). A variante cujas células são a área de
+    uma peça recortada usa esse recorte; a que não é (a cadeira sobre o xadrez, que mistura linhas da folha) usa o
+    da primeira variante da mesma direção que tem recorte, se tiver o mesmo tamanho: o recorte não traz piso, então
+    vale sobre qualquer chão. Sem nenhum, -1: a cena desenha os tiles."""
+    por_area = {}
+    for id_, info in resumo["pecas"].items():
+        if info.get("excluir"):
+            continue
+        por_area.setdefault((info["folha"], tuple(info["area"])), id_)
+    recortes: list[dict] = []
+    indice: dict[str, int] = {}
+
+    def recorte_de(id_: str) -> int:
+        if id_ not in indice:
+            info = resumo["pecas"][id_]
+            pintaveis = [q for q in info["partes"] if q.get("arquivo")]
+            m = mapa[id_]
+            assert len(m["partes"]) == len(pintaveis), id_
+            indice[id_] = len(recortes)
+            recortes.append({
+                "id": id_,
+                "sheet": m["folha"],
+                "base": m["base"],
+                "parts": m["partes"],
+                "colors": [int(q["referencia"].lstrip("#"), 16) for q in pintaveis],
+            })
+        return indice[id_]
+
+    decor = {}
+    for item in itens_do_decorar():
+        formas = []
+        for forma in item["forms"]:
+            linha = []
+            for v in forma["variants"]:
+                area = area_da_variante(v)
+                id_ = por_area.get((item["sheet"], area)) if area else None
+                linha.append(recorte_de(id_) if id_ else -1)
+            # a variante sem recorte próprio usa o de uma irmã do mesmo tamanho
+            for i, v in enumerate(forma["variants"]):
+                if linha[i] >= 0:
+                    continue
+                for j, irma in enumerate(forma["variants"]):
+                    if linha[j] >= 0 and all(irma[k] == v[k] for k in ("w", "h", "dx", "dy")):
+                        linha[i] = linha[j]
+                        break
+            formas.append(linha)
+        partes = max((len(recortes[i]["colors"]) for linha in formas for i in linha if i >= 0), default=0)
+        if partes > 0:
+            decor[item["id"]] = {"parts": partes, "forms": formas}
+
+    hexa = lambda n: f"0x{n:06x}"  # noqa: E731
+    rect = lambda r: f"[{', '.join(str(int(x)) for x in r)}]"  # noqa: E731
+    linhas = [
+        "// Gerado por tools/recortes.py --montar a partir de diorama/recortes/recortes.json (a etapa G do Diorama) e",
+        "// de src/shared/decorCatalog.ts. Não editar: rodar o comando de novo (docs/diorama/RECORTES.md).",
+        "// As peças do Decorar recortadas do fundo, na folha montada assets/recortes/recortes_<n>.png (chave",
+        "// recortes.<n> do registro): a base (a peça inteira nas cores originais, com 1 pixel de folga em volta) e",
+        "// uma máscara em cinza por parte pintável, do mesmo tamanho, que a cena pinta com `ImageColor3`.",
+        "",
+        "/** [x, y, largura, altura] em pixels na folha montada. */",
+        "export type RecorteRect = readonly [x: number, y: number, w: number, h: number];",
+        "",
+        "export interface Recorte {",
+        "\t/** O id da peça recortada em diorama/recortes/recortes.json. */",
+        "\tid: string;",
+        "\t/** A folha montada: o n da chave recortes.<n>. */",
+        "\tsheet: number;",
+        "\tbase: RecorteRect;",
+        "\t/** A máscara de cada parte pintável, na ordem das cores. */",
+        "\tparts: readonly RecorteRect[];",
+        "\t/** A cor original (o tom de referência da máscara) de cada parte, 0xRRGGBB. */",
+        "\tcolors: readonly number[];",
+        "}",
+        "",
+        "export interface DecorRecorte {",
+        "\t/** Quantas partes pintáveis a peça tem (o maior número entre as direções). */",
+        "\tparts: number;",
+        "\t/** Por direção e variante do catálogo do Decorar, o índice em RECORTES; -1, sem recorte (vão os tiles). */",
+        "\tforms: readonly (readonly number[])[];",
+        "}",
+        "",
+        "/** Os pixels de folga em volta da área: o canto do recorte fica 1 pixel acima e à esquerda da célula. */",
+        "export const RECORTE_FOLGA = 1;",
+        "",
+        "export const RECORTES: readonly Recorte[] = [",
+    ]
+    for r in recortes:
+        linhas.append(
+            f'\t{{ id: "{r["id"]}", sheet: {r["sheet"]}, base: {rect(r["base"])}, '
+            f'parts: [{", ".join(rect(p) for p in r["parts"])}], colors: [{", ".join(hexa(c) for c in r["colors"])}] }},'
+        )
+    linhas += ["];", "", "export const DECOR_RECORTES: Readonly<Record<string, DecorRecorte>> = {"]
+    for id_, d in decor.items():
+        formas = ", ".join(f"[{', '.join(str(i) for i in linha)}]" for linha in d["forms"])
+        linhas.append(f'\t{id_}: {{ parts: {d["parts"]}, forms: [{formas}] }},')
+    linhas += ["};", ""]
+    RECORTES_TS.write_text("\n".join(linhas), encoding="utf-8", newline="\n")
+    print(f"{rel(RECORTES_TS)}: {len(decor)} peças do Decorar com recorte, {len(recortes)} recortes")
 
 
 def main() -> int:

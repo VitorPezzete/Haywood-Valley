@@ -3,8 +3,10 @@ import { Players } from "@rbxts/services";
 import {
 	decodeMoved,
 	decodePlaced,
+	decorIsNewer,
 	decorItem,
 	decorItemKey,
+	decorParts,
 	DECOR_MAX_PIECES,
 	DECOR_MAX_TEXT,
 	DECOR_ORDER,
@@ -14,6 +16,7 @@ import {
 	encodeMoved,
 	encodePlaced,
 	MovedPiece,
+	parseColors,
 	PlacedDecor,
 	planDecor,
 	stockOf,
@@ -31,6 +34,11 @@ import { PlayerDataService } from "server/services/PlayerDataService";
  * outra peça, a porta nem um jogador), manda o resultado a quem está na casa e grava no `PlayerData` do dono
  * (`decor`, por mapa). Ao montar a casa (`PieceService.onRoomCreated`) ou quando os dados chegam, a decoração
  * salva volta: cada peça é posta de novo pela regra, e a que não couber mais (o mapa mudou) volta ao inventário.
+ *
+ * Cores (etapa G): a peça com recorte (`shared/recortes.ts`) tem uma cor por parte, que vem ao pôr (`decorPlace`)
+ * e muda depois (`decorPaint`). O servidor confere o texto (`parseColors`: no máximo uma cor por parte da peça,
+ * cada uma 0xRRGGBB ou a original), grava com a peça e manda a todos na casa. A decoração salva por uma versão
+ * mais nova do jogo (`decorIsNewer`) não se mexe neste servidor: fica como veio, para não se perder.
  *
  * A visita fica para depois: quem está numa casa de outro dono vê a decoração dele (ela é da cópia), mas só o
  * dono decora.
@@ -51,8 +59,11 @@ export class DecorService implements OnStart {
 			if (room) this.restore(room);
 			this.sendStock(player);
 		});
-		Events.decorPlace.connect((player, item, form, ax, ay) =>
-			this.request(player, (room) => this.place(room, player, item, form, ax, ay)),
+		Events.decorPlace.connect((player, item, form, ax, ay, colors) =>
+			this.request(player, (room) => this.place(room, player, item, form, ax, ay, colors)),
+		);
+		Events.decorPaint.connect((player, key, colors) =>
+			this.request(player, (room) => this.paint(room, player, key, colors)),
 		);
 		Events.decorMove.connect((player, key, form, ax, ay) =>
 			this.request(player, (room) => this.move(room, player, key, form, ax, ay)),
@@ -71,6 +82,7 @@ export class DecorService implements OnStart {
 		}
 		// Antes de os dados chegarem, a decoração salva ainda não está na casa: esperar, para não gravar por cima.
 		if (!this.playerData.isReady(player)) return;
+		if (decorIsNewer(this.decorOf(player))) return this.refuse(player, { key: "decor.refuse.newer" });
 		const room = this.pieces.roomOf(player);
 		if (room) handle(room);
 	}
@@ -96,10 +108,7 @@ export class DecorService implements OnStart {
 	private persist(room: Room, owner: Player, moved?: MovedPiece) {
 		const decor = this.decorOf(owner);
 		const entry = decor.maps[room.id] ?? { placed: "", moved: "" };
-		const placed = new Array<PlacedDecor>();
-		for (const [, state] of room.board.decor) {
-			placed.push({ item: state.item.id, form: state.form, ax: state.ax, ay: state.ay });
-		}
+		const placed = this.savedList(room);
 		let movedList = decodeMoved(entry.moved);
 		if (moved) movedList = [...movedList.filter((m) => m.id !== moved.id), moved];
 		decor.maps[room.id] = { placed: encodePlaced(placed), moved: encodeMoved(movedList) };
@@ -116,7 +125,12 @@ export class DecorService implements OnStart {
 		if (room.owner === 0) return;
 		const owner = Players.GetPlayerByUserId(room.owner);
 		if (!owner || !this.playerData.isReady(owner) || room.board.decor.size() > 0) return;
-		const entry = this.decorOf(owner).maps[room.id];
+		const decor = this.decorOf(owner);
+		if (decorIsNewer(decor)) {
+			warn(`[Decorar] ${room.key}: a decoração foi salva por uma versão mais nova do jogo; fica guardada, sem aparecer aqui`);
+			return;
+		}
+		const entry = decor.maps[room.id];
 		if (!entry) return;
 		for (const moved of decodeMoved(entry.moved)) {
 			const state = room.board.pieces.get(moved.id);
@@ -142,6 +156,7 @@ export class DecorService implements OnStart {
 				y: plan.y,
 				ax: saved.ax,
 				ay: saved.ay,
+				colors: saved.colors,
 			};
 			room.board.setDecor(state);
 			this.pieces.sendDecor(room, state);
@@ -153,11 +168,13 @@ export class DecorService implements OnStart {
 		if (dropped > 0) this.persist(room, owner);
 	}
 
-	private place(room: Room, player: Player, id: string, form: number, ax: number, ay: number) {
+	private place(room: Room, player: Player, id: string, form: number, ax: number, ay: number, text: string) {
 		const item = decorItem(id);
 		if (!item || !typeIs(form, "number") || item.forms[form] === undefined || !this.isCell(ax) || !this.isCell(ay)) {
 			return;
 		}
+		const colors = parseColors(text, decorParts(item));
+		if (!colors) return;
 		if ((stockOf(this.decorOf(player)).get(item.id) ?? 0) <= 0) {
 			return this.refuse(player, { key: "decor.refuse.none", piece: decorItemKey(item.id) });
 		}
@@ -173,6 +190,7 @@ export class DecorService implements OnStart {
 			y: plan.y,
 			ax,
 			ay,
+			colors,
 		};
 		room.board.setDecor(state);
 		if (encodePlaced(this.savedList(room)).size() > DECOR_MAX_TEXT) {
@@ -186,9 +204,26 @@ export class DecorService implements OnStart {
 	private savedList(room: Room) {
 		const list = new Array<PlacedDecor>();
 		for (const [, state] of room.board.decor) {
-			list.push({ item: state.item.id, form: state.form, ax: state.ax, ay: state.ay });
+			list.push({ item: state.item.id, form: state.form, ax: state.ax, ay: state.ay, colors: state.colors });
 		}
 		return list;
+	}
+
+	/** Pinta de novo uma peça posta: as cores de todas as partes, no texto de `encodeColors`. */
+	private paint(room: Room, player: Player, key: number, text: string) {
+		if (!typeIs(key, "number")) return;
+		const state = room.board.decor.get(key);
+		if (!state) return;
+		const colors = parseColors(text, decorParts(state.item));
+		if (!colors) return;
+		const painted = { ...state, colors };
+		room.board.setDecor(painted);
+		if (encodePlaced(this.savedList(room)).size() > DECOR_MAX_TEXT) {
+			room.board.setDecor(state);
+			return this.refuse(player, { key: "decor.refuse.full" });
+		}
+		this.pieces.sendDecor(room, painted);
+		this.persist(room, player);
 	}
 
 	private move(room: Room, player: Player, key: number, form: number, ax: number, ay: number) {

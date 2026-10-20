@@ -21,6 +21,7 @@ import {
 } from "./decorCatalog";
 import type { InteriorTile } from "./interiors/types";
 import type { TextKey } from "./i18n/en";
+import { DECOR_RECORTES, RECORTES } from "./recortes";
 
 /**
  * O inventário de teste: quantas de cada peça o jogador tem para pôr na casa. Guardar uma peça devolve a ela.
@@ -42,11 +43,20 @@ export const TEST_INVENTORY: Record<string, number> = {
 /** A ordem das peças no inventário (a do catálogo gerado). */
 export const DECOR_ORDER = DECOR_ITEMS.map((item) => item.id);
 
-/** Versão do formato salvo da decoração (`PlayerData.decor`); muda quando o texto mudar de jeito. */
-export const DECOR_SAVE_VERSION = 1;
-/** Peças postas, no máximo, em cada mapa; e o tamanho máximo do texto salvo de um mapa. */
+/**
+ * Versão do formato salvo da decoração (`PlayerData.decor`); muda quando o texto mudar de jeito. A 2 (etapa G,
+ * 2026-10-20) acrescentou as cores das partes no fim de cada peça; a 1 se lê igual, com as peças na cor original.
+ */
+export const DECOR_SAVE_VERSION = 2;
+/** As versões que este código lê. Uma mais nova fica guardada como veio, sem decorar (`decorIsNewer`). */
+const DECOR_READS = new Set([1, 2]);
+/**
+ * Peças postas, no máximo, em cada mapa; e o tamanho máximo do texto salvo de um mapa. Com as cores, a peça mais
+ * longa é o quadro com as 6 partes pintadas: "picture 0 63 63 " e 6 cores de 6 letras com vírgulas, 57 letras e o
+ * ";"; 120 delas dão 6959. Antes das cores o limite era 4000 (a peça mais longa tinha 16 letras).
+ */
 export const DECOR_MAX_PIECES = 120;
-export const DECOR_MAX_TEXT = 4000;
+export const DECOR_MAX_TEXT = 8000;
 /** Mapas com decoração salva, no máximo, por jogador. */
 export const DECOR_MAX_MAPS = 8;
 
@@ -75,6 +85,8 @@ export interface DecorState {
 	y: number;
 	ax: number;
 	ay: number;
+	/** A cor de cada parte pintável (`decorParts`), ou `DECOR_ORIGINAL`; a lista pode ser mais curta que as partes. */
+	colors: DecorColors;
 }
 
 export function decorVariant(state: DecorState) {
@@ -91,6 +103,108 @@ export function decorTile(item: DecorItem, cell: DecorCell): InteriorTile {
 export function decorKind(cell: DecorCell): TileKind {
 	const code = cell[7];
 	return code === "3" ? 3 : code === "4" ? 4 : code === "5" ? 5 : 0;
+}
+
+// ------------------------------------------------------------------ as cores (etapa G, recortes.ts)
+
+/**
+ * As cores das partes de uma peça posta: uma por parte pintável do recorte (`shared/recortes.ts`, gerado por
+ * tools/recortes.py --montar), 0xRRGGBB, ou `DECOR_ORIGINAL` para a parte na cor da arte.
+ */
+export type DecorColors = readonly number[];
+export const DECOR_ORIGINAL = -1;
+
+/**
+ * As cores prontas do Decorar: tons que já existem nas peças do Aeko (as cores de referência das partes), para a
+ * peça pintada continuar parecendo da mesma folha. A máscara multiplica a cor pelo cinza dela, então a sombra e a
+ * textura ficam; o branco da máscara recebe a cor cheia.
+ */
+export const DECOR_PALETTE: readonly number[] = [
+	0xc45b43, // vermelho (a coberta da cama)
+	0xe08b55, // laranja (a moldura da janela)
+	0xda8506, // dourado (o sofá)
+	0x6daa73, // verde (o quadro)
+	0x2cacb0, // turquesa (os livros da estante)
+	0x326abb, // azul (o baú do castelo)
+	0xb06da3, // lilás (a coberta da cama)
+	0x7f4230, // marrom (a madeira do quadro)
+	0xbcbcc2, // cinza (o fogão)
+];
+
+/** Quantas partes pintáveis a peça tem; 0 é sem recorte (a peça não se pinta). */
+export function decorParts(item: DecorItem) {
+	return DECOR_RECORTES[item.id]?.parts ?? 0;
+}
+
+/** O recorte que a peça desenha na direção e na variante dela, ou nada (a cena desenha os tiles). */
+export function decorRecorte(state: Pick<DecorState, "item" | "form" | "variant">) {
+	const forms = DECOR_RECORTES[state.item.id]?.forms;
+	if (!forms) return undefined;
+	const form = forms[state.form] ?? forms[0];
+	const index = form[state.variant] ?? form[0];
+	return index >= 0 ? RECORTES[index] : undefined;
+}
+
+/** A cor da parte `part` (0, 1...) da peça: a escolhida ou, sem escolha, a original do recorte. */
+export function partColor(state: Pick<DecorState, "item" | "form" | "variant" | "colors">, part: number) {
+	const color = state.colors[part] ?? DECOR_ORIGINAL;
+	return color !== DECOR_ORIGINAL ? color : (decorRecorte(state)?.colors[part] ?? 0xffffff);
+}
+
+/** A cor 0xRRGGBB como `Color3`. */
+export function decorColor3(color: number) {
+	return Color3.fromRGB((color >> 16) & 255, (color >> 8) & 255, color & 255);
+}
+
+/** Sem as originais do fim: a lista guardada e enviada é a mais curta que diz as mesmas cores. */
+function trimColors(colors: DecorColors) {
+	const list = [...colors];
+	while (list.size() > 0 && list[list.size() - 1] === DECOR_ORIGINAL) list.pop();
+	return list;
+}
+
+/** As cores em texto: "c45b43,-,2cacb0" (o "-" é a original); "" quando todas são a original. */
+export function encodeColors(colors: DecorColors) {
+	return trimColors(colors)
+		.map((color) => (color === DECOR_ORIGINAL ? "-" : string.format("%06x", color)))
+		.join(",");
+}
+
+/** Uma cor do texto: "-" (a original) ou 6 letras hexadecimais; nada se não for nenhum dos dois. */
+function colorOf(text: string): number | undefined {
+	if (text === "-") return DECOR_ORIGINAL;
+	if (text.size() !== 6 || string.match(text, "^%x+$")[0] === undefined) return undefined;
+	return tonumber(text, 16);
+}
+
+/**
+ * Lê as cores de um pedido do cliente: no máximo uma por parte da peça, cada uma "-" ou 6 letras hexadecimais
+ * (0xRRGGBB). Fora disso, nada (o servidor ignora o pedido).
+ */
+export function parseColors(text: unknown, parts: number): number[] | undefined {
+	if (!typeIs(text, "string") || text.size() > parts * 7) return undefined;
+	if (text === "") return [];
+	const list = new Array<number>();
+	for (const entry of text.split(",")) {
+		const color = colorOf(entry);
+		if (color === undefined) return undefined;
+		list.push(color);
+	}
+	return list.size() <= parts ? trimColors(list) : undefined;
+}
+
+/**
+ * Lê as cores do salvo sem jogar a peça fora: a cor estragada vira a original e as partes a mais (o recorte foi
+ * refeito com menos partes) são esquecidas.
+ */
+function decodeColors(text: string | undefined, parts: number) {
+	const list = new Array<number>();
+	if (text === undefined || text === "" || text.size() > 7 * 16) return list;
+	for (const entry of text.split(",")) {
+		if (list.size() >= parts) break;
+		list.push(colorOf(entry) ?? DECOR_ORIGINAL);
+	}
+	return trimColors(list);
 }
 
 // ------------------------------------------------------------------ o fundo (plugin/src/fundos.ts)
@@ -400,12 +514,13 @@ export function planDecor(
 
 // ------------------------------------------------------------------ o que fica salvo
 
-/** Uma peça salva: a peça, a direção e onde o jogador apontou. */
+/** Uma peça salva: a peça, a direção, onde o jogador apontou e as cores das partes. */
 export interface PlacedDecor {
 	item: string;
 	form: number;
 	ax: number;
 	ay: number;
+	colors: DecorColors;
 }
 
 /** Uma peça móvel da casa (pote, cadeira, baú) que o jogador mudou de lugar no Decorar. */
@@ -424,9 +539,10 @@ export interface DecorMapSave {
 
 /**
  * A decoração de um jogador no DataStore (`PlayerData.decor`): a versão do formato e, por mapa (o id do Diorama),
- * as peças em texto. Peça: "item forma x y", separadas por ";". Peça móvel: "id x y variante". A variante e o
- * canto das postas saem de novo do mapa ao carregar, então um mapa redesenhado não deixa peça em cima de parede:
- * a que não couber mais volta ao inventário.
+ * as peças em texto. Peça: "item forma x y cores", separadas por ";", com as cores de `encodeColors` (o campo
+ * some quando a peça está toda na cor original; a versão 1 não tinha esse campo). Peça móvel: "id x y variante".
+ * A variante e o canto das postas saem de novo do mapa ao carregar, então um mapa redesenhado não deixa peça em
+ * cima de parede: a que não couber mais volta ao inventário.
  */
 export interface PlayerDecor {
 	v: number;
@@ -441,20 +557,27 @@ const isInt = (value: number | undefined): value is number =>
 	value !== undefined && value === math.floor(value) && value >= 0 && value < 1024;
 
 export function encodePlaced(list: PlacedDecor[]) {
-	return list.map((p) => `${p.item} ${p.form} ${p.ax} ${p.ay}`).join(";");
+	return list
+		.map((p) => {
+			const colors = encodeColors(p.colors);
+			return `${p.item} ${p.form} ${p.ax} ${p.ay}` + (colors !== "" ? ` ${colors}` : "");
+		})
+		.join(";");
 }
 
 export function decodePlaced(text: unknown) {
 	const list = new Array<PlacedDecor>();
 	if (!typeIs(text, "string") || text === "" || text.size() > DECOR_MAX_TEXT) return list;
 	for (const entry of text.split(";")) {
-		const [id, form, ax, ay] = entry.split(" ");
+		const [id, form, ax, ay, colors] = entry.split(" ") as (string | undefined)[];
 		const item = decorItem(id);
 		const f = tonumber(form);
 		const x = tonumber(ax);
 		const y = tonumber(ay);
 		if (!item || !isInt(f) || f >= item.forms.size() || !isInt(x) || !isInt(y)) continue;
-		if (list.size() < DECOR_MAX_PIECES) list.push({ item: item.id, form: f, ax: x, ay: y });
+		if (list.size() < DECOR_MAX_PIECES) {
+			list.push({ item: item.id, form: f, ax: x, ay: y, colors: decodeColors(colors, decorParts(item)) });
+		}
 	}
 	return list;
 }
@@ -477,12 +600,36 @@ export function decodeMoved(text: unknown) {
 	return list;
 }
 
-/** Lê o salvo, jogando fora o que não for do formato (versão desconhecida, mapa demais, texto grande demais). */
+/** Se a decoração foi salva por uma versão do jogo mais nova que esta: fica como veio e não se decora. */
+export function decorIsNewer(decor: PlayerDecor) {
+	return decor.v > DECOR_SAVE_VERSION;
+}
+
+/**
+ * Lê o salvo, jogando fora o que não for do formato (mapa demais, texto grande demais, peça que não existe). As
+ * versões de `DECOR_READS` saem na atual (a 1 sem cores: as peças na cor original), e a gravação seguinte já grava
+ * a atual. Uma versão mais nova (este servidor ficou no ar depois de uma atualização) fica como veio, texto a
+ * texto, para a gravação deste servidor devolvê-la sem perder nada; a casa fica sem decoração até o jogador entrar
+ * num servidor novo.
+ */
 export function sanitizeDecor(value: unknown): PlayerDecor {
 	const decor = emptyDecor();
 	if (!typeIs(value, "table")) return decor;
 	const saved = value as { v?: unknown; maps?: unknown };
-	if (saved.v !== DECOR_SAVE_VERSION || !typeIs(saved.maps, "table")) return decor;
+	if (!typeIs(saved.v, "number") || !typeIs(saved.maps, "table")) return decor;
+	if (saved.v > DECOR_SAVE_VERSION && saved.v === math.floor(saved.v)) {
+		const kept: PlayerDecor = { v: saved.v, maps: {} };
+		for (const [map, entry] of pairs(saved.maps as Record<string | number, unknown>)) {
+			if (!typeIs(map, "string") || !typeIs(entry, "table")) continue;
+			const e = entry as { placed?: unknown; moved?: unknown };
+			kept.maps[map] = {
+				placed: typeIs(e.placed, "string") ? e.placed : "",
+				moved: typeIs(e.moved, "string") ? e.moved : "",
+			};
+		}
+		return kept;
+	}
+	if (!DECOR_READS.has(saved.v)) return decor;
 	let count = 0;
 	for (const [map, entry] of pairs(saved.maps as Record<string | number, unknown>)) {
 		if (!typeIs(map, "string") || map.size() > 64 || !typeIs(entry, "table") || count >= DECOR_MAX_MAPS) continue;
@@ -497,6 +644,11 @@ export function sanitizeDecor(value: unknown): PlayerDecor {
 export function stockOf(decor: PlayerDecor) {
 	const stock = new Map<string, number>();
 	for (const id of DECOR_ORDER) stock.set(id, TEST_INVENTORY[id] ?? 0);
+	// O salvo de uma versão mais nova não se lê aqui: nada para pôr até o jogador entrar num servidor novo.
+	if (decorIsNewer(decor)) {
+		for (const id of DECOR_ORDER) stock.set(id, 0);
+		return stock;
+	}
 	for (const [, entry] of pairs(decor.maps)) {
 		for (const placed of decodePlaced(entry.placed)) stock.set(placed.item, (stock.get(placed.item) ?? 0) - 1);
 	}

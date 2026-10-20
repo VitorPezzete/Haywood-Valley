@@ -1,7 +1,8 @@
 import { ContentProvider } from "@rbxts/services";
 import { ART_PX_PER_STUD, groundOffset, LOOK, SCREEN_UP, VIEW_DEPTH_PER_PX } from "shared/view";
-import { ASSETS } from "shared/assets";
-import { decorVariant } from "shared/decor";
+import { ASSETS, ASSET_LISTS } from "shared/assets";
+import { decorColor3, DECOR_ORIGINAL, decorRecorte, decorVariant } from "shared/decor";
+import { RECORTE_FOLGA } from "shared/recortes";
 import { ANIMATION_FRAMES, isAnimated } from "shared/interiorMap";
 import { PieceBoard, STEP_SECONDS, THROW_SECONDS } from "shared/pieces";
 import { Card, cardCFrame, createCard } from "./card";
@@ -98,7 +99,80 @@ interface DecorDrawn {
 const DECOR_ANIM_ATTRIBUTE = "DecorAnim";
 
 /**
- * As imagens de uma peça do Decorar com o canto na célula (x, y) do bloco, no canvas do chão: as células que são
+ * As folhas montadas das peças recortadas do fundo (etapa G, `tools/recortes.py --montar`): a base e as máscaras
+ * de cada parte pintável, nas chaves recortes.<n> do registro. Arte derivada do Aeko, ainda sem o aval do usuário
+ * para enviar: sem id, a peça vai nos tiles da folha (sem as cores escolhidas) e o Output avisa uma vez.
+ */
+const RECORTE_SHEETS = ASSET_LISTS["recortes"] ?? [];
+let warnedRecortes = false;
+
+/** O que a peça posta tem além da forma: a direção, a variante e as cores das partes (`DecorState`). */
+export type DecorLook = Pick<DecorState, "form" | "variant" | "colors">;
+
+/**
+ * A peça recortada: a base (a peça nas cores originais, sem o piso, com 1 pixel de folga em volta) e, por cima,
+ * como filhas dela (no `ZIndexBehavior.Sibling` do canvas, a filha vem sempre por cima), a máscara de cada parte
+ * com cor escolhida, com `ImageColor3` = a cor. O tom do dia (`tint.ts`) multiplica essa cor como a de qualquer
+ * imagem. Nada quando a peça não tem recorte nesta variante, tem tile animado (a chama troca de quadro na folha
+ * do Aeko) ou a folha montada ainda não tem id.
+ */
+function recorteImages(
+	interior: Interior,
+	item: DecorState["item"],
+	variant: DecorVariant,
+	look: DecorLook,
+	x: number,
+	y: number,
+	zIndex: number,
+) {
+	const recorte = decorRecorte({ item, form: look.form, variant: look.variant });
+	if (!recorte) return undefined;
+	if (variant.cells.some((cell) => isAnimated([item.sheet, cell[2], cell[3]]))) return undefined;
+	const sheet = RECORTE_SHEETS[recorte.sheet] ?? "";
+	if (sheet === "") {
+		if (!warnedRecortes) {
+			warnedRecortes = true;
+			warn(
+				"[Decor] a folha das peças recortadas ainda não tem id (recortes.0 em assets/registro.json): as peças vão nos tiles, sem as cores escolhidas",
+			);
+		}
+		return undefined;
+	}
+	const light = variant.cells.some((cell) => isLightSource([item.sheet, cell[2], cell[3]]));
+	const image = (rect: readonly [number, number, number, number], color?: number) => {
+		const label = new Instance("ImageLabel");
+		label.Name = color === undefined ? `Decor_${item.id}` : "Parte";
+		label.BackgroundTransparency = 1;
+		label.ResampleMode = Enum.ResamplerMode.Pixelated;
+		label.Image = sheet;
+		label.ImageRectOffset = new Vector2(rect[0], rect[1]);
+		label.ImageRectSize = new Vector2(rect[2], rect[3]);
+		label.Size = UDim2.fromOffset(rect[2], rect[3]);
+		if (color !== undefined) label.ImageColor3 = decorColor3(color);
+		label.ZIndex = zIndex;
+		// A lâmpada posta fica na cor cheia à noite, como as do mapa (`tint.ts`).
+		if (light) label.SetAttribute(NO_TINT_ATTRIBUTE, true);
+		return label;
+	};
+	const base = image(recorte.base);
+	const at = interior.canvasOf(0, 0).add(new Vector2(x, y).mul(INTERIOR_TILE)).sub(new Vector2(RECORTE_FOLGA, RECORTE_FOLGA));
+	base.Position = UDim2.fromOffset(math.round(at.X), math.round(at.Y));
+	const labels = [base];
+	recorte.parts.forEach((rect, part) => {
+		const color = look.colors[part] ?? DECOR_ORIGINAL;
+		if (color === DECOR_ORIGINAL) return;
+		const mask = image(rect, color);
+		mask.Parent = base;
+		labels.push(mask);
+	});
+	// Na camada viva do chão, com as peças móveis: mudar uma peça não refaz o canvas grande dos tiles.
+	base.Parent = interior.live.gui;
+	return labels;
+}
+
+/**
+ * As imagens de uma peça do Decorar com o canto na célula (x, y) do bloco, no canvas do chão. Com `look` e
+ * recorte (`recorteImages`), a peça recortada com as cores dela; senão, os tiles da folha: as células que são
  * vizinhas na folha (na mesma metade) viram um recorte só, sem mudar pixel. Serve à peça posta e à peça meio
  * transparente que segue o mouse.
  */
@@ -109,7 +183,10 @@ export function decorImages(
 	x: number,
 	y: number,
 	zIndex: number,
+	look?: DecorLook,
 ) {
+	const cut = look && recorteImages(interior, item, variant, look, x, y, zIndex);
+	if (cut) return cut;
 	const cells = new Map<number, [number, number]>();
 	for (const cell of variant.cells) cells.set(cell[1] * 64 + cell[0], [cell[2], cell[3]]);
 	const taken = new Set<number>();
@@ -188,7 +265,7 @@ export class PieceView {
 		// A peça nova entra já no quadro de agora da animação.
 		this.decorTick = -1;
 		const variant = decorVariant(state);
-		const labels = decorImages(this.interior, state.item, variant, state.x, state.y, GroundLayer.Piece);
+		const labels = decorImages(this.interior, state.item, variant, state.x, state.y, GroundLayer.Piece, state);
 
 		const blocking = new Set<number>();
 		for (const cell of variant.cells) {

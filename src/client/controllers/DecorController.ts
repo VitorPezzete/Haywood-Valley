@@ -1,7 +1,19 @@
 import { Controller, OnStart } from "@flamework/core";
 import { GuiService, Players, RunService, UserInputService, Workspace } from "@rbxts/services";
 import { mount, source } from "@rbxts/vide";
-import { decorItem, decorItemKey, DecorState, decorVariant, DECOR_ORDER, planDecor } from "shared/decor";
+import {
+	decorItem,
+	decorItemKey,
+	DECOR_ORDER,
+	DECOR_ORIGINAL,
+	DECOR_PALETTE,
+	decorParts,
+	DecorState,
+	decorVariant,
+	encodeColors,
+	partColor,
+	planDecor,
+} from "shared/decor";
 import { isHouse, placeOf } from "shared/interiorChoice";
 import { toView } from "shared/view";
 import { Events } from "client/network";
@@ -25,6 +37,11 @@ type PieceState = NonNullable<ReturnType<Board["pieces"]["get"]>>;
 /** A tecla que liga e desliga o Decorar; as do modo: girar, guardar e as que escolhem a peça (1 a 9 e 0, na ordem do painel). */
 const DECOR_KEY = Enum.KeyCode.B;
 const ROTATE_KEY = Enum.KeyCode.R;
+/** As teclas da pintura: a próxima cor da paleta para a parte escolhida, e a próxima parte. */
+const COLOR_KEY = Enum.KeyCode.C;
+const PART_KEY = Enum.KeyCode.V;
+/** A pintura de uma peça já posta vai ao servidor no máximo a cada tanto, em segundos (o limite de pedidos). */
+const PAINT_EVERY = 0.25;
 const STORE_KEYS = new Set<Enum.KeyCode>([Enum.KeyCode.X, Enum.KeyCode.Delete]);
 const SLOT_KEYS: Enum.KeyCode[] = [
 	Enum.KeyCode.One,
@@ -62,6 +79,11 @@ type Holding =
  * pega para mudar de lugar; R gira entre as direções (a cadeira de frente e as de lado), X ou Delete guarda de
  * volta, Backspace ou o botão direito larga (o Esc é do menu do Roblox) o que está na mão, B de novo sai. O boneco continua andando (é assim que a
  * tela anda pela casa). O servidor confere tudo e responde com a peça (ou com a recusa).
+ *
+ * Pintar (etapa G): a peça com recorte (`shared/recortes.ts`) tem uma cor por parte. Com ela na mão, o painel
+ * Cor mostra as partes e a paleta (`DECOR_PALETTE` e a original); V passa à próxima parte e C à próxima cor. A
+ * peça nova sai com as cores escolhidas para ela (guardadas por peça do inventário até o jogador sair); a peça
+ * posta que está na mão é pintada na hora (`decorPaint`, no máximo a cada `PAINT_EVERY`).
  */
 @Controller()
 export class DecorController implements OnStart {
@@ -79,6 +101,18 @@ export class DecorController implements OnStart {
 	private plannedAt = 0;
 	private refusedUntil = 0;
 	private dimmed?: number | string;
+	/** Quantas partes pintáveis tem a peça na mão (0: não se pinta), a escolhida e as cores dela. */
+	private paintParts = source(0);
+	private paintPart = source(0);
+	private paintColors = source<number[]>([]);
+	/** A cor que aparece em cada parte (a escolhida ou a original), para o painel. */
+	private shownColors = source<number[]>([]);
+	private originalColors = source<number[]>([]);
+	/** As cores da próxima peça posta, por peça do inventário. */
+	private nextColors = new Map<string, number[]>();
+	/** A pintura da peça posta na mão ainda não foi ao servidor. */
+	private paintPending = false;
+	private paintSentAt = 0;
 
 	constructor(
 		private scene: SceneController,
@@ -109,6 +143,12 @@ export class DecorController implements OnStart {
 			});
 			this.refusedUntil = os.clock() + REFUSAL_SECONDS;
 		});
+		// A peça posta que está na mão continua apagada quando volta do servidor (pintada); se sumiu, larga.
+		this.actions.onDecor((key, state) => {
+			if (key !== this.dimmed) return;
+			if (state) this.actions.currentView()?.dim(key, MOVING_DIM);
+			else this.drop();
+		});
 		this.scene.onMapChanged(() => this.setActive(false));
 		UserInputService.InputBegan.Connect((input, processed) => this.input(input, processed));
 		RunService.RenderStepped.Connect(() => this.update());
@@ -127,6 +167,15 @@ export class DecorController implements OnStart {
 					onChoose: (id) => this.choose(id),
 					onRotate: () => this.rotate(),
 					onStore: () => this.store(),
+					paintParts: () => this.paintParts(),
+					paintPart: () => this.paintPart(),
+					shownColors: () => this.shownColors(),
+					paintColor: () => this.paintColors()[this.paintPart()] ?? DECOR_ORIGINAL,
+					originalColor: () => this.originalColors()[this.paintPart()] ?? 0xffffff,
+					onPart: (part) => this.choosePart(part),
+					onColor: (color) => this.setColor(color),
+					onNextPart: () => this.choosePart(this.paintPart() + 1),
+					onNextColor: () => this.nextColor(),
 				}),
 			Players.LocalPlayer.WaitForChild("PlayerGui"),
 		);
@@ -165,14 +214,89 @@ export class DecorController implements OnStart {
 		this.holding = { kind: "new", item };
 		this.form = 0;
 		this.chosen(id);
+		this.syncPaint();
 	}
 
 	private drop() {
+		this.flushPaint();
 		this.holding = undefined;
 		this.chosen(undefined);
 		this.clearGhost();
 		this.actions.currentView()?.dim(this.dimmed!, 0);
 		this.dimmed = undefined;
+		this.syncPaint();
+	}
+
+	// ------------------------------------------------------------------ pintar
+
+	/** As cores da peça na mão para o painel: a nova (as escolhidas para ela) ou a posta (as dela). */
+	private syncPaint() {
+		const holding = this.holding;
+		let colors = new Array<number>();
+		let parts = 0;
+		if (holding?.kind === "new") {
+			parts = decorParts(holding.item);
+			colors = [...(this.nextColors.get(holding.item.id) ?? [])];
+		} else if (holding?.kind === "decor") {
+			parts = decorParts(holding.item);
+			colors = [...(this.actions.currentBoard()?.decor.get(holding.key)?.colors ?? [])];
+		}
+		this.paintParts(parts);
+		if (this.paintPart() >= parts) this.paintPart(0);
+		this.paintColors(colors);
+		this.showColors();
+	}
+
+	private showColors() {
+		const holding = this.holding;
+		const shown = new Array<number>();
+		const originals = new Array<number>();
+		if (holding && holding.kind !== "piece") {
+			const look = { item: holding.item, form: this.form, variant: 0, colors: this.paintColors() };
+			for (let part = 0; part < this.paintParts(); part++) {
+				shown.push(partColor(look, part));
+				originals.push(partColor({ ...look, colors: [] }, part));
+			}
+		}
+		this.shownColors(shown);
+		this.originalColors(originals);
+	}
+
+	private choosePart(part: number) {
+		const parts = this.paintParts();
+		if (!this.active() || parts === 0) return;
+		this.paintPart(((part % parts) + parts) % parts);
+	}
+
+	/** A próxima cor da paleta para a parte escolhida; depois da última, a original. */
+	private nextColor() {
+		const options = [DECOR_ORIGINAL, ...DECOR_PALETTE];
+		const current = this.paintColors()[this.paintPart()] ?? DECOR_ORIGINAL;
+		this.setColor(options[(options.indexOf(current) + 1) % options.size()]);
+	}
+
+	private setColor(color: number) {
+		const holding = this.holding;
+		const part = this.paintPart();
+		if (!this.active() || !holding || holding.kind === "piece" || part >= this.paintParts()) return;
+		const colors = [...this.paintColors()];
+		while (colors.size() < part) colors.push(DECOR_ORIGINAL);
+		colors[part] = color;
+		if (holding.kind === "new") this.nextColors.set(holding.item.id, colors);
+		else this.paintPending = true;
+		this.paintColors(colors);
+		this.showColors();
+		// A peça meio transparente que segue o mouse se refaz com as cores novas.
+		this.planKey = "";
+	}
+
+	/** Manda ao servidor a pintura da peça posta que está na mão, se mudou. */
+	private flushPaint() {
+		const holding = this.holding;
+		if (!this.paintPending || holding?.kind !== "decor") return;
+		this.paintPending = false;
+		this.paintSentAt = os.clock();
+		Events.decorPaint.fire(holding.key, encodeColors(this.paintColors()));
 	}
 
 	private clearGhost() {
@@ -187,6 +311,7 @@ export class DecorController implements OnStart {
 		const holding = this.holding;
 		if (holding && holding.kind !== "piece") {
 			this.form = (this.form + 1) % holding.item.forms.size();
+			this.showColors();
 			return;
 		}
 		const cell = this.mouseCell();
@@ -202,6 +327,7 @@ export class DecorController implements OnStart {
 		if (!this.active()) return;
 		const holding = this.holding;
 		if (holding?.kind === "decor") {
+			this.paintPending = false;
 			Events.decorStore.fire(holding.key);
 			this.drop();
 			return;
@@ -215,6 +341,8 @@ export class DecorController implements OnStart {
 		if (input.KeyCode === DECOR_KEY && !processed) return this.setActive(!this.active());
 		if (!this.active() || processed) return;
 		if (input.KeyCode === ROTATE_KEY) return this.rotate();
+		if (input.KeyCode === COLOR_KEY) return this.nextColor();
+		if (input.KeyCode === PART_KEY) return this.choosePart(this.paintPart() + 1);
 		if (STORE_KEYS.has(input.KeyCode)) return this.store();
 		if (input.KeyCode === Enum.KeyCode.Backspace || input.UserInputType === Enum.UserInputType.MouseButton2) {
 			if (this.holding) this.drop();
@@ -259,6 +387,7 @@ export class DecorController implements OnStart {
 				this.dimmed = decor[0].key;
 				this.actions.currentView()?.dim(this.dimmed!, MOVING_DIM);
 				this.status({ key: "decor.status.moving" });
+				this.syncPaint();
 				return;
 			}
 			const piece = board.at(ax, ay);
@@ -277,10 +406,11 @@ export class DecorController implements OnStart {
 			return;
 		}
 		if (holding.kind === "new") {
-			Events.decorPlace.fire(holding.item.id, this.form, ax, ay);
+			Events.decorPlace.fire(holding.item.id, this.form, ax, ay, encodeColors(this.nextColors.get(holding.item.id) ?? []));
 			// Continua com a peça na mão enquanto sobrar (o servidor manda quantas sobram).
 			if ((this.stock().get(holding.item.id) ?? 0) <= 1) this.drop();
 		} else if (holding.kind === "decor") {
+			this.flushPaint();
 			Events.decorMove.fire(holding.key, this.form, ax, ay);
 			this.drop();
 		} else {
@@ -314,6 +444,7 @@ export class DecorController implements OnStart {
 		if (home !== this.available()) this.available(home);
 		if (this.active() && !home) this.setActive(false);
 		if (!this.active()) return;
+		if (this.paintPending && os.clock() - this.paintSentAt >= PAINT_EVERY) this.flushPaint();
 
 		const holding = this.holding;
 		const cell = this.mouseCell();
@@ -339,7 +470,8 @@ export class DecorController implements OnStart {
 		const started = perfBegin("Decorar");
 		const plan = this.planFor(holding, cell[0], cell[1]);
 		perfEnd("Decorar", started);
-		const key = `${holding.kind}|${this.form}|${plan.variant}|${plan.x}|${plan.y}|${plan.ok}`;
+		const colors = holding.kind === "piece" ? [] : this.paintColors();
+		const key = `${holding.kind}|${this.form}|${plan.variant}|${plan.x}|${plan.y}|${plan.ok}|${encodeColors(colors)}`;
 		if (key !== this.ghostKey) {
 			this.clearGhost();
 			this.ghostKey = key;
@@ -348,7 +480,8 @@ export class DecorController implements OnStart {
 				if (state) this.ghost.push(this.pieceGhost(state, plan));
 			} else {
 				const variant = decorVariant({ item: holding.item, form: this.form, variant: plan.variant } as DecorState);
-				for (const label of decorImages(interior, holding.item, variant, plan.x, plan.y, GroundLayer.Shadow)) {
+				const look = { form: this.form, variant: plan.variant, colors };
+				for (const label of decorImages(interior, holding.item, variant, plan.x, plan.y, GroundLayer.Shadow, look)) {
 					this.ghost.push(label);
 				}
 			}

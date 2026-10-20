@@ -21,8 +21,11 @@ interface ClientToServerEvents {
 	useFixture(id: string): void;
 	sleep(): void;
 	takeExit(): void;
-	decorPlace(item: string, form: number, ax: number, ay: number): void;
+	/** Põe uma peça do inventário; `colors`, as cores das partes no texto de `encodeColors` (shared/decor.ts). */
+	decorPlace(item: string, form: number, ax: number, ay: number, colors: string): void;
 	decorMove(key: number, form: number, ax: number, ay: number): void;
+	/** Pinta de novo uma peça posta, com as cores no texto de `encodeColors`. */
+	decorPaint(key: number, colors: string): void;
 	decorStore(key: number): void;
 	decorMovePiece(id: string, ax: number, ay: number): void;
 }
@@ -54,6 +57,7 @@ interface ServerToClientEvents {
 		y: number,
 		ax: number,
 		ay: number,
+		colors: string,
 	): void;
 	decorRefused(reason: string, piece: string, wanted: string, found: string): void;
 	decorStock(text: string): void;

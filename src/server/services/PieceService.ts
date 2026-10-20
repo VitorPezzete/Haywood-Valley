@@ -1,7 +1,7 @@
 import { OnStart, Service } from "@flamework/core";
 import { Players } from "@rbxts/services";
 import { ACTION_ATTRIBUTE, BodyAction, encodeAction, isAction } from "shared/actions";
-import { DecorState } from "shared/decor";
+import { DecorState, encodeColors } from "shared/decor";
 import { actionsStart, cellOfPoint, mapCorner, mapData, placeOf } from "shared/interiorChoice";
 import { InteriorMap } from "shared/interiorMap";
 import {
@@ -156,6 +156,7 @@ export class PieceService implements OnStart {
 			state.y,
 			state.ax,
 			state.ay,
+			removed ? "" : encodeColors(state.colors),
 		] as const;
 		if (to) Events.decorChanged.fire(to, ...args);
 		else Events.decorChanged.fire(this.playersIn(room), ...args);

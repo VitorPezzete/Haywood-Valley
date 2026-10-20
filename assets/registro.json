@@ -167,6 +167,7 @@
     "luz.fogo_lareira": { "tipo": "imagem", "id": 97451315069371, "arquivo": "assets/luz/fogo_lareira.png", "origem": "Aseprite/iluminacao/fogo_lareira/fogo_lareira.png" },
     "acoes.cacos_pote": { "tipo": "imagem", "id": 120787680623001, "arquivo": "assets/acoes/cacos_pote.png", "origem": "Aseprite/acoes/cacos_pote.py (desenho e cores do pote do Aeko)", "nota": "Tiles do Aeko (ver assets/LICENCAS.md)." },
     "acoes.carregaveis": { "tipo": "imagem", "id": 93474418849511, "arquivo": "assets/acoes/carregaveis.png", "origem": "Aseprite/acoes/carregaveis.py (tiles do Aeko recortados do fundo)", "nota": "Tiles do Aeko (ver assets/LICENCAS.md)." },
+    "recortes.0": { "tipo": "imagem", "id": "", "arquivo": "assets/recortes/recortes_0.png", "origem": "tools/recortes.py --montar (etapa G: peças do Decorar recortadas do fundo, base e máscaras)", "nota": "Tiles do Aeko (ver assets/LICENCAS.md). Não enviado: arte derivada do Aeko, o envio espera o aval do usuário." },
     "mundo.atlas": { "tipo": "imagem", "id": 77634984782890, "arquivo": "assets/mundo/world_atlas.png", "origem": "Aseprite/draw_world.lua" },
     "mundo.grama": { "tipo": "imagem", "id": 107539880862143, "arquivo": "assets/mundo/world_grass.png", "origem": "Aseprite/draw_world.lua" },
     "ui.atlas": { "tipo": "imagem", "id": 79941251908026, "arquivo": "assets/ui/ui_atlas.png", "origem": "Aseprite/draw_ui.lua" },
