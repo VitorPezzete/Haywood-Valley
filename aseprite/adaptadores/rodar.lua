@@ -31,10 +31,14 @@ local function lerOpcoes(valor)
 end
 
 -- O json do Aseprite devolve objetos e listas como userdata (com pairs/ipairs) e todo número como real (3.0): o
--- adaptador quer tabelas comuns e inteiros onde o número é inteiro.
+-- adaptador quer tabelas comuns e inteiros onde o número é inteiro. Não usar math.tointeger: no Lua do Aseprite,
+-- math.tointeger(0.8) devolve 0 em vez de falhar (2026-10-22), e `escala: 0.5` virava 0.
 paraTabela = function(v)
 	local tipo = type(v)
-	if tipo == "number" then return math.tointeger(v) or v end
+	if tipo == "number" then
+		if math.type(v) == "float" and v == math.floor(v) and math.abs(v) < 2 ^ 53 then return math.floor(v) end
+		return v
+	end
 	if tipo ~= "userdata" and tipo ~= "table" then return v end
 	-- Lista se tem [1]; senão, objeto (o # do userdata conta as chaves de um objeto também).
 	local t = {}

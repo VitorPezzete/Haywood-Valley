@@ -17,3 +17,6 @@ __pycache__/
 # Estado do set aberto no Live (posições, cortes); traz caminhos de trabalhos fora do repositório
 /tools/som/mapa_do_set*.json
 /tools/som/cortes.json
+# Biblioteca de pincéis do Aseprite (aseprite/adaptadores/ferramentas.lua): o pincel ativo e o uso mudam a cada chamada
+/aseprite/pinceis/estado.json
+/aseprite/pinceis/ativo/

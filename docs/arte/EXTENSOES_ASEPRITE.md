@@ -9,6 +9,8 @@ chamável em modo lote (`aseprite -b`) e o que não deu.
   delas. Recusa se a extensão faltar ou mudar de versão.
 - **Entrada de linha de comando**: `aseprite/adaptadores/rodar.lua` (lê `--script-param acao=` e `opcoes=`).
 - **Comando**: `tools/aseprite_extensoes.mjs` (`npm run aseprite:extensoes`), que roda o Aseprite em lote.
+- **Ferramentas nossas**: `aseprite/adaptadores/ferramentas.lua` (2026-10-22), carregado pelo adaptador: o que as
+  extensões só fazem com janela, refeito em código nosso com a API do Aseprite. Seção "Ferramentas nossas" abaixo.
 - **Cópia de segurança** das quatro pastas, antes de qualquer coisa: `Documents\Haywood-Valley-recuperado\backup_extensoes_aseprite\2026-10-22\` (fora do git).
 
 ## Como chamar
@@ -84,11 +86,13 @@ parâmetros, temas, ajuda, biblioteca de matrizes.
 
 Ruídos: `bayer`, `blue`, `white`, `halftone`, `lines_h`, `lines_v`, `lines_d`, `none`.
 
-**Não exposto**: instalar a matriz no Aseprite (`saveDitherAsExtension` cria a extensão `user_generated_dithers` na
-pasta de extensões do usuário: é instalar extensão, só com o pedido dele; o mapa sai em PNG com `mapa = true` +
-`imagem_png`); a biblioteca de matrizes instaladas (renomear, apagar: não há nenhuma); a sequência
-(`bm_buffer.aseprite`, um arquivo que o Brush Manager escreve pela janela); "usar como pincel" (põe `app.activeBrush`,
-que em lote não pinta nada: o adaptador carimba no lugar).
+**Não exposto pelo código dele, refeito em código nosso** (seção "Ferramentas nossas"): a biblioteca de matrizes
+(`matriz.gravar`, `listar`, `ler`, `apagar`; `matriz.preencher` e `matriz.faixa` aplicam uma matriz salva), a
+sequência de níveis (`matriz.sequencia`, de quadros de um `.aseprite` ou de PNGs, no lugar do `bm_buffer.aseprite`) e
+"instalar a matriz": `matriz.extensao` **gera** a pasta `user_generated_dithers` (package.json e um .bmp por matriz,
+no formato que a extensão instala) num diretório de saída, sem instalar; copiar para a pasta de extensões fica com o
+usuário. **Continua de fora**: "usar como pincel" (põe `app.activeBrush`, que em lote não pinta nada: o adaptador
+carimba no lugar).
 
 ## Brush Manager PRO 0.9.7.1 (sodedromme)
 
@@ -130,12 +134,14 @@ entre as duas pela luminância), `mapa` (luminância vira índice em `cores`) ou
 pontilhado), `variacao_cor = { h, s, v, harmonico, alfa }`, `contorno = cor`, `cobertura = { largura, altura, grade }`,
 `escala` (número ou `{x, y}`), `densidade = { valor 1 a 17, angulo, esmaecer, inverter, ruido, cor }`, `angulo`.
 
-**Não exposto**: favoritos, etiquetas, grupos, recentes, atalhos, cache, procurar duplicados, renomear em lote (tudo
-janela e preferências); pincéis de várias camadas (`applyMultiLayerBrush` lê as partes pela janela; o adaptador usa o
-pincel achatado); giro pela direção do traço (precisa do traço do mouse; `angulo` por chamada faz o mesmo à mão);
-"pincel vivo" traço a traço (vira o `pincel.efeito`, sobre a camada inteira ou um retângulo); criar pincel por seleção,
-por grade, por quadros e a prévia de ladrilho sem emenda (janelas de `brush_create.lua`; `pincel.criar` e
-`livebrush.conjunto` cobrem o útil).
+**Não exposto pelo código dele, refeito em código nosso** (seção "Ferramentas nossas"): favoritos, etiquetas,
+grupos, recentes, procurar duplicados e renomear (um e em lote) viram a biblioteca nossa (`biblioteca.*`, em JSON); os
+pincéis de várias camadas (uma parte por camada, casadas pelo nome, como o "multi layer" dele; `biblioteca.importar`
+traz os da biblioteca dele, inclusive o `multi_layer_starter`); o giro pela direção do traço (`biblioteca.traco`: um
+caminho de pontos no lugar do mouse). **Continua de fora**: atalhos, cache e a prévia de ladrilho (só fazem sentido com
+alguém pintando); "pincel vivo" traço a traço (vira o `pincel.efeito`, sobre a camada inteira ou um retângulo); as
+transformações dele (recolorir, contorno, densidade) não entram no carimbo nosso: para usá-las, gravar o pincel com
+`biblioteca.imagem` em PNG e carimbar com `pincel.carimbar{ origem = { png = ... } }`.
 
 ## Live Brush 2.1.1 (Devkidd)
 
@@ -156,8 +162,11 @@ troca de pincel por traço (em `on_sprite_change`, presa à janela) foi refeita 
 | `livebrush.conjunto` | corta o conjunto da `origem` por `grade`, `regioes = {{x,y,w,h},...}` ou `quadros = {1,2,...}`; `imagens_png = "C:/tmp/p_%d.png"` grava cada um. |
 | `livebrush.carimbar` | o conjunto nos `pontos`: `sequencia` (`fixo`, `frente`, `tras`, `vaivem`, `aleatorio`), `repeticao`, `tamanho = {x%, y%}`, `tamanho_aleatorio = {min%, max%}`, `travar_proporcao`, `espelhar_h`/`_v`, `espelho_aleatorio_h`/`_v`, `rotacao`, `rotacao_passo`, `rotacao_aleatoria = {min, max}`, `deslocamento_aleatorio`, `cor_frente`/`cor_fundo` (pincel com transparência vira silhueta na cor de frente; opaco troca a primeira cor pela de fundo e as outras pela de frente, como ele faz), `ancora`. |
 
-**Não exposto**: os conjuntos salvos (`brushsets.json`, vazio hoje) e a janela de conjuntos; os atalhos; o pincel
-ativo do Aseprite (`set_brush`/`get_brush`). Nada disso tem sentido sem alguém pintando.
+**Não exposto pelo código dele, refeito em código nosso** (seção "Ferramentas nossas"): conjuntos salvos com nome
+(`conjunto.gravar`, `listar`, `ler`, `apagar`, `carimbar`; o `brushsets.json` dele não é lido) e o "pincel ativo" como
+estado num arquivo (`ativo.definir`, `carimbar`, `ajustar`, `ler`, `limpar`), para a sequência e o giro continuarem de
+uma chamada para a outra. **Continua de fora**: os atalhos e o pincel ativo do próprio Aseprite (`set_brush`), que em
+lote não pinta.
 
 ## Carbs Toolbar 4.0.1 (CarbsCode)
 
@@ -192,12 +201,167 @@ desenhos das grades isométricas; `lib/cc_image.lua`, `cc_utils.lua`, utilidades
 | `carbs.pixels_texto` | os pixels do `retangulo` como texto (tabela Lua com `x`, `y` e, com `cores = true`, as cores), devolvido em `texto` em vez de ir para a área de transferência. |
 | `carbs.grade` | a grade do sprite no `retangulo`; sem ele, 16 px. |
 
-**Não exposto**: duplicar e deslocar, duplicar e girar, redimensionar a cópia da seleção (copiam e colam como
-seleção flutuante e a movem com `MoveMask`/`Scroll`, que precisam do editor); folha de sprites da seleção, exportar
-seleção, exportar camadas, quadros a partir da seleção (trocam de aba com `GoToNextTab` para voltar ao arquivo); centrar
-a prévia e o xadrez (só a tela); deslocar matiz/saturação/valor (age nas cores marcadas na paleta da janela e lê
-`Color(app.pixelColor)`, que fora dela não é cor; para isso, o `adjust_hsl` do MCP `aseprite` ou o comando
-`HueSaturation`).
+**Não exposto pelo código dele, refeito em código nosso** (seção "Ferramentas nossas"): duplicar e deslocar, duplicar
+e girar, redimensionar a cópia (`copia.*`: nas imagens das células, sem colar flutuante); folha de sprites da área,
+exportar seleção, exportar camadas (`exportar.*`) e quadros a partir da seleção (`quadros.da_selecao`), sem trocar de
+aba; matiz/saturação/valor em cores escolhidas, na paleta e nos pixels (`cores.ajustar`). **Continua de fora**: centrar
+a prévia e o xadrez (só mexem na tela do editor).
+
+## Ferramentas nossas (o que as extensões só fazem com janela)
+
+`aseprite/adaptadores/ferramentas.lua`, pedido do usuário em 2026-10-22 ("adicionar ferramentas ou extensão ou
+modificar que arrume essas coisas que ficaram de fora"). Código nosso, com a API do Aseprite; nada das extensões foi
+copiado e nenhuma delas precisa estar instalada, menos `matriz.gravar` com `ruido` (usa o mapa de limiar do Dithering
+Generator pelo adaptador) e `biblioteca.importar` pelo **nome** de uma biblioteca do Brush Manager (com o caminho do
+arquivo, não). As ações valem como as outras: `E.chamar("biblioteca.traco", {...})`, `E.biblioteca.traco{...}`, o
+`rodar.lua` e `node tools/aseprite_extensoes.mjs biblioteca.traco <arquivo> @opcoes.json`. O alvo (`arquivo`, `camada`,
+`quadro`, `saida`, `salvar`, `png`, `png_escala`, `modo`, `mascara`, `mascara_camada`, `abaixo_de`/`acima_de`) é o da
+tabela "O alvo" acima.
+
+### A biblioteca (pasta)
+
+Uma pasta guarda pincéis, conjuntos e matrizes: `pasta` em cada chamada; sem ela, a variável de ambiente `HV_PINCEIS`;
+sem as duas, **`aseprite/pinceis/`** no repositório (criada na primeira gravação). Dentro:
+
+- `biblioteca.json` (versionado; chaves em ordem e tabulação, para diferenças limpas): `pinceis`, `conjuntos`,
+  `matrizes`. Cada pincel: `id` (do nome; fica mesmo se renomear), `nome`, `largura`, `altura`, `partes` (`png`,
+  `camada` nas de várias camadas, `opacidade`/`mistura` só quando não são as de sempre), `favorito`, `etiquetas`,
+  `grupo`, `ancora`, `descricao`, `criado`.
+- `imagens/<id>/<n>[_<camada>].png`, `imagens/conjuntos/<id>/<item>/...`, `matrizes/<id>.png` (cinza: o valor é o
+  limiar).
+- `estado.json` e `ativo/` (no `.gitignore`): o pincel ativo e o uso de cada pincel (vezes e última vez, para
+  "recentes"); mudam a cada carimbo.
+
+Pincel feito de arte de terceiros (folhas do Aeko, peças do Graal) vai para uma `pasta` fora do repositório (por
+exemplo `Haywood-Valley-recuperado\pinceis`), pela mesma regra das licenças.
+
+### Pincéis: `biblioteca.*` (no lugar da janela do Brush Manager PRO)
+
+| Ação | Opções |
+|---|---|
+| `biblioteca.criar` | `nome`, `origem` = `{ arquivo?, camada? \| camadas = {...} \| todas_camadas = true, quadro?, retangulo? \| fatia?, aparar? }` ou `{ png }`; `etiquetas`, `grupo`, `favorito`, `ancora`, `descricao`; `substituir = true`. Com `camadas`/`todas_camadas`, **pincel de várias camadas**: uma parte por camada, com o nome dela. Sem retângulo nem fatia, corta o vazio em volta. |
+| `biblioteca.importar` | `biblioteca` (caminho de um `.aseprite` com fatias, como os do Brush Manager, ou o nome dele), `pinceis` = {nomes}, `camadas = true` (uma parte por camada), `grupo`, `etiquetas`, `prefixo`, `substituir`. |
+| `biblioteca.listar` | filtros `texto`, `etiqueta`, `etiquetas` (todas), `grupo`, `favoritos`; `ordenar` = `nome`, `recentes`, `usos`, `criado`; `favoritos_primeiro`, `limite`. |
+| `biblioteca.editar` | `pincel` (id ou nome), `novo_nome`, `favorito`, `etiquetas` (troca), `mais_etiquetas`, `menos_etiquetas`, `grupo` (`""` tira), `ancora`, `descricao`. |
+| `biblioteca.renomear` | `pincel` + `nome`, ou em lote: filtros + `padrao` (`"grama_%02d"`) e `inicio`. O id e os arquivos ficam. |
+| `biblioteca.apagar` | `pincel`; recusa se um conjunto usa (`forcar = true` tira de lá). |
+| `biblioteca.grupos`, `biblioteca.duplicados` | grupos e etiquetas com a contagem; pincéis de pixels iguais. |
+| `biblioteca.previa` | prancha dos pincéis filtrados em `png` (`colunas`, `espaco`, `escala`, `fundo`). |
+| `biblioteca.imagem` | o pincel (transformado, se pedido) em `png`; `partes_png = "C:/x/p_%s.png"` grava cada parte. |
+| `biblioteca.carimbar` | `pincel` \| `pinceis` = {...} \| `conjunto` \| `origem`; `pontos` = `{{x, y[, graus]}, ...}` ou `caminho` (traço). |
+| `biblioteca.traco` | o carimbar com `caminho` obrigatório e o **giro pela direção do traço** ligado. |
+| `biblioteca.pasta` | a pasta em uso. |
+
+**Opções do carimbo** (valem para `biblioteca.carimbar`/`traco`, `conjunto.carimbar` e `ativo.*`):
+
+- Traço: `caminho` = `{{x, y}, ...}`, amostrado a cada `espacamento` px de comprimento (padrão: metade do lado menor
+  do pincel); cada carimbo gira pela direção do trecho (`girar_pelo_traco`, ligado quando há `caminho`; 0° = o pincel
+  como está desenhado, para um traço que vai para a direita; 90° = para baixo). `suavizar` (px, padrão = espaçamento)
+  tira a direção da corda em volta do ponto, para curvas sem tranco; `0` usa o trecho. `fechado = true` liga o fim ao
+  começo. `angulo_base` soma um ângulo fixo à direção; `passo_angulo` (45, 90) arredonda o ângulo (90 é sem perda).
+- Sorteio (com `semente`): `jitter = { posicao = px, lateral = px (para os lados do traço), angulo = graus,
+  escala = % }`, `escala_aleatoria = {min, max}` (multiplicador; `travar_proporcao = false` sorteia x e y à parte),
+  `angulo_aleatorio = {min, max}`, `espelho_aleatorio_h`/`_v`.
+- Fixas: `escala` (número ou `{x, y}`), `espelhar_h`/`_v`, `angulo`, `rotacao_passo` (soma a cada carimbo), `cor`
+  (silhueta na cor), `trocar_cores = {{"#de", "#para"}, ...}`, `ancora` (as nove do adaptador; padrão `centro`).
+- Troca de pincel por carimbo, com vários (`pinceis` ou `conjunto`): `sequencia` = `fixo`, `frente` (padrão), `tras`,
+  `vaivem`, `aleatorio`; `repeticao` = n.
+- Giro: `giro` = `rotsprite` (padrão: o `aseprite/pixel/rotsprite.lua` do repositório, se estiver lá; senão o
+  `simples`), `simples` (Scale2x 4× e a amostra do centro de cada bloco, deste arquivo) ou `vizinho` (vizinho mais
+  próximo direto). 90°, 180° e 270° são sempre exatos.
+- Várias camadas: cada parte vai para a camada de mesmo nome, criada se faltar (perto de `acima_de`/`abaixo_de`, com a
+  opacidade e a mistura da origem); `mapa_camadas = { linha = "contorno" }` troca nomes; `camadas_modo` = `casar`
+  (padrão), `novas` (camadas novas a cada chamada) ou `uma` (tudo na `camada` do alvo). Parte sem camada própria vai
+  para a `camada` do alvo.
+- O resultado traz `carimbos`, `pixels`, `angulos` (até 64, em graus inteiros), `camadas`, `comprimento` do traço e
+  `pinceis_usados`; `imagem_png` grava o primeiro carimbo.
+
+```lua
+local E = dofile([[C:\Users\Szortek\Documents\Haywood-Valley\aseprite\adaptadores\extensoes.lua]])
+E.biblioteca.criar{ nome = "Orelha", origem = { arquivo = [[C:\tmp\vaca.aseprite]], camadas = { "corpo_e_cabeca", "detalhes" },
+                    retangulo = { 4, 4, 10, 8 } }, etiquetas = { "vaca" }, grupo = "animais", favorito = true }
+E.biblioteca.traco{ arquivo = [[C:\tmp\cerca.aseprite]], camada = "grama", pincel = "tufo", caminho = { {0, 40}, {30, 34}, {64, 40} },
+                    espacamento = 6, jitter = { lateral = 2, angulo = 15 }, semente = 3 }
+E.biblioteca.listar{ etiqueta = "vaca", ordenar = "recentes" }
+E.biblioteca.renomear{ grupo = "grama", padrao = "grama_%02d" }
+```
+
+### Conjuntos: `conjunto.*` (no lugar dos conjuntos do Live Brush)
+
+| Ação | Opções |
+|---|---|
+| `conjunto.gravar` | `nome`; os pincéis vêm de `pinceis` = {ids ou nomes da biblioteca} ou da `origem` cortada por `grade` = {l, a}, `regioes` = {{x,y,w,h}, ...}, `quadros` = {1, 2, ...} ou `separar = true` (cada ilha de pixels; `minimo` px); `opcoes` = as opções de carimbo que o conjunto leva (sequencia, escala_aleatoria, jitter...); `substituir`. |
+| `conjunto.listar`, `conjunto.ler` | `ler`: as opções e os itens; `imagens_png = "C:/x/c_%d.png"` grava cada um. |
+| `conjunto.carimbar` | `conjunto` + `pontos` ou `caminho`; as opções da chamada passam por cima das salvas. |
+| `conjunto.apagar` | apaga a entrada e as imagens próprias (os pincéis da biblioteca ficam). |
+
+### Pincel ativo: `ativo.*` (estado em arquivo, para encadear chamadas)
+
+`ativo.definir{ pincel | pinceis | conjunto | origem, ...opções de carimbo }` grava em `estado.json`;
+`ativo.carimbar{ arquivo, pontos | caminho, ... }` usa o ativo e guarda onde a sequência parou, o giro acumulado
+(`rotacao_passo`) e o sorteio (`semente` + número da chamada), então chamadas seguidas continuam como um traço só
+(`indice` no resultado: o último pincel usado); `ativo.ajustar` mescla opções (`remover` = {chaves},
+`reiniciar = true` volta a sequência); `ativo.ler`, `ativo.limpar`.
+
+```lua
+E.ativo.definir{ conjunto = "Pernas", sequencia = "vaivem", rotacao_passo = 90 }
+E.ativo.carimbar{ arquivo = [[C:\tmp\tela.aseprite]], camada = "pernas", pontos = { {10, 30} } }   -- pincel 1, 0°
+E.ativo.carimbar{ arquivo = [[C:\tmp\tela.aseprite]], camada = "pernas", pontos = { {30, 30} } }   -- pincel 2, 90°
+```
+
+### Cópias, exportações, quadros e cores (no lugar do que o Carbs Toolbar faz pelo editor)
+
+Área: `retangulo`, `fatia` ou `selecao = true` (a seleção do sprite ativo, com a forma dela; o `.aseprite` não guarda
+seleção, então só serve com o sprite aberto por script). Camadas: `camada`, ou `camadas` = {nomes} | `"todas"` |
+`"visiveis"`. Quadros: `quadro`, ou `quadros` = {...} | `"todos"`.
+
+| Ação | Opções |
+|---|---|
+| `copia.deslocar` | `dx`/`dy`, ou `direcao` (`cima`, `baixo`, `esquerda`, `direita`, `cima_esquerda`...) com `deslocamento` = {x%, y%} do tamanho da área (100: encostada) e `espaco`; `vezes` cópias em fila; `preencher = true` repete a área no sprite todo; `mover = true` apaga o original; `camada_destino`; `modo`. |
+| `copia.girar` | `angulo` (graus, sentido do relógio) ou `sentido` = `horario` \| `anti_horario`; `vezes` (a k-ésima gira k vezes); onde: centrada no original (padrão), `dx`/`dy`, `ao_lado` = `direita`/`esquerda`/`baixo`/`cima` com `espaco`, ou `x`/`y`; `no_lugar = true`; `espelhar_h`/`_v`; `giro`; `camada_destino`. |
+| `copia.redimensionar` | `escala` (0.25, 0.5, 2, 4... ou {x, y}) ou `largura`/`altura`; vizinho mais próximo; como o Carbs, o original sai e a cópia fica centrada nele, `manter_original = true` deixa os dois; onde, como no girar. |
+| `exportar.selecao` | a área em `png` (padrão com `{camada}`, `{quadro}`, `{nome}`); `camadas` limita, `separar_camadas = true` faz um PNG por camada; `escala`. Não muda o sprite. |
+| `exportar.camadas` | um PNG por camada e quadro em `pasta_saida` (padrão `<pasta do sprite>/<nome>_camadas`), `nome` = `"{camada}_{quadro}.png"`, `aparar`, `retangulo`/`fatia`, `incluir_vazias`, `escala`. |
+| `exportar.folha` | folha de sprites da área: `quadros`, `tag` ou todos, em `colunas` (padrão uma linha), ou `por_tag = true` (uma linha por tag); `camada` (só ela) ou `camadas`; `espaco`, `escala`; `png`; `json` grava onde ficou cada quadro e a duração. |
+| `quadros.da_selecao` | sprite novo em `saida` (gravado e fechado) com cada célula de `grade` = {l, a} da área como um quadro; sem `grade`, a área num quadro (o "sprite novo da seleção"); as camadas vêm junto (`achatar = true` faz uma só); `duracao` ms, `manter_vazios`. |
+| `cores.ajustar` | `h` (graus), `s`, `v` (pontos percentuais) nas `cores` = {"#rrggbb", ...} e/ou `indices` = {paleta}; sem as duas, todas. `paleta` e `pixels` (padrão sim; num indexado os pixels seguem a paleta), `camada(s)`, `quadros`, `retangulo`, `tolerancia` (distância RGB). Cinza recusa. Devolve as `mudancas` (de, para). |
+
+```lua
+E.copia.deslocar{ arquivo = [[C:\tmp\cerca.aseprite]], camadas = "todas", retangulo = { 0, 0, 16, 16 }, direcao = "direita", vezes = 5 }
+E.copia.girar{ arquivo = [[C:\tmp\item.aseprite]], camada = "item", retangulo = { 0, 0, 16, 16 }, angulo = 45, vezes = 7, ao_lado = "direita", espaco = 2 }
+E.exportar.folha{ arquivo = [[C:\tmp\anim.aseprite]], retangulo = { 0, 0, 32, 32 }, por_tag = true, png = [[C:\tmp\folha.png]], json = [[C:\tmp\folha.json]] }
+E.cores.ajustar{ arquivo = [[C:\tmp\vaca.aseprite]], cores = { "#eddacd" }, tolerancia = 40, v = -30, camada = "corpo_e_cabeca" }
+```
+
+### Matrizes de dithering: `matriz.*` (no lugar da biblioteca e do "instalar" do Dithering Generator)
+
+Uma matriz é uma imagem em cinza: o valor (0 a 255) de cada célula é o limiar; com densidade d% acende onde
+valor < d × 256 / 100 (0% nada, 100% tudo).
+
+| Ação | Opções |
+|---|---|
+| `matriz.gravar` | `nome` e a fonte: `bayer` = 2 \| 4 \| 8 \| 16 (nossa), `ruido` (o mapa do Dithering Generator: `blue`, `white`, `halftone`, `lines_*`..., com `tamanho`, `angulo`, `dx`, `dy`, `inverter`, `fractal`), `png` (mapa em cinza, ou o .bmp de uma extensão de matrizes) ou `origem`; `normalizar = true` espalha os níveis; `substituir`; `imagem_png`. |
+| `matriz.sequencia` | a matriz de uma sequência de níveis, do menos cheio ao mais cheio: os quadros de `arquivo` (`camada`, `quadros`, `retangulo`) ou `pngs` = {...}; o limiar de cada pixel é o primeiro nível em que ele acende. `inverter`; `nome`. Devolve quantos pixels nunca acendem e quantos apagam depois de acesos. |
+| `matriz.listar`, `matriz.ler`, `matriz.apagar` | `ler`: `png` com `png_escala` (8). |
+| `matriz.preencher` | `matriz` (ou `bayer` = n, sem biblioteca), `densidade` 0 a 100, `cor`, `retangulo`, `dx`/`dy`, `inverter`, e o alvo (máscara, `modo = "apagar"`...). Presa à grade do sprite. |
+| `matriz.faixa` | densidade de `inicio` a `fim` ao longo da área (`vertical`), na `cor`; com `cores` = {2 ou mais}, degradê cheio entre elas. |
+| `matriz.extensao` | **gera, sem instalar**, `<saida>/user_generated_dithers/` (`nome_pacote`, `nome_exibido`): `package.json` com `contributes.ditheringMatrices` e um `.bmp` indexado por matriz (paleta cinza, índice = nível em ordem, 0 a n-1, 255 transparente; ids `hv_<id>`). Se a pasta já existe ali, troca as entradas de mesmo id e guarda as outras. Para usar: copiar a pasta para `%APPDATA%\Aseprite\extensions\` (ou compactar como `.aseprite-extension`) e reiniciar o Aseprite, com o aval do usuário. |
+
+```lua
+E.matriz.gravar{ nome = "Bayer 4", bayer = 4 }
+E.matriz.sequencia{ nome = "Tijolinho", arquivo = [[C:\tmp\niveis.aseprite]] }   -- cada quadro, um nível
+E.matriz.faixa{ arquivo = [[C:\tmp\ceu.aseprite]], camada = "ceu", matriz = "Bayer 4", cores = { "#203060", "#5070b0", "#e0a070" }, vertical = true }
+E.matriz.extensao{ saida = [[C:\tmp\matrizes]] }
+```
+
+### O que ainda não dá, e por quê
+
+- **Pintar com o mouse** (traço vivo, pincel ativo do Aseprite, atalhos): em lote não há editor nem cursor. O mais
+  próximo é o `caminho` (a lista de pontos do traço) e o pincel ativo em arquivo.
+- **Instalar** a matriz ou uma extensão: só com o pedido do usuário; o `matriz.extensao` deixa a pasta pronta. O
+  `.aseprite-extension` (um zip) não sai daqui: o Lua do Aseprite não compacta.
+- **Seleção salva no arquivo**: o `.aseprite` não guarda seleção; `selecao = true` só com o sprite aberto por script.
+- **Centrar a prévia, xadrez, cache e prévia de ladrilho**: só existem na tela do editor.
 
 ## Por que não pela ponte nem pelo MCP `diorama`
 
@@ -233,6 +397,24 @@ giros e folha girada, carimbos com sorteio e sequência, recolorir do Live Brush
 Carbs, tela maior, grade isométrica, paleta em pixels, fatia exportada em PNG, folha e GIF, pixels em texto). Também numa
 cópia indexada da vaca, pelo `run_lua_script` do MCP, pelo comando Node (JSON de ida e volta) e os erros: camada que
 não existe, ruído desconhecido, ação desconhecida, extensão ausente e versão diferente.
+
+Ferramentas nossas (2026-10-22), também em lote, em cópias numa pasta temporária e com uma biblioteca temporária
+(`pasta`), cada resultado exportado em PNG ampliado e conferido a olho: biblioteca (criar de camada, de várias camadas e
+de PNG; listar com filtros e recentes; editar, renomear em lote, duplicados, apagar, prévia), importação do
+`multi_layer_starter` do Brush Manager (o orbe de 4 camadas), traço em círculo, em L e em onda com setas apontando pelo
+traço (com `passo_angulo`, `jitter` e `suavizar = 0`), carimbo de várias camadas casando e criando camadas, a vaca
+inteira (13 camadas) carimbada pela metade; conjuntos por regiões, grade, ilhas e de pincéis, com `vaivem`, escala
+sorteada e `rotacao_passo`; pincel ativo encadeado (0°, 90°, 180°, 270° em quatro chamadas) e com traço; cópias
+deslocadas, em padrão, giradas 90° ao lado e 30°, redimensionadas, com seleção em L e num sprite indexado; exportação
+de seleção, camadas e folha (por linhas, por tag, só uma camada, com JSON), quadros da seleção; ajuste de cor em RGB
+com tolerância e em indexado pela paleta; matrizes Bayer, ruído azul do Dithering Generator e feita à mão por
+sequência, preenchimento (12/25/50/75% exatos), faixas, a pasta de extensão gerada (e lida de volta), e os erros (nome
+repetido, pincel em uso, camada que falta, modo e giro desconhecidos, sem área, sem matriz). Pelo `run_lua_script` do
+MCP e pelo comando Node também.
+
+O teste achou um defeito do Lua do Aseprite: `math.tointeger(0.8)` devolve 0 em vez de falhar. O `rodar.lua` usava
+isso para converter os números do JSON, e toda opção quebrada vinda da linha de comando (`escala: 0.5`) virava inteira;
+corrigido ali e no `ferramentas.lua`.
 
 ## Quando uma extensão atualizar
 

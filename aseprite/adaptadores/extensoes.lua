@@ -18,6 +18,10 @@
 -- (criada por cima se não existir), `quadro` (1), `saida` (sem ela, grava no próprio arquivo; `salvar = false` não
 -- grava), `png` (exporta o sprite achatado; `png_escala` amplia), `semente` (sorteios repetíveis). Toda função devolve
 -- uma tabela simples (vira JSON no rodar.lua). Erros saem com `error()` e começam por "[extensoes]".
+--
+-- O que as extensões só fazem pela janela (biblioteca de pincéis, pincéis de várias camadas, giro pelo traço,
+-- conjuntos salvos, pincel ativo, cópias e exportações do Carbs, ajuste de cor, matrizes de dithering) foi refeito em
+-- código nosso em ferramentas.lua, carregado no fim deste arquivo (2026-10-22).
 
 local E = { VERSAO = "1.0.0" }
 
@@ -699,6 +703,8 @@ local function ladrilho(o)
 	if o.mapa and o.fractal then saida = A.applyFractalNoise(saida, ruido) end
 	return saida
 end
+-- O matriz.gravar de ferramentas.lua usa o mapa de limiar dos ruídos da extensão.
+D._ladrilho = ladrilho
 
 --- O ladrilho sozinho: grava em `imagem_png` e, com alvo, cola uma vez em (x, y).
 function D.matriz(o)
@@ -1626,6 +1632,27 @@ E.ACOES = {
 	"carbs.contorno", "carbs.contorno_interno", "carbs.sombra", "carbs.encolher_selecao", "carbs.expandir_tela",
 	"carbs.grade_iso", "carbs.paleta_em_pixels", "carbs.fatia", "carbs.exportar_fatias", "carbs.pixels_texto", "carbs.grade",
 }
+
+-- ---------------------------------------------------------------------------------------------------------------
+-- Ferramentas nossas (ferramentas.lua, 2026-10-22): o que as extensões só fazem com janela, refeito com a API do
+-- Aseprite (biblioteca de pincéis, pincéis de várias camadas, traço que gira o pincel, conjuntos salvos, pincel ativo,
+-- cópias deslocadas/giradas/redimensionadas, exportações, ajuste de cor, biblioteca de matrizes). Usa as utilidades
+-- daqui; as ações entram em E.ACOES e no E.chamar como as outras.
+
+E._util = {
+	falha = falha, lerTexto = lerTexto, cor = cor, pixelDe = pixelDe, hex = hex, retangulo = retangulo,
+	tabelaRet = tabelaRet, ponto = ponto, semear = semear, opaco = opaco, emRGB = emRGB, noModoDo = noModoDo,
+	imagemVazia = imagemVazia, acharCamada = acharCamada, caminhoIgual = caminhoIgual, abrirSprite = abrirSprite,
+	abrir = abrir, colar = colar, achatar = achatar, finalizar = finalizar, imagemDeOrigem = imagemDeOrigem,
+	origemDo = origemDo, gravarImagem = gravarImagem, ancorar = ancorar,
+}
+
+do
+	local fonte = debug.getinfo(1, "S").source
+	if fonte:sub(1, 1) == "@" then fonte = fonte:sub(2) end
+	local registrar = dofile(app.fs.joinPath(app.fs.filePath(fonte), "ferramentas.lua"))
+	registrar(E, E._util)
+end
 
 --- Chama uma ação pelo nome ("dithering.preencher", "verificar"...).
 function E.chamar(acao, opcoes)

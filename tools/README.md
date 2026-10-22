@@ -105,7 +105,8 @@ olhar a nota média; depois o `estudo_aeko.py` de novo, que copia o resumo das n
 `docs/arte/EXTENSOES_ASEPRITE.md`): chama o adaptador `aseprite/adaptadores/extensoes.lua`, que carrega o Dithering
 Generator, o Brush Manager PRO, o Live Brush e o Carbs Toolbar de onde estão instalados e roda as funções deles com o
 Aseprite em lote (nunca o que o usuário tem aberto). Pelo MCP `aseprite`, o mesmo adaptador vai por `dofile` no
-`run_lua_script`.
+`run_lua_script`. As ferramentas nossas (`aseprite/adaptadores/ferramentas.lua`: `biblioteca.*`, `conjunto.*`,
+`ativo.*`, `copia.*`, `exportar.*`, `quadros.da_selecao`, `cores.ajustar`, `matriz.*`) vão pelo mesmo comando.
 
 ```
 node tools/aseprite_extensoes.mjs verificar                       # instaladas, versões, se o adaptador carrega
