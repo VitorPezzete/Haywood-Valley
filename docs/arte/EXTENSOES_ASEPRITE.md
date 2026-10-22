@@ -11,6 +11,9 @@ chamável em modo lote (`aseprite -b`) e o que não deu.
 - **Comando**: `tools/aseprite_extensoes.mjs` (`npm run aseprite:extensoes`), que roda o Aseprite em lote.
 - **Ferramentas nossas**: `aseprite/adaptadores/ferramentas.lua` (2026-10-22), carregado pelo adaptador: o que as
   extensões só fazem com janela, refeito em código nosso com a API do Aseprite. Seção "Ferramentas nossas" abaixo.
+  **Com janela**, as mesmas ações estão em Arquivo > Diorama > Ferramentas (extensão Diorama 0.5.0, 2026-10-22; uso em
+  `docs/diorama/ASEPRITE.md`, seção "Ferramentas"): a instalação copia `extensoes.lua` e `ferramentas.lua` para dentro
+  da extensão.
 - **Cópia de segurança** das quatro pastas, antes de qualquer coisa: `Documents\Haywood-Valley-recuperado\backup_extensoes_aseprite\2026-10-22\` (fora do git).
 
 ## Como chamar
@@ -90,9 +93,9 @@ Ruídos: `bayer`, `blue`, `white`, `halftone`, `lines_h`, `lines_v`, `lines_d`, 
 (`matriz.gravar`, `listar`, `ler`, `apagar`; `matriz.preencher` e `matriz.faixa` aplicam uma matriz salva), a
 sequência de níveis (`matriz.sequencia`, de quadros de um `.aseprite` ou de PNGs, no lugar do `bm_buffer.aseprite`) e
 "instalar a matriz": `matriz.extensao` **gera** a pasta `user_generated_dithers` (package.json e um .bmp por matriz,
-no formato que a extensão instala) num diretório de saída, sem instalar; copiar para a pasta de extensões fica com o
-usuário. **Continua de fora**: "usar como pincel" (põe `app.activeBrush`, que em lote não pinta nada: o adaptador
-carimba no lugar).
+no formato que a extensão instala) num diretório de saída; `matriz.instalar` grava direto na pasta de extensões (o
+`npm run aseprite:instalar` faz isso, com o pedido do usuário de 2026-10-22). "Usar como pincel" (põe o pincel do
+Aseprite, que em lote não pinta nada) existe só com janela: "Pintar com ele" e "Próximo no lápis" das Ferramentas.
 
 ## Brush Manager PRO 0.9.7.1 (sodedromme)
 
@@ -221,25 +224,28 @@ tabela "O alvo" acima.
 ### A biblioteca (pasta)
 
 Uma pasta guarda pincéis, conjuntos e matrizes: `pasta` em cada chamada; sem ela, a variável de ambiente `HV_PINCEIS`;
-sem as duas, **`aseprite/pinceis/`** no repositório (criada na primeira gravação). Dentro:
+sem as duas, **`%APPDATA%\Aseprite\diorama\pinceis\`** (criada na primeira gravação). Até a manhã de 2026-10-22 o
+padrão era `aseprite/pinceis/` no repositório; mudou com as janelas (extensão Diorama 0.5.0) porque o repositório é
+público e a biblioteca do usuário vai ter pincel recortado de arte de terceiros, e porque as janelas e o Claude devem
+ver a mesma biblioteca. `aseprite/pinceis/` ficou inteira no `.gitignore`. Dentro:
 
-- `biblioteca.json` (versionado; chaves em ordem e tabulação, para diferenças limpas): `pinceis`, `conjuntos`,
+- `biblioteca.json` (chaves em ordem e tabulação, para diferenças limpas): `pinceis`, `conjuntos`,
   `matrizes`. Cada pincel: `id` (do nome; fica mesmo se renomear), `nome`, `largura`, `altura`, `partes` (`png`,
   `camada` nas de várias camadas, `opacidade`/`mistura` só quando não são as de sempre), `favorito`, `etiquetas`,
   `grupo`, `ancora`, `descricao`, `criado`.
 - `imagens/<id>/<n>[_<camada>].png`, `imagens/conjuntos/<id>/<item>/...`, `matrizes/<id>.png` (cinza: o valor é o
   limiar).
-- `estado.json` e `ativo/` (no `.gitignore`): o pincel ativo e o uso de cada pincel (vezes e última vez, para
-  "recentes"); mudam a cada carimbo.
+- `estado.json` e `ativo/`: o pincel ativo e o uso de cada pincel (vezes e última vez, para "recentes"); mudam a
+  cada carimbo.
 
-Pincel feito de arte de terceiros (folhas do Aeko, peças do Graal) vai para uma `pasta` fora do repositório (por
-exemplo `Haywood-Valley-recuperado\pinceis`), pela mesma regra das licenças.
+O JSON grava acentos como estão (UTF-8). Até 2026-10-22 o `%c` do escape pegava bytes de acento no Lua do Aseprite e
+um nome como "Ruído" voltava estragado; corrigido (só os controles ASCII viram `\uXXXX`).
 
 ### Pincéis: `biblioteca.*` (no lugar da janela do Brush Manager PRO)
 
 | Ação | Opções |
 |---|---|
-| `biblioteca.criar` | `nome`, `origem` = `{ arquivo?, camada? \| camadas = {...} \| todas_camadas = true, quadro?, retangulo? \| fatia?, aparar? }` ou `{ png }`; `etiquetas`, `grupo`, `favorito`, `ancora`, `descricao`; `substituir = true`. Com `camadas`/`todas_camadas`, **pincel de várias camadas**: uma parte por camada, com o nome dela. Sem retângulo nem fatia, corta o vazio em volta. |
+| `biblioteca.criar` | `nome`, `origem` = `{ arquivo?, camada? \| camadas = {...} \| todas_camadas = true, quadro?, retangulo? \| fatia? \| selecao = true (a forma da seleção), aparar? }` ou `{ png }`; `etiquetas`, `grupo`, `favorito`, `ancora`, `descricao`; `substituir = true`. Com `camadas`/`todas_camadas`, **pincel de várias camadas**: uma parte por camada, com o nome dela. Sem retângulo nem fatia, corta o vazio em volta. |
 | `biblioteca.importar` | `biblioteca` (caminho de um `.aseprite` com fatias, como os do Brush Manager, ou o nome dele), `pinceis` = {nomes}, `camadas = true` (uma parte por camada), `grupo`, `etiquetas`, `prefixo`, `substituir`. |
 | `biblioteca.listar` | filtros `texto`, `etiqueta`, `etiquetas` (todas), `grupo`, `favoritos`; `ordenar` = `nome`, `recentes`, `usos`, `criado`; `favoritos_primeiro`, `limite`. |
 | `biblioteca.editar` | `pincel` (id ou nome), `novo_nome`, `favorito`, `etiquetas` (troca), `mais_etiquetas`, `menos_etiquetas`, `grupo` (`""` tira), `ancora`, `descricao`. |
@@ -248,8 +254,10 @@ exemplo `Haywood-Valley-recuperado\pinceis`), pela mesma regra das licenças.
 | `biblioteca.grupos`, `biblioteca.duplicados` | grupos e etiquetas com a contagem; pincéis de pixels iguais. |
 | `biblioteca.previa` | prancha dos pincéis filtrados em `png` (`colunas`, `espaco`, `escala`, `fundo`). |
 | `biblioteca.imagem` | o pincel (transformado, se pedido) em `png`; `partes_png = "C:/x/p_%s.png"` grava cada parte. |
-| `biblioteca.carimbar` | `pincel` \| `pinceis` = {...} \| `conjunto` \| `origem`; `pontos` = `{{x, y[, graus]}, ...}` ou `caminho` (traço). |
-| `biblioteca.traco` | o carimbar com `caminho` obrigatório e o **giro pela direção do traço** ligado. |
+| `biblioteca.carimbar` | `pincel` \| `pinceis` = {...} \| `conjunto` \| `origem`; `pontos` = `{{x, y[, graus]}, ...}`, `caminho` (traço) ou `tracos` = `{ { pontos, fechado }, ... }` (vários traços seguidos, a ordem dos pincéis continua de um para o outro; é o que `caminho.*` devolve). |
+| `biblioteca.traco` | o carimbar com `caminho` (ou `tracos`) obrigatório e o **giro pela direção do traço** ligado. |
+| `caminho.da_camada` | os traços desenhados numa camada-guia (`camada`, padrão a ativa; `quadro`): cada pedaço ligado vira um traço; aberto, o caminho mais longo entre as pontas (esquerda para a direita, ou de cima para baixo); fechado, uma volta no sentido do relógio. `inverter`, `minimo` (px). Devolve `tracos`. |
+| `caminho.da_selecao` | o contorno de dentro da seleção do sprite ativo como traço(s) fechado(s). `inverter`, `minimo`. |
 | `biblioteca.pasta` | a pasta em uso. |
 
 **Opções do carimbo** (valem para `biblioteca.carimbar`/`traco`, `conjunto.carimbar` e `ativo.*`):
@@ -292,7 +300,8 @@ E.biblioteca.renomear{ grupo = "grama", padrao = "grama_%02d" }
 |---|---|
 | `conjunto.gravar` | `nome`; os pincéis vêm de `pinceis` = {ids ou nomes da biblioteca} ou da `origem` cortada por `grade` = {l, a}, `regioes` = {{x,y,w,h}, ...}, `quadros` = {1, 2, ...} ou `separar = true` (cada ilha de pixels; `minimo` px); `opcoes` = as opções de carimbo que o conjunto leva (sequencia, escala_aleatoria, jitter...); `substituir`. |
 | `conjunto.listar`, `conjunto.ler` | `ler`: as opções e os itens; `imagens_png = "C:/x/c_%d.png"` grava cada um. |
-| `conjunto.carimbar` | `conjunto` + `pontos` ou `caminho`; as opções da chamada passam por cima das salvas. |
+| `conjunto.carimbar` | `conjunto` + `pontos`, `caminho` ou `tracos`; as opções da chamada passam por cima das salvas. |
+| `conjunto.editar` | sem recortar de novo: `opcoes` (troca todas), `mais_opcoes` (mescla), `menos_opcoes` = {chaves}, `novo_nome`, `descricao`. |
 | `conjunto.apagar` | apaga a entrada e as imagens próprias (os pincéis da biblioteca ficam). |
 
 ### Pincel ativo: `ativo.*` (estado em arquivo, para encadear chamadas)
@@ -301,7 +310,9 @@ E.biblioteca.renomear{ grupo = "grama", padrao = "grama_%02d" }
 `ativo.carimbar{ arquivo, pontos | caminho, ... }` usa o ativo e guarda onde a sequência parou, o giro acumulado
 (`rotacao_passo`) e o sorteio (`semente` + número da chamada), então chamadas seguidas continuam como um traço só
 (`indice` no resultado: o último pincel usado); `ativo.ajustar` mescla opções (`remover` = {chaves},
-`reiniciar = true` volta a sequência); `ativo.ler`, `ativo.limpar`.
+`reiniciar = true` volta a sequência); `ativo.ler`, `ativo.limpar`. `ativo.proximo` avança a sequência sem carimbar e
+devolve o pincel seguinte (já com as opções sorteadas; `png` grava a imagem): com janela, é o "Próximo pincel do
+conjunto ativo", que põe esse pincel no lápis do Aseprite.
 
 ```lua
 E.ativo.definir{ conjunto = "Pernas", sequencia = "vaivem", rotacao_passo = 90 }
@@ -340,12 +351,14 @@ valor < d × 256 / 100 (0% nada, 100% tudo).
 
 | Ação | Opções |
 |---|---|
-| `matriz.gravar` | `nome` e a fonte: `bayer` = 2 \| 4 \| 8 \| 16 (nossa), `ruido` (o mapa do Dithering Generator: `blue`, `white`, `halftone`, `lines_*`..., com `tamanho`, `angulo`, `dx`, `dy`, `inverter`, `fractal`), `png` (mapa em cinza, ou o .bmp de uma extensão de matrizes) ou `origem`; `normalizar = true` espalha os níveis; `substituir`; `imagem_png`. |
+| `matriz.gravar` | `nome` e a fonte: `bayer` = 2 \| 4 \| 8 \| 16 (nossa), `ruido_azul` = 4 a 32 (nossa: void-and-cluster de Ulichney, repetível pela `semente`), `linhas` = 2 \| 4 \| 8 \| 16 (nossa: linhas horizontais que acendem uma a uma na ordem de Bayer), `xadrez` (nossa, 2 níveis), `ruido` (o mapa do Dithering Generator: `blue`, `white`, `halftone`, `lines_*`..., com `tamanho`, `angulo`, `dx`, `dy`, `inverter`, `fractal`), `png` (mapa em cinza, ou o .bmp de uma extensão de matrizes) ou `origem`; `normalizar = true` espalha os níveis; `substituir`; `imagem_png`. |
 | `matriz.sequencia` | a matriz de uma sequência de níveis, do menos cheio ao mais cheio: os quadros de `arquivo` (`camada`, `quadros`, `retangulo`) ou `pngs` = {...}; o limiar de cada pixel é o primeiro nível em que ele acende. `inverter`; `nome`. Devolve quantos pixels nunca acendem e quantos apagam depois de acesos. |
 | `matriz.listar`, `matriz.ler`, `matriz.apagar` | `ler`: `png` com `png_escala` (8). |
-| `matriz.preencher` | `matriz` (ou `bayer` = n, sem biblioteca), `densidade` 0 a 100, `cor`, `retangulo`, `dx`/`dy`, `inverter`, e o alvo (máscara, `modo = "apagar"`...). Presa à grade do sprite. |
+| `matriz.preencher` | `matriz` (ou `bayer` = n, sem biblioteca), `densidade` 0 a 100, `cor`, `retangulo` \| `fatia` \| `selecao = true` (a forma da seleção), `dx`/`dy`, `inverter`, e o alvo (máscara, `modo = "apagar"`...). Presa à grade do sprite. |
 | `matriz.faixa` | densidade de `inicio` a `fim` ao longo da área (`vertical`), na `cor`; com `cores` = {2 ou mais}, degradê cheio entre elas. |
-| `matriz.extensao` | **gera, sem instalar**, `<saida>/user_generated_dithers/` (`nome_pacote`, `nome_exibido`): `package.json` com `contributes.ditheringMatrices` e um `.bmp` indexado por matriz (paleta cinza, índice = nível em ordem, 0 a n-1, 255 transparente; ids `hv_<id>`). Se a pasta já existe ali, troca as entradas de mesmo id e guarda as outras. Para usar: copiar a pasta para `%APPDATA%\Aseprite\extensions\` (ou compactar como `.aseprite-extension`) e reiniciar o Aseprite, com o aval do usuário. |
+| `matriz.extensao` | **gera, sem instalar**, `<saida>/user_generated_dithers/` (`nome_pacote`, `nome_exibido`): `package.json` com `contributes.ditheringMatrices` e um `.bmp` indexado por matriz (paleta cinza, índice = nível em ordem, 0 a n-1, 255 transparente; ids `hv_<id>`). Se a pasta já existe ali, troca as entradas de mesmo id e guarda as outras. Grava também o `__info.json` (a lista de arquivos que o Aseprite usa para desinstalar; `info = false` não grava). Para usar: copiar a pasta para `%APPDATA%\Aseprite\extensions\` (ou compactar como `.aseprite-extension`) e reiniciar o Aseprite, com o aval do usuário. |
+| `matriz.iniciais` | põe o conjunto inicial (Bayer 2x2, 4x4, 8x8, Ruído azul 8x8 e 16x16, Linhas 4x4, Xadrez 2x2) se a biblioteca não tem nenhuma matriz; `completar = true` acrescenta as que faltam mesmo havendo outras. |
+| `matriz.instalar` | `matriz.iniciais` (`iniciais = false` pula) e `matriz.extensao` direto na pasta de extensões (`saida`, padrão `%APPDATA%\Aseprite\extensions`). Pedido do usuário em 2026-10-22: o `npm run aseprite:instalar` e o botão "Instalar no Aseprite…" chamam. Reiniciar o Aseprite depois. |
 
 ```lua
 E.matriz.gravar{ nome = "Bayer 4", bayer = 4 }
@@ -357,9 +370,11 @@ E.matriz.extensao{ saida = [[C:\tmp\matrizes]] }
 ### O que ainda não dá, e por quê
 
 - **Pintar com o mouse** (traço vivo, pincel ativo do Aseprite, atalhos): em lote não há editor nem cursor. O mais
-  próximo é o `caminho` (a lista de pontos do traço) e o pincel ativo em arquivo.
-- **Instalar** a matriz ou uma extensão: só com o pedido do usuário; o `matriz.extensao` deixa a pasta pronta. O
-  `.aseprite-extension` (um zip) não sai daqui: o Lua do Aseprite não compacta.
+  próximo é o `caminho` (a lista de pontos do traço) e o pincel ativo em arquivo. Com janela (Ferramentas da extensão
+  Diorama), o pincel vai para o lápis ("Pintar com ele", "Próximo pincel do conjunto ativo", que aceita atalho).
+- **Instalar** a matriz ou uma extensão: só com o pedido do usuário (o de 2026-10-22 cobre as matrizes:
+  `matriz.instalar`, chamado pelo `npm run aseprite:instalar`). O `.aseprite-extension` (um zip) não sai daqui: o Lua do
+  Aseprite não compacta.
 - **Seleção salva no arquivo**: o `.aseprite` não guarda seleção; `selecao = true` só com o sprite aberto por script.
 - **Centrar a prévia, xadrez, cache e prévia de ladrilho**: só existem na tela do editor.
 
@@ -411,6 +426,12 @@ com tolerância e em indexado pela paleta; matrizes Bayer, ruído azul do Dither
 sequência, preenchimento (12/25/50/75% exatos), faixas, a pasta de extensão gerada (e lida de volta), e os erros (nome
 repetido, pincel em uso, camada que falta, modo e giro desconhecidos, sem área, sem matriz). Pelo `run_lua_script` do
 MCP e pelo comando Node também.
+
+Com janela (extensão Diorama 0.5.0, 2026-10-22): `npm run teste:aseprite` roda cada item de Arquivo > Diorama >
+Ferramentas de ponta a ponta com um `Dialog` de mentira (o que foi coberto e o que não, em `docs/diorama/ASEPRITE.md`,
+"Ferramentas > Testes"). Além das ações novas (`caminho.*`, `tracos`, `conjunto.editar`, `ativo.proximo`, as matrizes
+nossas, `matriz.iniciais`, `matriz.instalar` numa pasta de teste e lida de volta do `.bmp`), ele achou o escape de JSON
+que estragava acentos (corrigido, ver "A biblioteca").
 
 O teste achou um defeito do Lua do Aseprite: `math.tointeger(0.8)` devolve 0 em vez de falhar. O `rodar.lua` usava
 isso para converter os números do JSON, e toda opção quebrada vinda da linha de comando (`escala: 0.5`) virava inteira;

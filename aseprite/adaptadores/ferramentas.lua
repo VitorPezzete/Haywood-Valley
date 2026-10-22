@@ -16,8 +16,14 @@
 -- biblioteca do Brush Manager (com o caminho do arquivo, não).
 --
 -- A biblioteca (pincéis, conjuntos, matrizes) é uma pasta: `pasta` em cada chamada, a variável de ambiente
--- HV_PINCEIS ou, sem as duas, aseprite/pinceis/ no repositório. biblioteca.json (versionado) tem as entradas; as
--- imagens ficam em imagens/ e matrizes/; estado.json (fora do git) guarda o pincel ativo e o uso (recentes).
+-- HV_PINCEIS ou, sem as duas, %APPDATA%\Aseprite\diorama\pinceis\ (fora do repositório desde 2026-10-22, a mesma
+-- que a extensão Diorama usa com janela). biblioteca.json tem as entradas; as imagens ficam em imagens/ e matrizes/;
+-- estado.json guarda o pincel ativo e o uso (recentes).
+--
+-- Desde 2026-10-22 (extensão Diorama 0.5.0, "Ferramentas" com janela) também: o caminho tirado de uma camada-guia
+-- ou do contorno da seleção (`caminho.*`), vários traços num carimbo só (`tracos`), `conjunto.editar`,
+-- `ativo.proximo`, matrizes de ruído azul, linhas e xadrez nossas, o conjunto inicial (`matriz.iniciais`) e a
+-- instalação na pasta de extensões (`matriz.instalar`).
 
 return function(E, U)
 	local falha, cor, pixelDe, hex = U.falha, U.cor, U.pixelDe, U.hex
@@ -25,12 +31,17 @@ return function(E, U)
 	local pc = app.pixelColor
 	local floor, max, min, abs = math.floor, math.max, math.min, math.abs
 
-	local RAIZ = (function()
+	-- A pasta "aseprite" do repositório (aseprite/adaptadores/..) ou, instalado, a pasta da extensão Diorama
+	-- (<extensão>/adaptadores/..): nas duas, o RotSprite fica em <ela>/pixel/rotsprite.lua.
+	local PASTA_ASEPRITE = (function()
 		local fonte = debug.getinfo(1, "S").source
 		if fonte:sub(1, 1) == "@" then fonte = fonte:sub(2) end
-		return app.fs.filePath(app.fs.filePath(app.fs.filePath(fonte)))
+		return app.fs.filePath(app.fs.filePath(fonte))
 	end)()
-	local PASTA_PADRAO = app.fs.joinPath(RAIZ, "aseprite", "pinceis")
+	-- A biblioteca do usuário fica fora do repositório (2026-10-22): o repositório é público, e pincel feito de arte
+	-- de terceiros (folhas do Aeko, peças do Graal) não pode ir para ele; fora da pasta da extensão também, para
+	-- sobreviver a cada `npm run aseprite:instalar` (que apaga a extensão antes de copiar).
+	local PASTA_PADRAO = app.fs.joinPath(app.fs.userConfigPath, "diorama", "pinceis")
 
 	local function semear(o)
 		if o.semente ~= nil then math.randomseed(floor(o.semente)) end
@@ -75,8 +86,10 @@ return function(E, U)
 	end
 
 	local ESCAPES = { ['"'] = '\\"', ["\\"] = "\\\\", ["\n"] = "\\n", ["\r"] = "\\r", ["\t"] = "\\t" }
+	-- Só os controles ASCII viram \uXXXX. Não usar %c: no Lua do Aseprite ele pega bytes acima de 127 também, e um
+	-- acento em UTF-8 ("Ruído") virava dois \u00XX que voltavam como outros caracteres (2026-10-22).
 	local function textoJSON(s)
-		return '"' .. (s:gsub('[%c"\\]', function(c) return ESCAPES[c] or string.format("\\u%04x", c:byte()) end)) .. '"'
+		return '"' .. (s:gsub('[\0-\31\127"\\]', function(c) return ESCAPES[c] or string.format("\\u%04x", c:byte()) end)) .. '"'
 	end
 
 	-- Tabela marcada como objeto: vazia, sai {} e não [].
@@ -382,13 +395,13 @@ return function(E, U)
 		return out
 	end
 
-	-- O RotSprite completo do repositório (aseprite/pixel/rotsprite.lua: 8x, redução e limpeza de órfãos), se estiver
-	-- lá; sem ele, o girarLimpo acima.
+	-- O RotSprite completo (aseprite/pixel/rotsprite.lua: 8x, redução e limpeza de órfãos; na extensão,
+	-- <extensão>/pixel/rotsprite.lua), se estiver lá; sem ele, o girarLimpo acima.
 	local rotsprite
 	local function moduloRotsprite()
 		if rotsprite == nil then
 			rotsprite = false
-			local caminho = app.fs.joinPath(RAIZ, "aseprite", "pixel", "rotsprite.lua")
+			local caminho = app.fs.joinPath(PASTA_ASEPRITE, "pixel", "rotsprite.lua")
 			if app.fs.isFile(caminho) then
 				local ok, R = pcall(dofile, caminho)
 				if ok and type(R) == "table" and type(R.girar_imagem) == "function" then rotsprite = R end
@@ -461,6 +474,15 @@ return function(E, U)
 		local r = img:shrinkBounds()
 		if r.isEmpty then return nil end
 		return r
+	end
+
+	--- Cópia ampliada `escala` vezes (vizinho mais próximo); a própria imagem se escala <= 1.
+	local function ampliarImg(img, escala)
+		escala = floor(escala or 1)
+		if escala <= 1 then return img end
+		local out = img:clone()
+		out:resize(img.width * escala, img.height * escala)
+		return out
 	end
 
 	-- -----------------------------------------------------------------------------------------------------------
@@ -651,9 +673,10 @@ return function(E, U)
 			local spr, aberto = abrirSpriteDe(origem)
 			local ok, erro = pcall(function()
 				local quadro = validarQuadro(spr, origem.quadro or 1)
-				local area
-				if origem.retangulo or origem.fatia then
-					area = areaDe(spr, origem, true)
+				local area, dentro
+				if origem.retangulo or origem.fatia or origem.selecao then
+					-- `selecao = true`: a forma da seleção (laço, varinha), não só o retângulo dela.
+					area, dentro = areaDe(spr, origem, true)
 				else
 					area = Rectangle(spr.bounds)
 				end
@@ -684,6 +707,13 @@ return function(E, U)
 				else
 					partes[1] = { img = Image(U.achatar(spr, quadro), area) }
 				end
+				if dentro then
+					for _, p in ipairs(partes) do
+						for it in p.img:pixels() do
+							if not dentro(area.x + it.x, area.y + it.y) then it(0) end
+						end
+					end
+				end
 				largura, altura = area.width, area.height
 			end)
 			if aberto then spr:close() end
@@ -691,7 +721,7 @@ return function(E, U)
 		end
 		if #partes == 0 then falha("a origem não tem nada desenhado nas camadas pedidas") end
 		local aparar = origem.aparar
-		if aparar == nil then aparar = not origem.retangulo and not origem.fatia end
+		if aparar == nil then aparar = not origem.retangulo and not origem.fatia and not origem.selecao end
 		if aparar then
 			local uniao
 			for _, p in ipairs(partes) do
@@ -1044,6 +1074,41 @@ return function(E, U)
 		return r
 	end
 
+	--- Vários traços de uma vez: `tracos` = { { pontos = {{x,y}, ...}, fechado? }, ... } (ou só a lista de pontos),
+	--- cada um como um `caminho`, com a mesma sequência de pincéis (o traço seguinte continua de onde o anterior
+	--- parou). Sem `tracos`, o carimbo de sempre. É o que a camada-guia e o contorno da seleção dão (caminho.*).
+	local function carimbarTracos(ctx, itens, o, seq)
+		if type(o.tracos) ~= "table" then return carimbarItens(ctx, itens, o, seq) end
+		if #o.tracos == 0 then falha("`tracos` vazio (a camada-guia não tem nada desenhado?)") end
+		local soma = { carimbos = 0, pixels = 0, angulos = {}, comprimento = 0, tracos = #o.tracos }
+		local camadas, usados = {}, {}
+		for _, t in ipairs(o.tracos) do
+			local pontos = t.pontos or t.caminho or t
+			local fechado = t.fechado
+			if fechado == nil then fechado = o.fechado end
+			local oi = {}
+			for k, v in pairs(o) do oi[k] = v end
+			oi.tracos, oi.pontos, oi.caminho, oi.fechado = nil, nil, pontos, fechado == true
+			oi.imagem_png = soma.imagem_png == nil and o.imagem_png or nil
+			local r = carimbarItens(ctx, itens, oi, seq)
+			soma.carimbos = soma.carimbos + r.carimbos
+			soma.pixels = soma.pixels + r.pixels
+			soma.comprimento = soma.comprimento + (r.comprimento or 0)
+			soma.imagem_png = soma.imagem_png or r.imagem_png
+			for _, a in ipairs(r.angulos) do
+				if #soma.angulos < 64 then soma.angulos[#soma.angulos + 1] = a end
+			end
+			for _, c in ipairs(r.camadas) do camadas[c] = true end
+			for _, i in ipairs(r.pinceis_usados) do usados[i] = true end
+		end
+		soma.camadas, soma.pinceis_usados = {}, {}
+		for c in pairs(camadas) do soma.camadas[#soma.camadas + 1] = c end
+		for i in pairs(usados) do soma.pinceis_usados[#soma.pinceis_usados + 1] = i end
+		table.sort(soma.camadas)
+		table.sort(soma.pinceis_usados)
+		return soma
+	end
+
 	--- Abre o alvo para carimbar: se algum pincel tem parte sem camada própria (ou `camada` foi dada), como as outras
 	--- ações (camada criada se faltar); se todas as partes têm camada, sem criar camada nenhuma.
 	local function abrirParaItens(o, itens, nomePadrao)
@@ -1060,7 +1125,7 @@ return function(E, U)
 
 	-- Opções do alvo, que não vão para as opções salvas de um conjunto ou do pincel ativo.
 	local DO_ALVO = { arquivo = true, camada = true, quadro = true, saida = true, salvar = true, png = true, png_escala = true,
-		pasta = true, pontos = true, caminho = true, x = true, y = true, fechar = true, imagem_png = true,
+		pasta = true, pontos = true, caminho = true, tracos = true, x = true, y = true, fechar = true, imagem_png = true,
 		pincel = true, pinceis = true, conjunto = true, origem = true, nome = true, abaixo_de = true, acima_de = true,
 		grade = true, regioes = true, quadros = true, separar = true, manter = true, reiniciar = true, remover = true,
 		substituir = true, opcoes = true, etiquetas = true, grupo = true, favorito = true, descricao = true }
@@ -1476,7 +1541,7 @@ return function(E, U)
 		local ctx = abrirParaItens(opcoes, itens, "pincel")
 		local resultado
 		app.transaction("Ferramentas: carimbar", function()
-			resultado = carimbarItens(ctx, itens, opcoes, { indice = 1 })
+			resultado = carimbarTracos(ctx, itens, opcoes, { indice = 1 })
 		end)
 		marcarUso(pasta, ids)
 		return U.finalizar(ctx, opcoes, resultado)
@@ -1486,7 +1551,7 @@ return function(E, U)
 	--- vale por padrão aqui), a cada `espacamento` px, com `jitter` = { posicao, lateral, angulo, escala } e `semente`.
 	function B.traco(o)
 		o = o or {}
-		if not o.caminho then falha("`caminho` = {{x,y}, {x,y}, ...} é obrigatório") end
+		if not o.caminho and not o.tracos then falha("`caminho` = {{x,y}, {x,y}, ...} (ou `tracos`) é obrigatório") end
 		if o.girar_pelo_traco == nil then o.girar_pelo_traco = true end
 		return B.carimbar(o)
 	end
@@ -1735,6 +1800,26 @@ return function(E, U)
 		return { apagado = c.id }
 	end
 
+	--- Muda um conjunto sem recortar de novo: `conjunto`, `opcoes` (troca todas), `mais_opcoes` (mescla),
+	--- `menos_opcoes` = { chaves }, `novo_nome`, `descricao`.
+	function C.editar(o)
+		o = o or {}
+		local pasta = pastaDe(o)
+		local b = lerBiblioteca(pasta)
+		local c = exigirEm(b.conjuntos, o.conjunto or o.nome, "conjunto")
+		if o.novo_nome and o.novo_nome ~= c.nome then
+			local outro = acharEm(b.conjuntos, o.novo_nome)
+			if outro and outro ~= c and outro.nome == o.novo_nome then falha("já existe o conjunto \"%s\"", o.novo_nome) end
+			c.nome = o.novo_nome
+		end
+		if o.opcoes then c.opcoes = objeto(mesclar({}, o.opcoes)) end
+		if o.mais_opcoes then c.opcoes = objeto(mesclar(c.opcoes, o.mais_opcoes)) end
+		for _, k in ipairs(o.menos_opcoes or {}) do c.opcoes[k] = nil end
+		if o.descricao ~= nil then c.descricao = o.descricao ~= "" and o.descricao or nil end
+		gravarBiblioteca(pasta, b)
+		return resumoConjunto(c)
+	end
+
 	--- Carimba um conjunto (as opções salvas nele valem; as da chamada passam por cima).
 	function C.carimbar(o)
 		o = o or {}
@@ -1828,12 +1913,12 @@ return function(E, U)
 		end
 		local opcoes = mesclar(mesclar(salvas, at.opcoes), o)
 		if opcoes.semente ~= nil then math.randomseed(floor(opcoes.semente) + (at.chamadas or 0)) end
-		if opcoes.caminho and opcoes.girar_pelo_traco == nil then opcoes.girar_pelo_traco = true end
+		if (opcoes.caminho or opcoes.tracos) and opcoes.girar_pelo_traco == nil then opcoes.girar_pelo_traco = true end
 		local ctx = abrirParaItens(opcoes, itens, "pincel")
 		local seq = at.seq or { indice = 1 }
 		local resultado
 		app.transaction("Ferramentas: pincel ativo", function()
-			resultado = carimbarItens(ctx, itens, opcoes, seq)
+			resultado = carimbarTracos(ctx, itens, opcoes, seq)
 		end)
 		at.seq = seq
 		at.chamadas = (at.chamadas or 0) + 1
@@ -1852,6 +1937,246 @@ return function(E, U)
 		gravarEstado(pasta, estado)
 		return { ativo = false }
 	end
+
+	--- O próximo pincel do ativo, sem carimbar: avança a sequência (e o giro, o sorteio) como um carimbo avançaria e
+	--- devolve a imagem achatada e transformada. É o "trocar de pincel a cada traço" do Live Brush, para pintar com
+	--- o lápis do Aseprite: a extensão Diorama põe a imagem como pincel do Aseprite (app.brush).
+	local function proximoAtivo(o)
+		o = o or {}
+		local pasta = pastaDe(o)
+		local estado = lerEstado(pasta)
+		local at = estado.ativo
+		if not at then falha("não há pincel ativo (ativo.definir)") end
+		local itens, salvas, ids
+		if at.fonte.item then
+			itens, salvas, ids = { carregarPartes(pasta, at.fonte.item) }, nil, {}
+		else
+			itens, salvas, ids = resolverItens(at.fonte, pasta, lerBiblioteca(pasta))
+		end
+		local opcoes = mesclar(mesclar(salvas, at.opcoes), o)
+		if opcoes.semente ~= nil then math.randomseed(floor(opcoes.semente) + (at.chamadas or 0)) end
+		local seq = at.seq or { indice = 1 }
+		local idx = proximoIndice(seq, #itens, opcoes)
+		local t = parametros(opcoes, seq, nil)
+		local partes = transformarItem(itens[idx], t, opcoes)
+		local img = Image(partes[1].img.width, partes[1].img.height, ColorMode.RGB)
+		for _, p in ipairs(partes) do img:drawImage(p.img, Point(0, 0)) end
+		if opcoes.rotacao_passo then seq.rotacao = ((seq.rotacao or 0) + opcoes.rotacao_passo) % 360 end
+		at.seq = seq
+		at.chamadas = (at.chamadas or 0) + 1
+		gravarEstado(pasta, estado)
+		if ids[idx] then marcarUso(pasta, { ids[idx] }) elseif #ids == 1 then marcarUso(pasta, ids) end
+		local info = { indice = idx, total = #itens, largura = img.width, altura = img.height, angulo = floor(t.angulo + 0.5) % 360,
+			ancora = opcoes.ancora or itens[idx].ancora or "centro", fonte = at.fonte.conjunto or at.fonte.pincel or (at.fonte.pinceis and "pinceis") or "origem" }
+		return img, info
+	end
+
+	--- O próximo pincel do ativo (ver proximoAtivo); `png` (e `png_escala`) grava a imagem.
+	function A.proximo(o)
+		o = o or {}
+		local img, info = proximoAtivo(o)
+		if o.png then
+			info.png = gravarPNG(ampliarImg(img, o.png_escala), o.png)
+		end
+		return info
+	end
+
+	-- Para a janela (extensão Diorama): imagens, sem passar por PNG.
+	E._interno.proximoAtivo = proximoAtivo
+
+	--- A imagem achatada de um pincel (`pincel`) ou dos itens de um conjunto (`conjunto`): { imagens, itens }.
+	function E._interno.imagens(o)
+		local pasta = pastaDe(o)
+		local itens = resolverItens(o, pasta, lerBiblioteca(pasta))
+		local imagens = {}
+		for i, item in ipairs(itens) do imagens[i] = achatarItem(item) end
+		return imagens, itens
+	end
+
+	-- -----------------------------------------------------------------------------------------------------------
+	-- caminho.*: o traço para o `biblioteca.traco` sem digitar pontos (2026-10-22, para a janela da extensão
+	-- Diorama): uma camada-guia com uma linha de 1 px desenhada pelo usuário (o lápis, em qualquer cor), ou o contorno
+	-- da seleção. Devolvem `tracos` = { { pontos = {{x, y}, ...}, fechado }, ... }, que o carimbo aceita como está.
+
+	local Cm = {}
+	E.caminho = Cm
+
+	-- Ortogonais primeiro: nas escadas o caminho passa pelo canto em vez de cortar na diagonal.
+	local VIZINHOS = { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 }, { 1, 1 }, { -1, 1 }, { 1, -1 }, { -1, -1 } }
+
+	local function chavePx(x, y) return (y + 32768) * 65536 + (x + 32768) end
+
+	local function inverterLista(t)
+		local n = #t
+		for i = 1, n // 2 do t[i], t[n - i + 1] = t[n - i + 1], t[i] end
+		return t
+	end
+
+	--- Ordena pixels ({ {x, y}, ... }) em traços, um por pedaço ligado (8 vizinhos). Linha aberta: o caminho mais
+	--- longo entre as duas pontas (BFS duas vezes), que atravessa as escadas e os cantos grossos sem voltar; vai da
+	--- esquerda para a direita (ou de cima para baixo, se é mais alta que larga). Linha fechada (muito pixel longe
+	--- desse caminho): uma volta inteira de vizinho em vizinho, cada passo para o vizinho com menos saídas, no
+	--- sentido do relógio. Pedaços com menos de `minimo` pixels ficam de fora.
+	local function ordenarTracos(lista, minimo)
+		local em = {}
+		for _, p in ipairs(lista) do em[chavePx(p[1], p[2])] = p end
+		local function vizinhos(p, filtro)
+			local r = {}
+			for _, d in ipairs(VIZINHOS) do
+				local q = em[chavePx(p[1] + d[1], p[2] + d[2])]
+				if q and (not filtro or filtro(q)) then r[#r + 1] = q end
+			end
+			return r
+		end
+		local function maisLonge(origem)
+			local dist, pai = { [origem] = 0 }, {}
+			local fila, i, longe = { origem }, 1, origem
+			while i <= #fila do
+				local p = fila[i]
+				i = i + 1
+				if dist[p] > dist[longe] then longe = p end
+				for _, q in ipairs(vizinhos(p)) do
+					if dist[q] == nil then
+						dist[q], pai[q] = dist[p] + 1, p
+						fila[#fila + 1] = q
+					end
+				end
+			end
+			return longe, pai
+		end
+		table.sort(lista, function(a, b)
+			if a[2] ~= b[2] then return a[2] < b[2] end
+			return a[1] < b[1]
+		end)
+		local visto, tracos = {}, {}
+		for _, inicio in ipairs(lista) do
+			if not visto[inicio] then
+				local comp = { inicio }
+				visto[inicio] = true
+				local i = 1
+				while i <= #comp do
+					for _, q in ipairs(vizinhos(comp[i])) do
+						if not visto[q] then
+							visto[q] = true
+							comp[#comp + 1] = q
+						end
+					end
+					i = i + 1
+				end
+				if #comp >= (minimo or 1) then
+					local a = maisLonge(comp[1])
+					local b, pai = maisLonge(a)
+					local caminho = {}
+					local p = b
+					while p do
+						caminho[#caminho + 1] = p
+						p = pai[p]
+					end
+					local perto = {}
+					for _, q in ipairs(caminho) do
+						perto[q] = true
+						for _, r in ipairs(vizinhos(q)) do perto[r] = true end
+					end
+					local longe = 0
+					for _, q in ipairs(comp) do
+						if not perto[q] then longe = longe + 1 end
+					end
+					local fechado = false
+					if longe > max(2, #comp * 0.2) then
+						local usado = { [inicio] = true }
+						caminho = { inicio }
+						local atual = inicio
+						while true do
+							local livres = vizinhos(atual, function(q) return not usado[q] end)
+							if #livres == 0 then break end
+							local melhor, menos = nil, math.huge
+							for _, q in ipairs(livres) do
+								local n = #vizinhos(q, function(r) return not usado[r] end)
+								if n < menos then melhor, menos = q, n end
+							end
+							usado[melhor] = true
+							caminho[#caminho + 1] = melhor
+							atual = melhor
+						end
+						local u = caminho[#caminho]
+						fechado = #caminho > 2 and abs(u[1] - inicio[1]) <= 1 and abs(u[2] - inicio[2]) <= 1
+						local area = 0
+						for k = 1, #caminho do
+							local p1, p2 = caminho[k], caminho[k % #caminho + 1]
+							area = area + p1[1] * p2[2] - p2[1] * p1[2]
+						end
+						if area < 0 then inverterLista(caminho) end
+					else
+						local p1, pn = caminho[1], caminho[#caminho]
+						local dx, dy = pn[1] - p1[1], pn[2] - p1[2]
+						if (abs(dx) >= abs(dy) and dx < 0) or (abs(dy) > abs(dx) and dy < 0) then inverterLista(caminho) end
+					end
+					local pontos = {}
+					for k, q in ipairs(caminho) do pontos[k] = { q[1], q[2] } end
+					tracos[#tracos + 1] = { pontos = pontos, fechado = fechado, pixels = #comp }
+				end
+			end
+		end
+		return tracos
+	end
+
+	local function terminarTracos(tracos, o)
+		if o.inverter then
+			for _, t in ipairs(tracos) do inverterLista(t.pontos) end
+		end
+		return tracos
+	end
+
+	--- Os traços desenhados numa camada-guia: `camada` (padrão: a ativa), `quadro`, `minimo` (px por traço, 1),
+	--- `inverter` (o sentido de todos). Cada pedaço ligado é um traço; desenhe com o lápis, 1 px de largura.
+	function Cm.da_camada(o)
+		o = o or {}
+		local spr, aberto = abrirSpriteDe(o)
+		local r
+		local ok, erro = pcall(function()
+			local camada = o.camada and U.acharCamada(spr.layers, o.camada) or app.activeLayer
+			if not camada then falha("a camada-guia \"%s\" não existe", tostring(o.camada)) end
+			if not camada.isImage or camada.isTilemap then falha("a camada-guia precisa ser uma camada de imagem") end
+			local cel = camada:cel(validarQuadro(spr, o.quadro or 1))
+			local lista = {}
+			if cel then
+				local pos = cel.position
+				for it in cel.image:pixels() do
+					if opaco(it(), spr.colorMode, spr.transparentColor) then lista[#lista + 1] = { it.x + pos.x, it.y + pos.y } end
+				end
+			end
+			if #lista == 0 then falha("a camada-guia \"%s\" está vazia neste quadro: desenhe o traço com o lápis", camada.name) end
+			if #lista > 50000 then falha("a camada-guia tem %d pixels: desenhe só a linha do traço (1 px)", #lista) end
+			r = { tracos = terminarTracos(ordenarTracos(lista, o.minimo), o), camada = camada.name }
+		end)
+		if aberto then spr:close() end
+		if not ok then error(erro, 0) end
+		r.total = #r.tracos
+		return r
+	end
+
+	--- O contorno da seleção do sprite ativo como traço fechado (a borda de dentro: os pixels selecionados que
+	--- encostam num de fora). Seleção com buracos ou partes soltas dá um traço por borda. `inverter`, `minimo`.
+	function Cm.da_selecao(o)
+		o = o or {}
+		local spr = abrirSpriteDe(o)
+		local sel = spr.selection
+		if sel.isEmpty then falha("o sprite não tem seleção") end
+		local b = sel.bounds
+		local lista = {}
+		for y = b.y, b.y + b.height - 1 do
+			for x = b.x, b.x + b.width - 1 do
+				if sel:contains(x, y) and not (sel:contains(x + 1, y) and sel:contains(x - 1, y) and sel:contains(x, y + 1)
+					and sel:contains(x, y - 1)) then
+					lista[#lista + 1] = { x, y }
+				end
+			end
+		end
+		local tracos = terminarTracos(ordenarTracos(lista, o.minimo), o)
+		return { tracos = tracos, total = #tracos }
+	end
+
+	E._interno.ordenarTracos = ordenarTracos
 
 	-- -----------------------------------------------------------------------------------------------------------
 	-- copia.*: duplicar e deslocar, duplicar e girar, redimensionar a cópia (o que o Carbs Toolbar faz colando uma
@@ -2584,6 +2909,137 @@ return function(E, U)
 		return img
 	end
 
+	--- Imagem cinza n x n a partir da ordem de cada célula (0 a n*n - 1): o valor é a ordem espalhada de 0 a 255.
+	local function deOrdens(n, ordem)
+		local img = Image(n, n, ColorMode.RGB)
+		for y = 0, n - 1 do
+			for x = 0, n - 1 do
+				local v = floor(ordem(x, y) * 256 / (n * n))
+				img:drawPixel(x, y, pc.rgba(v, v, v, 255))
+			end
+		end
+		return img
+	end
+
+	--- Ordem de Bayer numa dimensão (bits ao contrário): para 4, as posições 0, 2, 1, 3 acendem nessa ordem.
+	local function ordem1D(n)
+		local bits = 0
+		while (1 << bits) < n do bits = bits + 1 end
+		if (1 << bits) ~= n or n < 2 or n > 16 then falha("o tamanho precisa ser 2, 4, 8 ou 16") end
+		local r = {}
+		for i = 0, n - 1 do
+			local v = 0
+			for b = 0, bits - 1 do
+				if (i >> b) & 1 == 1 then v = v | (1 << (bits - 1 - b)) end
+			end
+			r[i] = v
+		end
+		return r
+	end
+
+	--- Linhas horizontais: uma linha inteira acende antes da próxima (na ordem de Bayer), e dentro da linha os
+	--- pixels também na ordem de Bayer. A 25% (n = 4), uma linha cheia a cada quatro.
+	local function matrizLinhas(n)
+		local o = ordem1D(n)
+		return deOrdens(n, function(x, y) return o[y] * n + o[x] end)
+	end
+
+	--- Xadrez: metade acende de uma vez, depois a outra metade (2 níveis).
+	local function matrizXadrez()
+		return deOrdens(2, function(x, y) return ((x + y) % 2 == 0) and 0 or 2 end)
+	end
+
+	--- Ruído azul n x n pelo void-and-cluster de Ulichney (1993), em código nosso: pontos que se afastam uns dos
+	--- outros por igual, sem o desenho em cruz do Bayer. Repetível pela `semente` (sorteio próprio, não mexe no
+	--- math.random). Energia por um núcleo gaussiano (sigma 1,5) que dá a volta nas bordas, para o ladrilho emendar.
+	local function matrizRuidoAzul(n, semente)
+		if n < 4 or n > 32 then falha("ruído azul de 4 a 32") end
+		local N = n * n
+		local nucleo = {}
+		for dy = 0, n - 1 do
+			for dx = 0, n - 1 do
+				local a, b = min(dx, n - dx), min(dy, n - dy)
+				nucleo[dy * n + dx] = math.exp(-(a * a + b * b) / (2 * 1.5 * 1.5))
+			end
+		end
+		local energia, cheio = {}, {}
+		for i = 0, N - 1 do energia[i] = 0 end
+		local function mudar(i, sinal)
+			local x0, y0 = i % n, i // n
+			for y = 0, n - 1 do
+				local linha = ((y - y0) % n) * n
+				for x = 0, n - 1 do
+					local j = y * n + x
+					energia[j] = energia[j] + sinal * nucleo[linha + (x - x0) % n]
+				end
+			end
+		end
+		local s = floor(semente or 1) % 2147483647
+		if s <= 0 then s = s + 2147483646 end
+		local function sorteio(m)
+			s = (s * 48271) % 2147483647
+			return s % m
+		end
+		local uns = max(1, N // 10)
+		local postos = 0
+		while postos < uns do
+			local i = sorteio(N)
+			if not cheio[i] then
+				cheio[i] = true
+				mudar(i, 1)
+				postos = postos + 1
+			end
+		end
+		local function aglomerado()
+			local melhor, mv = nil, -math.huge
+			for i = 0, N - 1 do
+				if cheio[i] and energia[i] > mv then melhor, mv = i, energia[i] end
+			end
+			return melhor
+		end
+		local function vao()
+			local melhor, mv = nil, math.huge
+			for i = 0, N - 1 do
+				if not cheio[i] and energia[i] < mv then melhor, mv = i, energia[i] end
+			end
+			return melhor
+		end
+		-- Fase 0: tira o ponto mais apertado e põe no maior vão até não mudar mais (o protótipo).
+		for _ = 1, N * 4 do
+			local a = aglomerado()
+			cheio[a] = nil
+			mudar(a, -1)
+			local v = vao()
+			cheio[v] = true
+			mudar(v, 1)
+			if v == a then break end
+		end
+		local proto, eproto = {}, {}
+		for i = 0, N - 1 do proto[i], eproto[i] = cheio[i], energia[i] end
+		-- Fase 1: os pontos do protótipo recebem as ordens de baixo, o mais apertado sai primeiro (ordem mais alta).
+		local ordem = {}
+		local k = uns
+		while k > 0 do
+			local a = aglomerado()
+			cheio[a] = nil
+			mudar(a, -1)
+			k = k - 1
+			ordem[a] = k
+		end
+		-- Fases 2 e 3: do protótipo, cada novo ponto no maior vão (o mesmo que o aglomerado de zeros da fase 3, já que
+		-- a energia dos zeros é a soma do núcleo menos a dos uns).
+		for i = 0, N - 1 do cheio[i], energia[i] = proto[i], eproto[i] end
+		k = uns
+		while k < N do
+			local v = vao()
+			cheio[v] = true
+			mudar(v, 1)
+			ordem[v] = k
+			k = k + 1
+		end
+		return deOrdens(n, function(x, y) return ordem[y * n + x] end)
+	end
+
 	--- Valores de uma imagem fonte: RGB/cinza pela luminância (alfa 0 = 255, nunca acende antes do cheio);
 	--- indexada pelo índice.
 	local function valoresDe(img)
@@ -2669,6 +3125,15 @@ return function(E, U)
 		if o.bayer then
 			img = bayer(floor(o.bayer))
 			origem = "bayer " .. floor(o.bayer)
+		elseif o.ruido_azul then
+			img = matrizRuidoAzul(floor(o.ruido_azul), o.semente)
+			origem = "ruído azul " .. floor(o.ruido_azul) .. " (void-and-cluster, semente " .. floor(o.semente or 1) .. ")"
+		elseif o.linhas then
+			img = matrizLinhas(floor(o.linhas))
+			origem = "linhas " .. floor(o.linhas)
+		elseif o.xadrez then
+			img = matrizXadrez()
+			origem = "xadrez"
 		elseif o.ruido then
 			local opcoes = { ruido = o.ruido, tamanho = o.tamanho, angulo = o.angulo, dx = o.dx, dy = o.dy,
 				inverter = o.inverter, fractal = o.fractal, mapa = true, densidade = 17 }
@@ -2682,7 +3147,7 @@ return function(E, U)
 			img = valoresDe(U.imagemDeOrigem(U.origemDo(o, o.origem)))
 			origem = "origem"
 		else
-			falha("diga a fonte: `bayer`, `ruido`, `png` ou `origem` (ou use matriz.sequencia)")
+			falha("diga a fonte: `bayer`, `ruido_azul`, `linhas`, `xadrez`, `ruido`, `png` ou `origem` (ou use matriz.sequencia)")
 		end
 		if o.normalizar then img = normalizar(img) end
 		return gravarMatriz(o, img, origem)
@@ -2815,7 +3280,9 @@ return function(E, U)
 		o = o or {}
 		local m = carregarMatriz(o)
 		local ctx = U.abrir(o, "matriz")
-		local area = retangulo(o.retangulo) or Rectangle(ctx.spr.bounds)
+		-- `selecao = true` (a forma da seleção) ou `fatia` também valem, como nas cópias.
+		local area, dentro = areaDe(ctx.spr, o, false)
+		if area.isEmpty then falha("a área está fora do sprite") end
 		local limiar = floor((o.densidade or 50) * 256 / 100 + 0.5)
 		local tinta = pixelDe(cor(o.cor, "#000000"))
 		local dx, dy = floor(o.dx or 0), floor(o.dy or 0)
@@ -2825,6 +3292,7 @@ return function(E, U)
 			for x = 0, area.width - 1 do
 				local aceso = valorEm(m, area.x + x - dx, area.y + y - dy) < limiar
 				if o.inverter then aceso = not aceso end
+				if dentro and not dentro(area.x + x, area.y + y) then aceso = false end
 				if aceso then
 					img:drawPixel(x, y, tinta)
 					acesos = acesos + 1
@@ -2845,7 +3313,8 @@ return function(E, U)
 		o = o or {}
 		local m = carregarMatriz(o)
 		local ctx = U.abrir(o, "matriz")
-		local area = retangulo(o.retangulo) or Rectangle(ctx.spr.bounds)
+		local area, dentro = areaDe(ctx.spr, o, false)
+		if area.isEmpty then falha("a área está fora do sprite") end
 		local img = Image(area.width, area.height, ColorMode.RGB)
 		local comp = o.vertical and area.height or area.width
 		local dx, dy = floor(o.dx or 0), floor(o.dy or 0)
@@ -2862,7 +3331,9 @@ return function(E, U)
 				local t = ((o.vertical and y or x) + 0.5) / comp
 				if o.inverter then t = 1 - t end
 				local v = valorEm(m, area.x + x - dx, area.y + y - dy)
-				if cores then
+				if dentro and not dentro(area.x + x, area.y + y) then
+					-- fora da seleção: nada
+				elseif cores then
 					local u = t * (#cores - 1)
 					local k = min(#cores - 2, floor(u))
 					local f = u - k
@@ -2954,9 +3425,65 @@ return function(E, U)
 		end
 		pacote.contributes.ditheringMatrices = entradas
 		gravarJSON(caminhoPacote, pacote)
+		-- __info.json: a lista que o Aseprite usa para desinstalar pela janela de extensões (todos os arquivos da pasta,
+		-- inclusive os de uma instalação anterior do Dithering Generator que ficaram).
+		if o.info ~= false then
+			local instalados = {}
+			for _, nome in ipairs(app.fs.listFiles(destino)) do
+				if nome ~= "__info.json" and app.fs.isFile(app.fs.joinPath(destino, nome)) then instalados[#instalados + 1] = nome end
+			end
+			table.sort(instalados)
+			gravarJSON(app.fs.joinPath(destino, "__info.json"), { installedFiles = instalados })
+		end
 		return { pasta = destino, package = caminhoPacote, matrizes = #lista, arquivos = arquivos,
 			instalar = "copie a pasta para " .. app.fs.joinPath(app.fs.userConfigPath, "extensions") .. " (só com o aval do usuário) e reinicie o Aseprite" }
 	end
+
+	-- O conjunto inicial (2026-10-22, pedido do usuário): o que serve para sombra, céu, água e textura em pixel art.
+	local INICIAIS = {
+		{ nome = "Bayer 2x2", bayer = 2 },
+		{ nome = "Bayer 4x4", bayer = 4 },
+		{ nome = "Bayer 8x8", bayer = 8 },
+		{ nome = "Ruído azul 8x8", ruido_azul = 8, semente = 7 },
+		{ nome = "Ruído azul 16x16", ruido_azul = 16, semente = 7 },
+		{ nome = "Linhas 4x4", linhas = 4 },
+		{ nome = "Xadrez 2x2", xadrez = 2 },
+	}
+
+	--- Põe o conjunto inicial na biblioteca se ela não tem nenhuma matriz (`completar = true`: acrescenta as que
+	--- faltam mesmo havendo outras). Devolve as criadas.
+	function M.iniciais(o)
+		o = o or {}
+		local pasta = pastaDe(o)
+		local tinha = #lerBiblioteca(pasta).matrizes
+		local criadas = {}
+		if tinha == 0 or o.completar then
+			for _, m in ipairs(INICIAIS) do
+				if not acharEm(lerBiblioteca(pasta).matrizes, m.nome) then
+					M.gravar(mesclar(m, { pasta = o.pasta, descricao = "conjunto inicial" }))
+					criadas[#criadas + 1] = m.nome
+				end
+			end
+		end
+		return { criadas = criadas, ja_tinha = tinha, pasta = pasta }
+	end
+
+	--- Instala as matrizes no Aseprite: o conjunto inicial se a biblioteca está vazia (`iniciais = false` pula) e a
+	--- pasta user_generated_dithers gerada direto na pasta de extensões (`saida`; padrão a do usuário,
+	--- %APPDATA%\Aseprite\extensions). Só com o pedido do usuário (o instalador, `npm run aseprite:instalar`, e o
+	--- botão da janela). O Aseprite lê as matrizes ao abrir: reiniciar.
+	function M.instalar(o)
+		o = o or {}
+		local r = { iniciais = (o.iniciais ~= false) and M.iniciais(o) or nil }
+		local x = mesclar(o, { saida = o.saida or app.fs.joinPath(app.fs.userConfigPath, "extensions") })
+		x.iniciais = nil
+		r.extensao = M.extensao(x)
+		r.extensao.instalar = nil
+		r.reiniciar = true
+		return r
+	end
+
+	E._interno.matriz = function(o) return carregarMatriz(o or {}) end
 
 	-- -----------------------------------------------------------------------------------------------------------
 
@@ -2964,12 +3491,13 @@ return function(E, U)
 		"biblioteca.pasta", "biblioteca.criar", "biblioteca.importar", "biblioteca.listar", "biblioteca.editar",
 		"biblioteca.renomear", "biblioteca.apagar", "biblioteca.grupos", "biblioteca.duplicados", "biblioteca.previa",
 		"biblioteca.imagem", "biblioteca.carimbar", "biblioteca.traco",
-		"conjunto.gravar", "conjunto.listar", "conjunto.ler", "conjunto.apagar", "conjunto.carimbar",
-		"ativo.definir", "ativo.ler", "ativo.ajustar", "ativo.carimbar", "ativo.limpar",
+		"conjunto.gravar", "conjunto.listar", "conjunto.ler", "conjunto.editar", "conjunto.apagar", "conjunto.carimbar",
+		"ativo.definir", "ativo.ler", "ativo.ajustar", "ativo.carimbar", "ativo.proximo", "ativo.limpar",
+		"caminho.da_camada", "caminho.da_selecao",
 		"copia.deslocar", "copia.girar", "copia.redimensionar",
 		"exportar.selecao", "exportar.camadas", "exportar.folha", "quadros.da_selecao", "cores.ajustar",
 		"matriz.gravar", "matriz.sequencia", "matriz.listar", "matriz.ler", "matriz.apagar", "matriz.preencher",
-		"matriz.faixa", "matriz.extensao",
+		"matriz.faixa", "matriz.extensao", "matriz.iniciais", "matriz.instalar",
 	}) do
 		E.ACOES[#E.ACOES + 1] = nome
 	end

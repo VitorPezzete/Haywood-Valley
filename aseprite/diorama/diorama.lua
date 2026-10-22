@@ -6,6 +6,9 @@
 -- também pede coisas à ponte (pedidos `temporaria` e `estilo_aeko`) para o "Aplicar estilo Aeko…" (docs/arte/ESTILO_AEKO_ARTE.md).
 -- Desde a 0.4.0, "Girar (RotSprite)…" e "Limpar doubles e jaggies…", com os módulos de aseprite/pixel/ (copiados para
 -- <extensão>/pixel/ na instalação; docs/arte/PLANO_ROTSPRITE.md e PLANO_LIMPEZA_LINHAS.md).
+-- Desde a 0.5.0 (2026-10-22), o submenu "Ferramentas": as janelas de janelas.lua (biblioteca de pincéis, traço,
+-- conjuntos e pincel ativo, cópias, exportações, matiz/saturação/valor, matrizes de dithering) sobre as ações de
+-- aseprite/adaptadores/ferramentas.lua, copiado para <extensão>/adaptadores/ na instalação.
 --
 -- Tudo fica neste arquivo de propósito: o Aseprite pede permissão (WebSocket, gravar arquivo) por arquivo de script,
 -- então um arquivo só significa um aviso só ("Dar confiança total a este script").
@@ -13,7 +16,7 @@
 -- Também roda fora da interface (aseprite -b --script): `dofile` deste arquivo devolve a tabela M, com os comandos
 -- prontos para chamar. É assim que os testes em lote conferem a lógica sem a ponte.
 
-local VERSAO = "0.4.0"
+local VERSAO = "0.5.0"
 local RAIZ_PADRAO = [[C:\Users\Szortek\Documents\Haywood-Valley]]
 local URL_PADRAO = "ws://127.0.0.1:34873/ws?cliente=aseprite"
 local TILE = 16
@@ -737,10 +740,32 @@ end
 -- ---------------------------------------------------------------------------------------------------------------
 -- Menu (Arquivo > Diorama)
 
+-- Ganchos para os testes em lote (aseprite/testes/janelas.lua): quem os define recebe os avisos, os alertas e as
+-- confirmações em vez da janela do Aseprite.
+M.ganchos = {}
+
 local function avisar(texto)
+	if M.ganchos.avisar then
+		return M.ganchos.avisar(texto)
+	end
 	if not pcall(app.tip, texto, 3) then
 		app.alert{ title = "Diorama", text = texto }
 	end
+end
+
+local function alertar(texto)
+	if M.ganchos.alertar then
+		return M.ganchos.alertar(texto)
+	end
+	app.alert{ title = "Diorama", text = texto }
+end
+
+--- Pergunta sim/não; devolve true no sim.
+local function confirmar(texto, sim)
+	if M.ganchos.confirmar then
+		return M.ganchos.confirmar(texto) == true
+	end
+	return app.alert{ title = "Diorama", text = texto, buttons = { sim or "Sim", "Cancelar" } } == 1
 end
 
 --- As folhas de diorama/folhas, sem as metades (casa_0, casa_1) de quem tem a folha inteira.
@@ -820,10 +845,28 @@ local function menuSalvarRegiao()
 	end
 end
 
+--- A pasta da biblioteca de pincéis, conjuntos e matrizes (0.5.0): a das Configurações; senão HV_PINCEIS; senão
+--- %APPDATA%\Aseprite\diorama\pinceis. Fora do repositório (público: pincel feito de arte de terceiros não pode ir
+--- para ele) e fora da pasta da extensão (a reinstalação apaga a extensão).
+local function pastaPinceis()
+	local p = prefs.pinceis
+	if type(p) == "string" and p ~= "" then
+		return p
+	end
+	local ok, env = pcall(os.getenv, "HV_PINCEIS")
+	if ok and type(env) == "string" and env ~= "" then
+		return env
+	end
+	return app.fs.joinPath(app.fs.userConfigPath, "diorama", "pinceis")
+end
+M.pastaPinceis = pastaPinceis
+
 local function dialogoRaiz()
-	local dlg = Dialog("Diorama: configuração")
+	local dlg = Dialog("Diorama: configurações")
 	dlg:entry{ id = "raiz", label = "Raiz do repositório", text = raiz() }
 	dlg:entry{ id = "url", label = "Endereço da ponte", text = (type(prefs.url) == "string" and prefs.url ~= "") and prefs.url or URL_PADRAO }
+	dlg:entry{ id = "pinceis", label = "Pincéis e matrizes", text = pastaPinceis() }
+	dlg:label{ text = "A biblioteca das Ferramentas (fora do repositório, que é público)." }
 	dlg:label{ text = conectado and "Conectado à ponte." or "Desconectado da ponte." }
 	dlg:button{ id = "ok", text = "OK", focus = true }
 	dlg:button{ id = "cancelar", text = "Cancelar" }
@@ -838,6 +881,8 @@ local function dialogoRaiz()
 		end
 	end
 	prefs.raiz = d.raiz
+	local padrao = app.fs.joinPath(app.fs.userConfigPath, "diorama", "pinceis")
+	prefs.pinceis = (d.pinceis ~= "" and d.pinceis ~= padrao) and d.pinceis or nil
 	local urlAntiga = urlPonte()
 	prefs.url = (d.url ~= URL_PADRAO) and d.url or nil
 	if urlPonte() ~= urlAntiga then
@@ -1294,7 +1339,114 @@ local function comAlerta(f)
 	return function()
 		local ok, erro = pcall(f)
 		if not ok then
-			app.alert{ title = "Diorama", text = limparErro(erro) }
+			alertar((limparErro(erro):gsub("^%[extensoes%] ", "")))
+		end
+	end
+end
+
+-- ---------------------------------------------------------------------------------------------------------------
+-- Ferramentas (0.5.0): o submenu Arquivo > Diorama > Ferramentas, com as janelas de janelas.lua sobre as ações de
+-- aseprite/adaptadores/ferramentas.lua (docs/arte/EXTENSOES_ASEPRITE.md, docs/diorama/ASEPRITE.md).
+--
+-- A instalação copia extensoes.lua e ferramentas.lua para <extensão>/adaptadores/ e a extensão usa essa cópia; sem
+-- ela (o diorama.lua carregado por dofile num teste), os do repositório. Carregados só no primeiro uso. Quem lê e
+-- grava a biblioteca e os PNGs é o ferramentas.lua: na primeira vez, o Aseprite pede permissão de arquivo para ele
+-- (e para extensoes.lua, que lê os JSON). Marcar "Dar confiança total" resolve de vez.
+
+local adaptadorCarregado = nil
+
+--- O adaptador (extensoes.lua, que carrega ferramentas.lua). Uma vez por sessão.
+local function adaptador()
+	if adaptadorCarregado then
+		return adaptadorCarregado
+	end
+	local candidatos = {}
+	if pastaExtensao then
+		candidatos[#candidatos + 1] = app.fs.joinPath(pastaExtensao, "adaptadores", "extensoes.lua")
+	end
+	candidatos[#candidatos + 1] = app.fs.joinPath(raiz(), "aseprite", "adaptadores", "extensoes.lua")
+	for _, arq in ipairs(candidatos) do
+		if app.fs.isFile(arq) then
+			adaptadorCarregado = dofile(arq)
+			return adaptadorCarregado
+		end
+	end
+	error("não achei adaptadores/extensoes.lua (reinstale a extensão: npm run aseprite:instalar)", 0)
+end
+M.adaptador = adaptador
+
+local function temporaria()
+	local okTmp, tmp = pcall(os.getenv, "TEMP")
+	local pasta = app.fs.joinPath((okTmp and tmp) or raiz(), "diorama-ponte")
+	if not app.fs.isDirectory(pasta) then
+		app.fs.makeAllDirectories(pasta)
+	end
+	return pasta
+end
+
+local janelasCarregadas = nil
+
+--- As janelas (janelas.lua da extensão; senão a do repositório). Uma vez por sessão.
+local function janelas()
+	if janelasCarregadas then
+		return janelasCarregadas
+	end
+	local candidatos = {}
+	if pastaExtensao then
+		candidatos[#candidatos + 1] = app.fs.joinPath(pastaExtensao, "janelas.lua")
+	end
+	candidatos[#candidatos + 1] = app.fs.joinPath(raiz(), "aseprite", "diorama", "janelas.lua")
+	for _, arq in ipairs(candidatos) do
+		if app.fs.isFile(arq) then
+			local fabrica = dofile(arq)
+			janelasCarregadas = fabrica{
+				E = adaptador,
+				pasta = pastaPinceis,
+				prefs = function()
+					return prefs
+				end,
+				avisar = avisar,
+				alertar = alertar,
+				confirmar = confirmar,
+				limparErro = limparErro,
+				temporaria = temporaria,
+			}
+			return janelasCarregadas
+		end
+	end
+	error("não achei janelas.lua (reinstale a extensão: npm run aseprite:instalar)", 0)
+end
+M.janelas = janelas
+
+--- Registra o submenu Ferramentas (um grupo dentro de Diorama; se o Aseprite não aceitar grupo dentro de grupo, os
+--- itens vão direto para Diorama, depois de um separador).
+local function registrarFerramentas(plugin)
+	local ok, J = pcall(janelas)
+	if not ok then
+		print("[Diorama] Ferramentas não carregaram: " .. limparErro(J))
+		return
+	end
+	local grupo = "diorama_ferramentas"
+	local okGrupo = pcall(function()
+		plugin:newMenuGroup{ id = grupo, title = "Ferramentas", group = "diorama_menu" }
+	end)
+	if not okGrupo then
+		grupo = "diorama_menu"
+		plugin:newMenuSeparator{ group = grupo }
+	end
+	for _, item in ipairs(J.itens) do
+		if item.separador then
+			plugin:newMenuSeparator{ group = grupo }
+		else
+			plugin:newCommand{
+				id = item.id,
+				title = item.titulo,
+				group = grupo,
+				onenabled = function()
+					return not item.sprite or app.sprite ~= nil
+				end,
+				onclick = comAlerta(item.f),
+			}
 		end
 	end
 end
@@ -1368,10 +1520,11 @@ function init(plugin)
 		end,
 		onclick = comAlerta(dialogoLimpar),
 	}
+	registrarFerramentas(plugin)
 	plugin:newMenuSeparator{ group = "diorama_menu" }
 	plugin:newCommand{
 		id = "DioramaRaiz",
-		title = "Raiz do repositório…",
+		title = "Configurações…",
 		group = "diorama_menu",
 		onclick = dialogoRaiz,
 	}

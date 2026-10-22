@@ -811,7 +811,7 @@ caso("extensão Diorama: registra os itens do menu e carrega os módulos", funct
 		newCommand = function(_, c) comandos[c.title] = c end,
 	}
 	init(plugin)
-	confere(M.VERSAO == "0.4.0", "versão " .. tostring(M.VERSAO))
+	confere(M.VERSAO == "0.5.0", "versão " .. tostring(M.VERSAO))
 	confere(comandos["Girar (RotSprite)…"] ~= nil, "falta o item Girar (RotSprite)…")
 	confere(comandos["Limpar doubles e jaggies…"] ~= nil, "falta o item Limpar doubles e jaggies…")
 	local Rm, Lm = M.pixel("rotsprite"), M.pixel("limpeza")

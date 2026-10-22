@@ -1,8 +1,8 @@
 {
   "name": "diorama",
   "displayName": "Diorama (Haywood Valley)",
-  "description": "Liga o Aseprite à ponte do Diorama: abre e salva regiões das folhas do jogo e responde aos comandos do Claude e do Studio.",
-  "version": "0.4.0",
+  "description": "Liga o Aseprite à ponte do Diorama: abre e salva regiões das folhas do jogo e responde aos comandos do Claude e do Studio; Ferramentas: biblioteca de pincéis, traço, conjuntos, cópias, exportações, cores e matrizes de dithering.",
+  "version": "0.5.0",
   "publisher": "haywood-valley",
   "author": { "name": "Haywood Valley" },
   "license": "UNLICENSED",
