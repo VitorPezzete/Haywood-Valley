@@ -17,7 +17,8 @@
     "aseprite:instalar": "node tools/aseprite_instalar.mjs",
     "aseprite:extensoes": "node tools/aseprite_extensoes.mjs",
     "diorama:mcp": "node tools/diorama_mcp.mjs",
-    "teste:ponte": "node --test tools/testes/ponte.test.mjs"
+    "teste:ponte": "node --test tools/testes/ponte.test.mjs",
+    "teste:pixel": "node --test tools/testes/pixel.test.mjs"
   },
   "keywords": [],
   "author": "",

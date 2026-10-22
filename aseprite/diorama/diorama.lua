@@ -4,6 +4,8 @@
 -- `ola` e responde aos comandos da ponte: ping, sprite_atual, abrir, abrir_regiao, salvar_regiao, exportar, paleta
 -- e pixel. O contrato está em docs/diorama/CONEXOES.md (seção 3); o uso, em docs/diorama/ASEPRITE.md. Desde a 0.3.0
 -- também pede coisas à ponte (pedidos `temporaria` e `estilo_aeko`) para o "Aplicar estilo Aeko…" (docs/arte/ESTILO_AEKO_ARTE.md).
+-- Desde a 0.4.0, "Girar (RotSprite)…" e "Limpar doubles e jaggies…", com os módulos de aseprite/pixel/ (copiados para
+-- <extensão>/pixel/ na instalação; docs/arte/PLANO_ROTSPRITE.md e PLANO_LIMPEZA_LINHAS.md).
 --
 -- Tudo fica neste arquivo de propósito: o Aseprite pede permissão (WebSocket, gravar arquivo) por arquivo de script,
 -- então um arquivo só significa um aviso só ("Dar confiança total a este script").
@@ -11,7 +13,7 @@
 -- Também roda fora da interface (aseprite -b --script): `dofile` deste arquivo devolve a tabela M, com os comandos
 -- prontos para chamar. É assim que os testes em lote conferem a lógica sem a ponte.
 
-local VERSAO = "0.3.0"
+local VERSAO = "0.4.0"
 local RAIZ_PADRAO = [[C:\Users\Szortek\Documents\Haywood-Valley]]
 local URL_PADRAO = "ws://127.0.0.1:34873/ws?cliente=aseprite"
 local TILE = 16
@@ -1068,8 +1070,238 @@ local function dialogoEstilo()
 	terminar(resumo, log, saida, resumo ~= nil)
 end
 
+-- ---------------------------------------------------------------------------------------------------------------
+-- Girar (RotSprite) e Limpar doubles e jaggies (0.4.0; aseprite/pixel/, docs/arte/PLANO_ROTSPRITE.md e
+-- PLANO_LIMPEZA_LINHAS.md)
+--
+-- Os módulos ficam em aseprite/pixel/ no repositório; `npm run aseprite:instalar` copia rotsprite.lua e limpeza.lua
+-- para <extensão>/pixel/, e é essa cópia que o menu usa (a versão casa com a da extensão). Sem a cópia (por exemplo,
+-- este arquivo carregado por dofile num teste em lote), usa os do repositório (Raiz do repositório…). O dofile não
+-- passa pelas permissões do Aseprite (só io/os passam), e os módulos não usam io nem os: nenhuma pergunta nova.
+
+local pastaExtensao = nil
+local modulosPixel = {}
+
+--- Carrega aseprite/pixel/<nome>.lua (a cópia da extensão; senão, a do repositório). Uma vez por sessão.
+local function pixel(nome)
+	if modulosPixel[nome] then
+		return modulosPixel[nome]
+	end
+	local candidatos = {}
+	if pastaExtensao then
+		candidatos[#candidatos + 1] = app.fs.joinPath(pastaExtensao, "pixel", nome .. ".lua")
+	end
+	candidatos[#candidatos + 1] = app.fs.joinPath(raiz(), "aseprite", "pixel", nome .. ".lua")
+	for _, arq in ipairs(candidatos) do
+		if app.fs.isFile(arq) then
+			local m = dofile(arq)
+			modulosPixel[nome] = m
+			return m
+		end
+	end
+	error("não achei " .. nome .. ".lua (reinstale a extensão: npm run aseprite:instalar)", 0)
+end
+M.pixel = pixel
+
+--- A célula da camada ativa no quadro ativo, ou um erro legível.
+local function celAtiva()
+	local spr = spriteAtivo()
+	local camada = app.layer
+	if camada == nil or camada.isGroup then
+		error("escolha uma camada de imagem (não um grupo)", 0)
+	end
+	if camada.isTilemap then
+		error("camada de tilemap: converta para camada comum antes", 0)
+	end
+	local cel = camada:cel(app.frame or spr.frames[1])
+	if cel == nil then
+		error("a camada " .. camada.name .. " não tem nada neste quadro", 0)
+	end
+	return spr, camada, cel
+end
+
+--- "auto", ou uma lista "#010000, #1c181c" -> o formato de cores_linha.
+local function lerCoresLinha(texto)
+	texto = tostring(texto or ""):gsub("^%s+", ""):gsub("%s+$", "")
+	if texto == "" or texto:lower() == "auto" then
+		return "auto"
+	end
+	local cores = {}
+	for c in texto:gmatch("[^,%s]+") do
+		if not c:match("^#?%x%x%x%x%x%x$") then
+			error("cor de linha inválida: " .. c .. " (use #RRGGBB, separadas por vírgula, ou auto)", 0)
+		end
+		cores[#cores + 1] = c:sub(1, 1) == "#" and c or ("#" .. c)
+	end
+	return cores
+end
+
+local function areaDaSelecao(spr, usar)
+	if usar and not spr.selection.isEmpty then
+		local b = spr.selection.bounds
+		return { b.x, b.y, b.width, b.height }
+	end
+	return nil
+end
+
+local function dialogoGirar()
+	local spr, camada = celAtiva()
+	local R = pixel("rotsprite")
+	local u = type(prefs.girar) == "table" and prefs.girar or {}
+	local temSelecao = not spr.selection.isEmpty
+	local dlg = Dialog("Girar (RotSprite)")
+	dlg:number{ id = "angulo", label = "Ângulo (graus, horário)", text = tostring(u.angulo or 45), decimals = 1 }
+	dlg:combobox{ id = "pivo", label = "Pivô", option = u.pivo or "centro", options = { "centro", "pé", "ponto" },
+		onchange = function()
+			local ponto = dlg.data.pivo == "ponto"
+			dlg:modify{ id = "pivo_x", enabled = ponto }
+			dlg:modify{ id = "pivo_y", enabled = ponto }
+		end }
+	dlg:number{ id = "pivo_x", label = "Pivô x, y (no sprite)", text = tostring(u.pivo_x or spr.width / 2), decimals = 1, enabled = u.pivo == "ponto" }
+	dlg:number{ id = "pivo_y", text = tostring(u.pivo_y or spr.height / 2), decimals = 1, enabled = u.pivo == "ponto" }
+	dlg:combobox{ id = "reducao", label = "Redução", option = u.reducao or "centro", options = { "centro", "maioria" } }
+	dlg:check{ id = "limpar", label = "Limpeza", text = "tirar órfãos e doubles que o giro criou", selected = u.limpar ~= false }
+	dlg:entry{ id = "cores_linha", label = "Cor de linha", text = u.cores_linha or "auto" }
+	dlg:check{ id = "recortar", label = "Tamanho", text = "manter o tamanho (recorta o que sair)", selected = u.recortar == true }
+	dlg:check{ id = "selecao", label = "Área", text = "só a seleção", selected = temSelecao and u.selecao ~= false, enabled = temSelecao }
+	dlg:label{ text = "O resultado vai para uma camada nova; o original fica. Ctrl+Z desfaz." }
+	dlg:button{ id = "ok", text = "Girar", focus = true }
+	dlg:button{ id = "cancelar", text = "Cancelar" }
+	dlg:show()
+	local d = dlg.data
+	if not d.ok then
+		return
+	end
+	prefs.girar = { angulo = d.angulo, pivo = d.pivo, pivo_x = d.pivo_x, pivo_y = d.pivo_y, reducao = d.reducao, limpar = d.limpar,
+		cores_linha = d.cores_linha, recortar = d.recortar, selecao = d.selecao }
+	local pivo = "centro"
+	if d.pivo == "pé" then
+		pivo = "pe"
+	elseif d.pivo == "ponto" then
+		pivo = { d.pivo_x, d.pivo_y }
+	end
+	local info = R.girar{
+		camada = camada,
+		quadro = app.frame,
+		angulo = d.angulo,
+		pivo = pivo,
+		area = areaDaSelecao(spr, d.selecao),
+		reducao = d.reducao,
+		limpar = d.limpar,
+		cores_linha = lerCoresLinha(d.cores_linha),
+		recortar = d.recortar,
+	}
+	app.refresh()
+	avisar(string.format("%s: %d×%d, cores %d → %d%s", info.camada, info.largura, info.altura, info.cores_antes, info.cores_depois,
+		(info.limpeza.pixels > 0) and string.format(", limpeza: %d órfãos, %d doubles", info.limpeza.orfaos, info.limpeza.doubles) or ""))
+end
+
+local MODOS_DEFEITO = { "relatar", "corrigir", "não" }
+
+local function modoDefeito(v)
+	if v == "não" then
+		return false
+	end
+	return v
+end
+
+local function dialogoLimpar()
+	local spr, camada, cel = celAtiva()
+	local Lm = pixel("limpeza")
+	local u = type(prefs.limpar) == "table" and prefs.limpar or {}
+	local temSelecao = not spr.selection.isEmpty
+	local dlg
+
+	local function opcoes(d)
+		return {
+			cores_linha = lerCoresLinha(d.cores_linha),
+			doubles = d.doubles,
+			jaggies = modoDefeito(d.jaggies),
+			orfaos = modoDefeito(d.orfaos),
+			area = areaDaSelecao(spr, d.selecao),
+		}
+	end
+
+	-- Prévia: a análise da célula como está (nada muda), com as opções do diálogo.
+	local function previa()
+		local d = dlg.data
+		local ok, rel = pcall(function()
+			local o = opcoes(d)
+			o.origem = { cel.position.x, cel.position.y }
+			o.paleta = spr.palettes[1]
+			o.jaggies = o.jaggies and "relatar" or false
+			o.orfaos = o.orfaos and "relatar" or false
+			return Lm.analisar_imagem(cel.image, o)
+		end)
+		local texto
+		if not ok then
+			texto = limparErro(rel)
+		elseif #rel.cores_linha == 0 then
+			texto = "Nenhuma cor de linha achada (tente uma cor #RRGGBB)."
+		else
+			texto = string.format("Linha %s: %d px · doubles %d · jaggies %d · órfãos %d · nota %.1f", table.concat(rel.cores_linha, ","),
+				rel.total_linha, rel.doubles.encontrados, rel.jaggies.encontrados, rel.orfaos.encontrados, rel.nota)
+		end
+		dlg:modify{ id = "previa", text = texto }
+	end
+
+	dlg = Dialog("Limpar doubles e jaggies")
+	dlg:entry{ id = "cores_linha", label = "Cor de linha", text = u.cores_linha or "#010000", onchange = function() previa() end }
+	dlg:check{ id = "doubles", label = "Doubles", text = "corrigir", selected = u.doubles ~= false, onclick = function() previa() end }
+	dlg:combobox{ id = "jaggies", label = "Jaggies", option = u.jaggies or "relatar", options = MODOS_DEFEITO, onchange = function() previa() end }
+	dlg:combobox{ id = "orfaos", label = "Órfãos", option = u.orfaos or "relatar", options = MODOS_DEFEITO, onchange = function() previa() end }
+	dlg:check{ id = "selecao", label = "Área", text = "só a seleção", selected = temSelecao and u.selecao ~= false, enabled = temSelecao,
+		onclick = function() previa() end }
+	dlg:combobox{ id = "saida", label = "Resultado", option = u.saida or "camada nova", options = { "camada nova", "mesma camada" } }
+	dlg:check{ id = "png", label = "Relatório", text = "abrir PNG ampliado com os defeitos marcados", selected = u.png == true }
+	dlg:separator{}
+	dlg:label{ id = "previa", text = "" }
+	dlg:button{ id = "ok", text = "Aplicar", focus = true }
+	dlg:button{ id = "cancelar", text = "Cancelar" }
+	previa()
+	dlg:show()
+	local d = dlg.data
+	if not d.ok then
+		return
+	end
+	prefs.limpar = { cores_linha = d.cores_linha, doubles = d.doubles, jaggies = d.jaggies, orfaos = d.orfaos, selecao = d.selecao, saida = d.saida, png = d.png }
+	local o = opcoes(d)
+	o.camada = camada
+	o.quadro = app.frame
+	if d.saida == "camada nova" then
+		o.saida_camada = camada.name .. " limpa"
+	end
+	if d.png then
+		local okTmp, tmp = pcall(os.getenv, "TEMP")
+		local pasta = app.fs.joinPath((okTmp and tmp) or raiz(), "diorama-ponte")
+		app.fs.makeAllDirectories(pasta)
+		o.png = app.fs.joinPath(pasta, nomeSeguro(app.fs.fileTitle(spr.filename or "")) .. "_" .. os.time() .. ".limpeza.png")
+		o.png_escala = 8
+	end
+	local rel = Lm.limpar(o)
+	app.refresh()
+	if rel.png and app.fs.isFile(rel.png) then
+		app.command.OpenFile{ filename = rel.png, sequence = "skip", ui = false }
+	end
+	local partes = { string.format("%d pixels mudados", rel.mudados) }
+	if rel.doubles.corrigidos > 0 then partes[#partes + 1] = rel.doubles.corrigidos .. " doubles" end
+	if rel.jaggies.encontrados > 0 then partes[#partes + 1] = string.format("jaggies %d (%d corrigidos)", rel.jaggies.encontrados, rel.jaggies.corrigidos) end
+	if rel.orfaos.encontrados > 0 then partes[#partes + 1] = string.format("órfãos %d (%d corrigidos)", rel.orfaos.encontrados, rel.orfaos.corrigidos) end
+	avisar(table.concat(partes, ", ") .. string.format("; nota %.1f%s", rel.nota, rel.depois and string.format(" → %.1f", rel.depois.nota) or ""))
+end
+
+local function comAlerta(f)
+	return function()
+		local ok, erro = pcall(f)
+		if not ok then
+			app.alert{ title = "Diorama", text = limparErro(erro) }
+		end
+	end
+end
+
 function init(plugin)
 	prefs = plugin.preferences
+	pastaExtensao = plugin.path
 
 	plugin:newMenuGroup{ id = "diorama_menu", title = "Diorama", group = "file_scripts" }
 	plugin:newCommand{
@@ -1117,6 +1349,24 @@ function init(plugin)
 				app.alert{ title = "Diorama", text = limparErro(erro) }
 			end
 		end,
+	}
+	plugin:newCommand{
+		id = "DioramaGirar",
+		title = "Girar (RotSprite)…",
+		group = "diorama_menu",
+		onenabled = function()
+			return app.sprite ~= nil
+		end,
+		onclick = comAlerta(dialogoGirar),
+	}
+	plugin:newCommand{
+		id = "DioramaLimparLinhas",
+		title = "Limpar doubles e jaggies…",
+		group = "diorama_menu",
+		onenabled = function()
+			return app.sprite ~= nil
+		end,
+		onclick = comAlerta(dialogoLimpar),
 	}
 	plugin:newMenuSeparator{ group = "diorama_menu" }
 	plugin:newCommand{

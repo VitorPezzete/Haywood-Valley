@@ -1,4 +1,7 @@
 // Instala a extensão Diorama do Aseprite: copia aseprite/diorama/ para %APPDATA%\Aseprite\extensions\diorama.
+// Desde a 0.4.0 (2026-10-22) copia também os módulos de pixel art (aseprite/pixel/rotsprite.lua e limpeza.lua) para
+// <extensão>/pixel/: os itens "Girar (RotSprite)…" e "Limpar doubles e jaggies…" usam essa cópia, que casa com a
+// versão da extensão (sem ela, a extensão cai nos do repositório). O testes.lua não vai.
 // Guarda o __pref.lua que já estiver lá (as preferências da extensão: raiz, endereço da ponte, última região).
 // O Aseprite só carrega extensões ao abrir: se ele estiver aberto, é preciso fechar e abrir de novo.
 //
@@ -13,6 +16,8 @@ import { fileURLToPath } from "node:url";
 const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const ORIGEM = path.join(RAIZ, "aseprite", "diorama");
 const NOME = "diorama";
+const PIXEL = path.join(RAIZ, "aseprite", "pixel");
+const MODULOS_PIXEL = ["limpeza.lua", "rotsprite.lua"];
 
 function argumento(nome) {
 	const i = process.argv.indexOf(nome);
@@ -48,7 +53,13 @@ function listar(pasta, prefixo = "") {
 	return saida;
 }
 
-const arquivos = listar(ORIGEM);
+const arquivos = [...listar(ORIGEM), "pixel/", ...MODULOS_PIXEL.map((m) => "pixel/" + m)];
+for (const m of MODULOS_PIXEL) {
+	if (!fs.existsSync(path.join(PIXEL, m))) {
+		console.error(`Não achei ${path.join(PIXEL, m)}`);
+		process.exit(1);
+	}
+}
 
 // Apaga o que a instalação anterior pôs (menos as preferências) e copia a versão nova.
 fs.mkdirSync(destino, { recursive: true });
@@ -57,6 +68,8 @@ for (const entrada of fs.readdirSync(destino)) {
 	fs.rmSync(path.join(destino, entrada), { recursive: true, force: true });
 }
 fs.cpSync(ORIGEM, destino, { recursive: true });
+fs.mkdirSync(path.join(destino, "pixel"), { recursive: true });
+for (const m of MODULOS_PIXEL) fs.copyFileSync(path.join(PIXEL, m), path.join(destino, "pixel", m));
 // O Aseprite usa este arquivo para desinstalar pelo menu Preferências > Extensões.
 fs.writeFileSync(path.join(destino, "__info.json"), JSON.stringify({ installedFiles: arquivos }));
 
