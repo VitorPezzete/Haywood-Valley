@@ -15,6 +15,7 @@
     "diorama:jogo": "node tools/diorama_jogo.mjs",
     "diorama:importar": "node tools/diorama_importar.mjs",
     "aseprite:instalar": "node tools/aseprite_instalar.mjs",
+    "aseprite:extensoes": "node tools/aseprite_extensoes.mjs",
     "diorama:mcp": "node tools/diorama_mcp.mjs",
     "teste:ponte": "node --test tools/testes/ponte.test.mjs"
   },

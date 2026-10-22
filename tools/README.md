@@ -100,3 +100,15 @@ python -I tools/validar_estilo_arte.py [--amostra N] # estragados, imagens de fo
 mexer na recolorização: mudar `PARAMETROS` ou `recolorir()`, rodar o `comparar_estilos.py --sem-folhas` (20 s) e
 olhar a nota média; depois o `estudo_aeko.py` de novo, que copia o resumo das notas para o documento. Em
 `notas.json`, `nota_manual` e `comentario` são do usuário e sobrevivem às rodadas seguintes.
+
+**Extensões de terceiros do Aseprite sem janela: `aseprite_extensoes.mjs`** (2026-10-22; uso em
+`docs/arte/EXTENSOES_ASEPRITE.md`): chama o adaptador `aseprite/adaptadores/extensoes.lua`, que carrega o Dithering
+Generator, o Brush Manager PRO, o Live Brush e o Carbs Toolbar de onde estão instalados e roda as funções deles com o
+Aseprite em lote (nunca o que o usuário tem aberto). Pelo MCP `aseprite`, o mesmo adaptador vai por `dofile` no
+`run_lua_script`.
+
+```
+node tools/aseprite_extensoes.mjs verificar                       # instaladas, versões, se o adaptador carrega
+node tools/aseprite_extensoes.mjs <ação> <arquivo.aseprite> '<opções JSON>' | @opcoes.json
+npm run aseprite:extensoes -- dithering.preencher C:\tmp\vaca.aseprite "{\"camada\":\"sombra\",\"densidade\":5}"
+```
