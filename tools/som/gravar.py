@@ -1,7 +1,7 @@
 """Grava o Arrangement do Live inteiro num arquivo de áudio, sem o diálogo de exportar (2026-10-20).
 
 Uso:
-    python -I tools/som/gravar.py [--fim TEMPO] [--folga 4] [--copiar-para ARQUIVO.wav]
+    python -I tools/som/gravar.py [--inicio TEMPO] [--fim TEMPO] [--folga 4] [--faders 0.5] [--copiar-para ARQUIVO.wav]
 
 Usa os comandos hv_* que tools/som/remote_script/gravacao.py acrescenta ao Remote Script do AbletonMCP:
 arma uma trilha de áudio "zz_gravacao" com a entrada no Resampling (a saída do próprio Live) e o
@@ -29,6 +29,8 @@ from ableton import Ableton, ErroAbleton, manter_acordado  # noqa: E402
 MAPA = os.path.join(AQUI, "mapa_do_set.json")
 SAIDA = os.path.join(AQUI, "gravacoes")
 TRILHA = "zz_gravacao"
+ISCA = "zz_isca"
+ISCA_URI = "query:Sounds#Winds:FileId_6608"  # Ocarina Basic (Operator): leve; só para levar o braço
 TEMPO_SET = 120.0
 
 
@@ -54,7 +56,8 @@ def posicionar(live: Ableton, inicio: float) -> None:
     for _ in range(40):
         time.sleep(0.25)
         agora = live.pedir("get_session_info")["current_song_time"]
-        if alvo - 0.5 <= agora < inicio:
+        # Com inicio < 4 o alvo é o 0 e a janela [alvo, inicio) ficava vazia (2026-10-23): pelo menos 2 tempos.
+        if alvo - 0.5 <= agora < max(inicio, alvo + 2.0):
             break
     else:
         live.pedir("stop_playback")
@@ -84,6 +87,9 @@ def main(argv=None) -> int:
     ap.add_argument("--fim", type=float, default=None, help="tempo do set onde para (padrão: fim do mapa + folga)")
     ap.add_argument("--folga", type=float, default=4.0, help="tempos a mais depois do fim")
     ap.add_argument("--copiar-para", default=None)
+    # 2026-10-23: a gravação é PCM de 24 bits e trilha nova nasce em 0,85; acima de uns 0,5 as faixas cheias
+    # clipam. --faders põe todas as trilhas (menos a da gravação) nesse valor antes de gravar.
+    ap.add_argument("--faders", type=float, default=None, help="volume de todas as trilhas antes de gravar (0,5)")
     args = ap.parse_args(argv)
 
     fim = args.fim if args.fim is not None else fim_do_mapa() + args.folga
@@ -91,8 +97,28 @@ def main(argv=None) -> int:
     print(f"gravar do tempo {args.inicio:g} ao {fim:g} do set: {duracao / 60:.1f} min em tempo real", flush=True)
 
     with Ableton() as live:
+        if args.faders is not None:
+            n = live.pedir("get_session_info")["track_count"]
+            for i in range(n):
+                live.pedir("hv_set_track_volume", {"track_index": i, "value": args.faders})
+            print(f"faders das {n} trilhas em {args.faders:g}", flush=True)
+        # O Live arma a trilha MIDI em que um instrumento é carregado pelo navegador, e o montador deixa armada a
+        # última trilha que montou: em 2026-10-23 a gravação gravou um clipe MIDI vazio por cima dos clipes dela (e
+        # não há comando para desarmar). Uma isca: uma trilha MIDI com um instrumento qualquer leva o braço para
+        # ela, e é apagada no fim junto com a de gravação. A isca vem antes da trilha de gravação: carregar o
+        # instrumento desarma as outras (o braço é exclusivo), e o hv_record_setup arma a de gravação sem desarmar.
+        isca = live.pedir("create_midi_track", {"index": -1})["index"]
+        live.pedir("set_track_name", {"track_index": isca, "name": ISCA})
+        live.pedir("load_instrument_or_effect", {"track_index": isca, "uri": ISCA_URI})
         trilha = live.pedir("hv_record_setup", {"name": TRILHA})
         ti = trilha["track_index"]
+        armadas = [i for i in range(live.pedir("get_session_info")["track_count"])
+                   if i not in (ti, isca) and live.pedir("get_track_info", track_index=i).get("arm")]
+        if armadas:
+            apagar_trilha(live, ti)
+            apagar_trilha(live, isca)
+            print(f"trilhas armadas além da gravação: {armadas}; não gravei (gravaria por cima delas)", flush=True)
+            return 1
         print(f"trilha {ti} '{trilha['name']}' com entrada {trilha['input']}, armada", flush=True)
         posicionar(live, args.inicio)
         live.pedir("hv_record_range", {"start": args.inicio, "end": fim})
@@ -126,6 +152,10 @@ def main(argv=None) -> int:
         # Armada, a trilha segura o arquivo (o Live já abre o da próxima tomada) e não há comando para
         # desarmar: apagar a trilha solta o arquivo, que continua no disco (conferido em 2026-10-20).
         apagar_trilha(live, ti)
+        n = live.pedir("get_session_info")["track_count"]
+        for i in range(n - 1, -1, -1):
+            if live.pedir("get_track_info", track_index=i)["name"] == ISCA:
+                apagar_trilha(live, i)
 
     # A gravação pode começar alguns tempos depois do pedido (em 2026-10-20 começou no 8,15 em vez do 0);
     # o arquivo cobre do início do clipe ao fim, e o cortador recebe o atraso por --inicio-export.

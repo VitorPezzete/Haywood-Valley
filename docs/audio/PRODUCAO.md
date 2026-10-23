@@ -41,7 +41,8 @@ Orquestra: `cordas_legato`, `cordas_staccato`, `cordas_pizzicato`, `violoncelo`,
 Percussão afinada: `glockenspiel`, `marimba`, `vibrafone`, `xilofone`, `sinos_tubulares`, `crotales`.
 Bateria e percussão (mapa GM: 35/36 bumbo, 37 aro, 38/40 caixa, 39 palma, 42 chimbal fechado, 44 pedal, 46 aberto, 49/57 prato de ataque, 51/59 condução, 52 china, 41/43/45/47/48/50 tons, 54 pandeirola, 56 cowbell): `bateria_rock`, `bateria_leve`, `percussao_latina`, `taiko` (tambores graves japoneses; notas 36–48), `percussao_orquestral` (tímpanos 36–53, bumbo de orquestra, pratos).
 Sintetizadores: `pad`, `pad_quente`, `lead`, `baixo_synth`, `chip_quadrada`, `chip_triangulo`, `chip_ruido`, `arpejo`.
-Efeitos (patches de síntese para sons do jogo): `sfx_madeira`, `sfx_metal`, `sfx_ruido` (vento, sopro, chiado), `sfx_fogo`, `sfx_bolha`, `sfx_click` (interface), `sfx_sino` (interface), `sfx_grave` (impacto).
+Efeitos (patches de síntese para sons do jogo): `sfx_madeira`, `sfx_metal`, `sfx_ruido` (vento, sopro, chiado: notas longas), `sfx_ruido_curto` (rajadas curtas: asas, terra, folhas, água), `sfx_fogo`, `sfx_bolha`, `sfx_click` (interface), `sfx_sino` (interface), `sfx_grave` (impacto), `sfx_ferramenta` (o metal das ferramentas).
+Vozes (2026-10-23, os animais): `voz_grave` e `voz_nasal` (vozes sintetizadas com portamento: notas ligadas deslizam), `assobio` (pios).
 
 ## Regras de composição
 
@@ -58,6 +59,7 @@ Ferramentas em `tools/som/` (Python 3.12 com numpy, scipy e soundfile: `%LOCALAP
 | `ableton.py` | Cliente do socket do AbletonMCP (`127.0.0.1:9877`): manda o pedido, lê até o JSON fechar, reconecta se cair. Também `criar_locator` e `apagar_locator` (ver Limitações). `python -I tools/som/ableton.py get_session_info` serve para conferir à mão. |
 | `instrumentos.json` | Papel → camadas → preset (uri e caminho no navegador), efeitos com parâmetros, ganho, tradução de notas dos kits. |
 | `ableton_montar.py` | Partituras → trilhas, clipes no Arrangement, locators e `mapa_do_set.json`. |
+| `gravar.py` | Grava o Arrangement pela saída do próprio Live (Resampling), em tempo real, sem o diálogo de exportar; usa os comandos `hv_*` de `remote_script/gravacao.py`. Ver **Gravar** abaixo. |
 | `cortar.py` | Export do Arrangement → um WAV e um OGG por peça. |
 | `testes/` | `teste_piano.json` (90 BPM, em laço), `teste_bateria.json` (140 BPM) e `teste_cortar.py` (WAV sintético). |
 
@@ -112,6 +114,13 @@ Conferidos em 2026-10-20: cada preset carregou numa trilha de teste e o device a
 | sfx_ruido | Wind Machine (Operator): nota longa; a altura move o filtro | nenhum | −6 |
 | sfx_fogo | S&H Filtered Noise (Operator) | Saturator "A Bit Warmer" | −6 |
 | sfx_bolha | Water Pluck (Wavetable) | Wooden Room | −4 |
+| sfx_ruido_curto (2026-10-23) | Wind Machine (Operator), com o release das quatro fontes em 0,55 e o filtro abrindo na hora (`Fe Attack` 0) | nenhum | +4 |
+| sfx_ferramenta (2026-10-23) | Gardening Fork 2 (Sound Objects Lite, Simpler; sempre em camada) | Wooden Room | −4 |
+| voz_grave (2026-10-23) | Portamento Male (Operator), `Pe On` 0, `Glide Time` 0,64, `Ae Attack` 0,05, `Ae Peak` 1 | Wooden Room | −4 |
+| voz_nasal (2026-10-23) | Portamento Female Nasal (Operator), `Pe On` 0, `Glide Time` 0,62, `Ae Attack` 0,05, `Ae Peak` 1 | Wooden Room | −4 |
+| assobio (2026-10-23) | Whistler Winds (Operator; o envelope de altura dá a subidinha do pio) | Wooden Room | −6 |
+
+Os parâmetros do próprio instrumento ficam em `parametros_instrumento` da camada (`instrumentos.json`), ajustados quando a trilha é criada (2026-10-23).
 
 **Notas dos kits** (lidas do `ReceivingNote` de cada pad nos `.adg`; nota fora da tabela é descartada):
 
@@ -122,9 +131,28 @@ Conferidos em 2026-10-20: cada preset carregou numa trilha de teste e o device a
 
 **O que não existe nos packs instalados e o que entrou no lugar**: koto só por modelo físico (Tension `Koto`; há também `FM Koto` no Operator). Shakuhachi não há: `Indian Flute` (alternativa: `Alto Flute Solo Legato`). Taiko não há: surdo com tímpano por baixo. Chiptune não há: Drift e Operator com Redux. Bumbo de orquestra não há: surdo aberto. Trombone solo não há (só naipe e trombone baixo solo). Os `sfx_*` são todos síntese (Operator, Wavetable, Designer Drums em Operator), nenhum sample sozinho.
 
+### Gravar (`gravar.py`)
+
+`python -I tools/som/gravar.py --inicio <tempo antes da 1ª peça> --faders 0.5 [--fim T] [--copiar-para arq.wav]`, depois `python -I tools/som/cortar.py <arq.wav> --inicio-export <o que o gravar disse> --cauda-auto --passa-altas 40 --trechos-limpos --so <chaves>`.
+
+- **`--faders 0.5`**: a gravação é PCM de 24 bits; trilha nova nasce em 0,85 e as faixas cheias clipam (o cortador acusa). O valor vale para todas as trilhas do set.
+- **Isca do braço** (2026-10-23): o Live arma a trilha MIDI em que um instrumento é carregado pelo navegador, e o montador deixa armada a última trilha que montou; a gravação gravava um clipe MIDI vazio por cima dos clipes dela. O `gravar.py` cria antes uma trilha `zz_isca` com um instrumento (o braço vai para ela), depois a de gravação, confere que nenhuma outra está armada e apaga as duas no fim. O `gravacao.py` também passou a selecionar a trilha de gravação (vale quando o Live reler o Remote Script).
+- A gravação começa uns 2 a 3 tempos antes do pedido (o `posicionar` para um compasso antes): deixar 2 compassos vazios antes da primeira peça (`--offset 3` no montador num set limpo). Com `--inicio` abaixo de 4 a janela de espera ficava vazia (corrigido).
+- O arquivo sai na taxa do Live (44,1 kHz neste PC); o cortador converte para 48 kHz.
+- **`--passa-altas 40`** (2026-10-23): o Thump (`sfx_grave`, com Saturator) e o Wind Machine deixam grave abaixo de 40 Hz e um pouco de DC; nos efeitos baixinhos o ganho de normalização (+20 a +33 dB) os trazia para -20 dB. Filtra o export inteiro, com fase zero, antes de cortar.
+- **`--trechos-limpos`** (2026-10-23): nos kits, cada trecho vai até o som cair 40 dB abaixo do pico dele (no máximo 30 ms antes do seguinte), com um fade de até 60 ms, e o vão vira silêncio. Os fins novos vão para `cortes.json` e são os do `region` em `shared/sounds.ts` (os da partitura são só a intenção).
+- Para refazer uma peça: `hv_delete_arrangement_clip` em cada trilha dela (no início de cada volta), `Ableton.apagar_locator`, tirar a peça do mapa e montar de novo (vai para o fim do set); gravar só o trecho novo.
+
+### Leva de 2026-10-23 (animais, fazenda, ambiente, vila): o que se aprendeu
+
+- **Set limpo**: o set do portfólio foi fechado; o mapa dele está em `tools/som/mapa_do_set.portfolio.json` e o `mapa_do_set.json` de hoje é o da leva (começa no compasso 3).
+- **Portamento do Operator** (medido na gravação, sem ouvir): `Glide Time` 0,55 desliza em menos de 30 ms; 0,68 levou uns 0,3 s; 0,9, uns 3 s por oitava. Só desliza com as notas ligadas (sobrepostas); notas soltas retomam o ataque, e é assim que o cacarejo e o balido pulsam. As vozes "Portamento" sobem uns 10 dB nos primeiros 0,4 s (o `Ae Peak` 0,62 cresce até o sustain): `Ae Peak` 1 tira isso. O Drift (`Legato On`, `Glide Time`) também desliza; o Meld "Don't Laugh" é mono legato de fábrica.
+- **Wind Machine (`sfx_ruido`) é de uma voz e segura uns segundos**: nota nova rouba a anterior e reabre o filtro devagar (`Fe Attack` 0,784), e cada nota curta vira um sopro longo. Uma cama de notas longas que se cruzam fazia um "fuuu" a cada nota nova, e nos kits a cauda de um trecho entrava no seguinte. Por isso o `sfx_ruido_curto` (o mesmo patch, release curto e filtro aberto na hora) e, para camas (rio, folhas, zumbido da máquina), rajadas curtas sorteadas uma atrás da outra (`_textura` em `compor/fazenda.py`). O `som.vento` antigo ainda usa notas longas: ouvir se o "fuuu" aparece.
+- **O que conferir de ouvido**: só a forma de onda foi medida (ataque, altura, níveis, emendas, espectrograma). O timbre dos bichos é o ponto mais incerto.
+
 ### Limitações do AbletonMCP 1.7.1 (descobertas na montagem)
 
-- Não há comando para **apagar clipe do Arrangement**, apagar trilha ou device, mudar volume ou envio da trilha, nem exportar áudio. Por isso as duas peças de teste continuam no set (de 0 a 38 s, marcadas `"teste": true` no mapa; a primeira peça de verdade começa no tempo 96 do set, compasso 25) e há uma trilha `zz_teste_carga (apagar)` com os devices do teste de carga, que pode ser apagada à mão.
+- Não há comando para **apagar clipe do Arrangement**, apagar trilha ou device, mudar volume ou envio da trilha, nem exportar áudio (os `hv_*` do `remote_script/gravacao.py` cobrem apagar clipe e trilha, volume, mudo e gravar; device e braço continuam sem comando). Por isso as duas peças de teste continuam no set (de 0 a 38 s, marcadas `"teste": true` no mapa; a primeira peça de verdade começa no tempo 96 do set, compasso 25) e há uma trilha `zz_teste_carga (apagar)` com os devices do teste de carga, que pode ser apagada à mão.
 - `create_locator` muda a cabeça de leitura e cria o locator no mesmo tique, mas a cabeça só anda no tique seguinte: o locator caía onde a cabeça estava. `Ableton.criar_locator` move a cabeça num pedido antes. O mesmo atraso permite **apagar** um locator (`Ableton.apagar_locator`).
 - `get_browser_categories` e `get_browser_items` estão no despacho, mas a função não existe no script; usar `get_browser_tree` e `get_browser_items_at_path`.
 - Carregar um instrumento numa trilha que já tem um **troca** o instrumento; efeitos entram no fim da cadeia.

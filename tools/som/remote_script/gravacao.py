@@ -63,6 +63,9 @@ METODOS = INICIO + r'''    # Gravar a saída do Live pelo Resampling, para expor
         except Exception:
             pass
         track.arm = True
+        # Seleciona a trilha de gravação: o Auto-Arm do Live arma a trilha MIDI selecionada, e ela gravava MIDI
+        # vazio por cima dos clipes (2026-10-23).
+        song.view.selected_track = track
         return {"track_index": index, "name": track.name, "input": chosen.display_name}
 
     def _hv_record_range(self, start, end):

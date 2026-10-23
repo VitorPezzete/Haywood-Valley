@@ -1,0 +1,87 @@
+{
+  "chave": "som.passaros_pousam",
+  "titulo": "Pássaros pousam",
+  "bpm": 60,
+  "compasso": [1, 4],
+  "tom": "sem tom",
+  "compassos": 6,
+  "laco": false,
+  "cauda_s": 0.35,
+  "duracao_s": 6.0,
+  "trechos": [
+    {"nome": "pousa_1", "inicio_s": 0.0, "fim_s": 0.9},
+    {"nome": "pousa_2", "inicio_s": 2.0, "fim_s": 2.89},
+    {"nome": "voa", "inicio_s": 4.0, "fim_s": 4.908}
+  ],
+  "trilhas": [
+    {
+      "papel": "percussao_latina",
+      "notas": [
+        [82, 0.0, 0.03, 70],
+        [70, 0.051, 0.03, 64],
+        [82, 0.101, 0.03, 59],
+        [70, 0.151, 0.03, 53],
+        [82, 0.202, 0.03, 47],
+        [70, 0.251, 0.03, 41],
+        [82, 0.305, 0.03, 36],
+        [70, 0.354, 0.03, 30],
+        [82, 2.0, 0.03, 66],
+        [70, 2.058, 0.03, 59],
+        [82, 2.114, 0.03, 52],
+        [70, 2.17, 0.03, 46],
+        [82, 2.224, 0.03, 39],
+        [70, 2.276, 0.03, 32],
+        [82, 4.08, 0.03, 50],
+        [70, 4.127, 0.03, 52],
+        [82, 4.173, 0.03, 54],
+        [70, 4.218, 0.03, 57],
+        [82, 4.266, 0.03, 59],
+        [70, 4.306, 0.03, 61],
+        [82, 4.356, 0.03, 63],
+        [70, 4.397, 0.03, 65],
+        [82, 4.444, 0.03, 67],
+        [70, 4.487, 0.03, 70],
+        [82, 4.535, 0.03, 72],
+        [70, 4.578, 0.03, 74]
+      ]
+    },
+    {
+      "papel": "sfx_ruido_curto",
+      "notas": [
+        [59, 0.0, 0.03, 49],
+        [56, 0.101, 0.03, 41],
+        [56, 0.202, 0.03, 33],
+        [58, 0.305, 0.03, 25],
+        [59, 2.0, 0.03, 46],
+        [58, 2.114, 0.03, 37],
+        [56, 2.224, 0.03, 27],
+        [59, 4.08, 0.03, 35],
+        [59, 4.173, 0.03, 38],
+        [57, 4.266, 0.03, 41],
+        [57, 4.356, 0.03, 44],
+        [56, 4.444, 0.03, 47],
+        [59, 4.535, 0.03, 50]
+      ]
+    },
+    {
+      "papel": "sfx_click",
+      "notas": [
+        [80, 0.4, 0.015, 34],
+        [82, 2.33, 0.015, 30]
+      ]
+    },
+    {
+      "papel": "assobio",
+      "notas": [
+        [93, 0.47, 0.06, 96],
+        [96, 0.55, 0.05, 88],
+        [91, 2.38, 0.05, 92],
+        [94, 2.45, 0.05, 98],
+        [91, 2.52, 0.07, 84],
+        [95, 4, 0.05, 98],
+        [98, 4.07, 0.045, 86]
+      ]
+    }
+  ],
+  "observacoes": "Pássaros: pousa_1 e pousa_2 (bater de asas que vai parando, o toquinho das patas e dois ou três pios), voa (pio e as asas acelerando e sumindo). Complementam o som.passaros da biblioteca (o canto de fundo): estes são os do bando que pousa no chão ou na cerca, perto do jogador.\nAs asas são batidas de chocalho (shaker e maracas alternando) com um sopro grave curto nas fortes; os pios, o assobio do Operator com a subidinha do envelope de altura."
+}

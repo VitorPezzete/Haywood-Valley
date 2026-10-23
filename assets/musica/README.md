@@ -18,6 +18,7 @@ Compostos em 2026-10-20 como partituras JSON (formato e papéis em `docs/audio/P
 | `musica.ilha_tarde` | Maré mansa (tarde) | 92 | 4/4 | idem | idem | respira | clarinete, trompa, violão, violoncelo, cordas legato | Quente, fim do dia: tema uma oitava abaixo no clarinete, acompanhamento em meio tempo (parece mais lenta no mesmo BPM), a trompa canta a ponte. |
 | `musica.sala_dia` | Chá na janela (dia) | 88 | 3/4 | Mi bemol maior (B em Lá bemol) | 60 compassos, 122,7 s + 4 s | respira | piano, vibrafone, violão, violoncelo | Valsa lenta de casa. No B, o vibrafone cita o tema do título adaptado a 3/4 (a casa lembra o vale); no A' o piano ganha segunda voz e o violoncelo faz terças e sétimas. |
 | `musica.sala_noite` | Chá na janela (noite) | 88 | 3/4 | idem | idem | respira | piano suave, caixinha de música, cordas legato | Quase canção de ninar: o tema sem as notas de passagem, a mão esquerda segura em vez de valsar, a caixinha lembra o título no B, o A' uma oitava abaixo. |
+| `musica.vila` | Dia de feira (2026-10-23) | 108 | 4/4 | Dó maior | 32 compassos, 71,1 s | laço | flauta, clarinete, marimba, violão, cordas pizzicato (baixo), percussão latina, glockenspiel | A vila e o mercado de dia, mais saltitante que o título: marimba no contratempo, violão "bum, tchi-ca", o clarinete repete o tema no A' e a flauta responde; volta pelo Sol7. À noite o mercado fecha (`MUSIC_PLACES.vila` sem a noite). |
 
 As versões de um mesmo lugar têm o **mesmo andamento, a mesma harmonia compasso a compasso e o mesmo tamanho**: a troca de período (fade de 8 s, `MUSIC_PERIOD_FADE`) soa como a mesma música mudando de luz. Hoje o `MusicController` começa a versão nova do começo; se um dia ele copiar a `TimePosition` da versão que sai, a troca fica no mesmo compasso (as partituras já permitem).
 
@@ -66,11 +67,56 @@ Feitos por nós para os sons que hoje vêm da biblioteca do Roblox. **Não troca
 
 `som.passaros`, `som.grilos`, `som.mar`, `som.mar_longe`, `som.nadar` e `som.passo_agua.*` ficaram de fora: natureza e água sintetizadas por notas soariam piores que o que já está no jogo.
 
+## Leva de 2026-10-23: animais, fazenda e ambiente
+
+Gerador `tools/som/compor/fazenda.py` (a vila em `vila.py`); `compor.py fazenda vila`. Gravados no Live com `gravar.py` e cortados com `--cauda-auto --passa-altas 40 --trechos-limpos` (ver `docs/audio/PRODUCAO.md`, "Leva de 2026-10-23"). Os trechos abaixo são os do arquivo cortado (o fim é onde o som caiu 40 dB), os mesmos do `region` em `EFFECTS` (`src/shared/sounds.ts`); todos sem id. Nada de sample sozinho: vozes do Operator, percussão e síntese.
+
+**Animais** (vozes sintetizadas `voz_grave` e `voz_nasal`, estilizadas como nos jogos de fazenda):
+
+| Chave | Arquivo | Trechos (s) | Efeito no jogo |
+|---|---|---|---|
+| `som.galinha` | 5,35 s | co_1 [0, 0.542], co_2 [1, 1.61], pergunta [2, 2.837], ovo [3, 4.314] | `galinha` (3), `galinhaOvo` |
+| `som.vaca` | 4,35 s | muu_1 [0, 1.531], muu_2 [2, 3.425] | `vaca` |
+| `som.ovelha` | 4,35 s | bee [0, 0.863], carneirinho [2, 2.687] | `ovelha` |
+| `som.porco` | 3,35 s | oinc_1 [0, 0.438], oinc_2 [1, 1.615], fungada [2, 2.499] | `porco`, `porcoFunga` |
+| `som.cachorro` | 3,35 s | au_1 [0, 0.412], au_2 [1, 1.634], arf [2, 2.699] | `cachorro` |
+| `som.gato` | 2,35 s | miau [0, 0.963], miu [1, 1.703] | `gato` |
+| `som.passaros_pousam` | 6,35 s | pousa_1 [0, 0.706], pousa_2 [2, 2.659], voa [4, 4.797] | `passaroPousa`, `passaroVoa` (complementam o `som.passaros` da biblioteca) |
+
+**Ações de fazenda**:
+
+| Chave | Arquivo | Trechos (s) | Efeito no jogo |
+|---|---|---|---|
+| `som.enxada` | 3,35 s | golpe_1 [0, 0.618], golpe_2 [1, 1.632], golpe_3 [2, 2.63] | `enxada` |
+| `som.plantar` | 2,35 s | semente_1 [0, 0.922], semente_2 [1, 1.918] | `plantar` |
+| `som.regar` | 4,35 s | rega_1 [0, 1.97], rega_2 [2, 4.32] | `regar` |
+| `som.colher` | 3,35 s | colhe_1 [0, 0.97], colhe_2 [1, 1.97], colhe_3 [2, 3.32] | `colher` |
+| `som.mato_corte` | 3,35 s | corte_1 [0, 0.573], corte_2 [1, 1.563], corte_3 [2, 2.569] | `matoCorte` |
+| `som.machado` | 6,35 s | golpe_1 [0, 0.552], golpe_2 [1, 1.583], golpe_3 [2, 2.554], arvore_cai [3, 5.196] | `machado`, `arvoreCai` |
+| `som.picareta` | 5,35 s | golpe_1 [0, 0.97], golpe_2 [1, 1.542], golpe_3 [2, 2.615], pedra_quebra [3, 3.914] | `picareta`, `pedraQuebra` |
+| `som.pesca` | 8,35 s | lancar [0, 1.97], fisgar [2, 2.97], puxar [3, 5.97] (laço de 3 a 5), pegou [6, 7.363] | `pescaLancar`, `pescaFisgar`, `pescaPuxar` (uma volta, [3, 5], até haver a pesca), `pescaPegou` |
+| `som.pegar_item` | 3,35 s | pega_1 [0, 0.97], pega_2 [1, 1.97], pega_3 [2, 3.244] | `pegarItem` |
+| `som.moedas` | 4,35 s | poucas [0, 1.026], muitas [2, 4.215] | `moedas`, `moedasMuitas` |
+| `som.nivel` | 3,35 s | nivel [0, 2.384] | `nivel` |
+
+**Laços**:
+
+| Chave | Duração | Uso no jogo | O que é |
+|---|---|---|---|
+| `som.maquina` | 4 s | `PLACED.maquina` | Máquina de produção: "tchuc-tchuc" de madeira, grave por segundo, engrenagem em semicolcheias, zumbido em rajadas, dois sopros de vapor. |
+| `som.campo_dia` | 32 s | camada `campoDia` (exterior e mar, de dia) | Folhas em ondas e trilos de gafanhoto longe; um sininho de vaca distante. Sem cama: o vento é a cama. |
+| `som.campo_noite` | 32 s | camada `campoNoite` (exterior e mar, à noite) | Sapos ("rrup"), a coruja duas vezes, trilos de inseto. |
+| `som.rio` | 16 s | `PLACED.rio` | Correnteza em rajadas curtas de ruído em ondas lentas, bolhinhas e gorgolejos. |
+
+`EFFECTS`, `PLACED.rio`/`maquina` e as camadas `campoDia`/`campoNoite` só têm os dados: o código que toca cada efeito (ao tocar num bicho, colher, etc.) entra quando essas mecânicas existirem.
+
 ## No Live
 
 As `observacoes` de cada partitura dizem o preset indicado e o que ajustar (release, filtro, reverb, volume entre trilhas). Em geral: reverb "Wooden Hall" no título, "Wooden Room" na sala; percussão e camas 6–10 dB abaixo da melodia; efeitos e interface em mono, sem reverb (o jogo põe o lugar), com release curto e um fade de 5 ms no fim de cada trecho. Efeitos do jogo nunca podem ser um sample sozinho (EULA, seção 5(3)): as camadas já estão pensadas para isso.
 
 ## Para ouvir com atenção
+
+- **Leva de 2026-10-23** (nada foi ouvido, só medido): o timbre dos bichos é o mais incerto (a vaca e o porco na voz "Portamento Male" podem soar humanos demais; trocar por fagote ou tuba seria o plano B); o cacarejo quase não cai de altura (o portamento é mais lento que o "có"); asas dos pássaros em chocalho; a vila, se o contratempo da marimba e o shaker cansarem no laço.
 
 - **Título**: a trompa no B (compassos 13–20) pode soar "abertura de filme" demais para um jogo aconchegante; a alternativa é o clarinete na mesma linha.
 - **Ilha**: a quarta aumentada (Sol/Fá na introdução, Si natural nos compassos 18 e 42) é o tempero de ilha flutuante; se soar estranho, trocar `G/F` por `Bb/F` e `G/B` por `Gm/Bb` em `tools/som/compor/ilha.py`. A ponte em Mi bemol (sétimo grau abaixado) é a parte mais "pôr do sol".

@@ -79,6 +79,13 @@ PAPEIS: dict[str, tuple[int, int, int, bool, bool]] = {
     "sfx_click": (24, 108, 115, False, False),
     "sfx_sino": (24, 108, 112, False, False),
     "sfx_grave": (24, 108, 116, False, False),
+    # 2026-10-23 (animais e ferramentas): vozes com portamento (notas ligadas deslizam; por isso não são
+    # "monofônicas" aqui: a sobreposição é o que faz o deslize), assobio e o metal das ferramentas.
+    "voz_grave": (24, 84, 58, False, False),
+    "voz_nasal": (36, 96, 68, False, False),
+    "assobio": (60, 108, 78, False, False),
+    "sfx_ferramenta": (24, 108, 112, False, False),
+    "sfx_ruido_curto": (24, 108, 122, False, False),
 }
 
 # Mapa GM usado pelos papéis de percussão (para ler as partituras).

@@ -2,7 +2,7 @@
 // `npm run assets`. Aqui ficam só os ids; os recortes e os dados de cada folha continuam no módulo que a usa.
 /** Imagem vazia de propósito (não é um asset): quem pré-carrega pula este id e o "". */
 export const MISSING_IMAGE = "rbxassetid://0";
-/** O id de cada asset do registro, pela chave ("" enquanto não foi enviado): 175 imagens e 29 sons. */
+/** O id de cada asset do registro, pela chave ("" enquanto não foi enviado): 184 imagens e 52 sons. */
 export const ASSETS: Readonly<Record<string, string>> = {
 	"graal.aeko.0": "rbxassetid://101792482061813",
 	"graal.aeko.1": "rbxassetid://78713133588607",
@@ -168,6 +168,15 @@ export const ASSETS: Readonly<Record<string, string>> = {
 	"recortes.0": "",
 	"mundo.atlas": "rbxassetid://77634984782890",
 	"mundo.grama": "rbxassetid://107539880862143",
+	"mundo.base.grama": "",
+	"mundo.base.terra": "",
+	"mundo.base.calcada": "",
+	"mundo.base.mata": "",
+	"mundo.agua_rio.0": "",
+	"mundo.agua_rio.1": "",
+	"mundo.agua_rio.2": "",
+	"mundo.agua_rio.3": "",
+	"mundo.conjuntos": "",
 	"ui.atlas": "rbxassetid://79941251908026",
 	"ui.chat": "rbxassetid://79579734066854",
 	"ui.logo": "rbxassetid://130160068096699",
@@ -208,6 +217,29 @@ export const ASSETS: Readonly<Record<string, string>> = {
 	"musica.ilha_tarde": "",
 	"musica.sala_dia": "",
 	"musica.sala_noite": "",
+	"som.galinha": "",
+	"som.vaca": "",
+	"som.ovelha": "",
+	"som.porco": "",
+	"som.cachorro": "",
+	"som.gato": "",
+	"som.passaros_pousam": "",
+	"som.enxada": "",
+	"som.plantar": "",
+	"som.regar": "",
+	"som.colher": "",
+	"som.mato_corte": "",
+	"som.machado": "",
+	"som.picareta": "",
+	"som.pesca": "",
+	"som.pegar_item": "",
+	"som.moedas": "",
+	"som.nivel": "",
+	"som.maquina": "",
+	"som.campo_dia": "",
+	"som.campo_noite": "",
+	"som.rio": "",
+	"musica.vila": "",
 };
 /** As listas do registro (chaves `<grupo>.<n>`), na ordem de n; "" no lugar de um número que falta. */
 export const ASSET_LISTS: Readonly<Record<string, readonly string[]>> = {
@@ -217,5 +249,6 @@ export const ASSET_LISTS: Readonly<Record<string, readonly string[]>> = {
 	"aeko.castelo": ["rbxassetid://71605882676787", "rbxassetid://115997821513657"],
 	"mar.infinito": ["rbxassetid://78952966417887", "rbxassetid://136483535503999", "rbxassetid://98556141436204", "rbxassetid://136483535503999"],
 	"recortes": [""],
+	"mundo.agua_rio": ["", "", "", ""],
 	"som.passo_agua": ["rbxassetid://9117947974", "rbxassetid://9117946641", "rbxassetid://9117946658"],
 };

@@ -1,0 +1,30 @@
+{
+  "chave": "som.gato",
+  "titulo": "Gato",
+  "bpm": 60,
+  "compasso": [1, 4],
+  "tom": "sem tom",
+  "compassos": 2,
+  "laco": false,
+  "cauda_s": 0.35,
+  "duracao_s": 2.0,
+  "trechos": [
+    {"nome": "miau", "inicio_s": 0.0, "fim_s": 0.7},
+    {"nome": "miu", "inicio_s": 1.0, "fim_s": 1.4}
+  ],
+  "trilhas": [
+    {
+      "papel": "voz_nasal",
+      "notas": [
+        [66, 0, 0.13, 80],
+        [71, 0.1, 0.28, 96],
+        [70, 0.35, 0.23, 92],
+        [64, 0.55, 0.11, 74],
+        [73, 1, 0.11, 80],
+        [76, 1.08, 0.2, 92],
+        [71, 1.25, 0.11, 80]
+      ]
+    }
+  ],
+  "observacoes": "Gato: \"miau\" (sobe uma quarta, segura e cai: mi-ÁU-u, 0,66 s) e \"miu\" (filhote, curto e agudo). Voz nasal com portamento."
+}

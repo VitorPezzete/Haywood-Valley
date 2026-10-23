@@ -1,0 +1,54 @@
+{
+  "chave": "som.colher",
+  "titulo": "Colher",
+  "bpm": 60,
+  "compasso": [1, 4],
+  "tom": "sem tom",
+  "compassos": 3,
+  "laco": false,
+  "cauda_s": 0.35,
+  "duracao_s": 3.0,
+  "trechos": [
+    {"nome": "colhe_1", "inicio_s": 0.0, "fim_s": 0.45},
+    {"nome": "colhe_2", "inicio_s": 1.0, "fim_s": 1.47},
+    {"nome": "colhe_3", "inicio_s": 2.0, "fim_s": 2.44}
+  ],
+  "trilhas": [
+    {
+      "papel": "sfx_ruido_curto",
+      "notas": [
+        [70, 0, 0.08, 55],
+        [70, 1, 0.08, 55],
+        [70, 2, 0.08, 55]
+      ]
+    },
+    {
+      "papel": "sfx_bolha",
+      "notas": [
+        [72, 0.1, 0.06, 80],
+        [72, 1.12, 0.06, 80],
+        [72, 2.09, 0.06, 80]
+      ]
+    },
+    {
+      "papel": "marimba",
+      "notas": [
+        [79, 0.1, 0.07, 70],
+        [86, 0.16, 0.09, 64],
+        [77, 1.12, 0.07, 70],
+        [84, 1.18, 0.09, 64],
+        [81, 2.09, 0.07, 70],
+        [88, 2.15, 0.09, 64]
+      ]
+    },
+    {
+      "papel": "sfx_sino",
+      "notas": [
+        [100, 0.2, 0.05, 28],
+        [100, 1.22, 0.05, 28],
+        [100, 2.19, 0.05, 28]
+      ]
+    }
+  ],
+  "observacoes": "Colher: o farfalhar das folhas, o \"pop!\" do que sai da terra (bolha e duas notas de marimba subindo, uma quinta ou sexta) e um brilhinho de sino: a pequena recompensa. Três versões em alturas diferentes."
+}

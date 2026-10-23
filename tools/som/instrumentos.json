@@ -7,7 +7,8 @@
   "efeitos: carregados depois do instrumento, na ordem; parametros pelo nome do parâmetro, em valor do Live (Dry/Wet de 0 a 1).",
   "ganho_db: entra como 'Output Gain' de um EQ Eight no fim da cadeia (de -12 a +12 dB); é o volume relativo do papel (palpite, a conferir de ouvido).",
   "notas [min, max]: a camada só recebe as notas desse intervalo. traducao {nota da partitura: nota do kit}: a camada só recebe essas notas, já traduzidas; nota fora da tabela é descartada e o montador avisa.",
-  "Sem notas nem traducao: a camada recebe tudo, na altura escrita."
+  "Sem notas nem traducao: a camada recebe tudo, na altura escrita.",
+  "parametros_instrumento: parâmetros do instrumento (device 0), pelo nome, em valor do Live, ajustados depois de carregar (2026-10-23)."
  ],
  "papeis": {
   "piano": {
@@ -1350,6 +1351,123 @@
       }
      ],
      "ganho_db": 0.0
+    }
+   ]
+  },
+  "voz_grave": {
+   "descricao": "Voz grave sintetizada com portamento (Operator 'Portamento Male'), sem o envelope de altura: notas ligadas deslizam umas nas outras. Os animais grandes (vaca, porco, cachorro), estilizados (2026-10-23). Medido em 2026-10-23: Glide Time 0,55 desliza em menos de 30 ms, 0,9 leva uns 3 s por oitava; 0,68 deu uns 0,3 s na gravação (o miau subiu 4 semitons em 0,24 s); ficou 0,62–0,64. Ae Peak 1 tira o inchaço do ataque (o preset sobe uns 10 dB em 0,4 s).",
+   "camadas": [
+    {
+     "preset": "Portamento Male.adv",
+     "caminho": "sounds/Voices/Portamento Male.adv",
+     "uri": "query:Sounds#Voices:FileId_6618",
+     "origem": "Core Library (Operator)",
+     "parametros_instrumento": {
+      "Pe On": 0,
+      "Glide Time": 0.64,
+      "Ae Attack": 0.05,
+      "Ae Peak": 1.0
+     },
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Reverb/Room/Wooden Room.adv",
+       "parametros": {
+        "Dry/Wet": 0.1
+       },
+       "uri": "query:AudioFx#Reverb:Room:FileId_7501"
+      }
+     ],
+     "ganho_db": -4
+    }
+   ]
+  },
+  "voz_nasal": {
+   "descricao": "Voz nasal sintetizada com portamento (Operator 'Portamento Female Nasal'): notas ligadas deslizam. Galinha, ovelha, gato (2026-10-23). Medido em 2026-10-23: Glide Time 0,55 desliza em menos de 30 ms, 0,9 leva uns 3 s por oitava; 0,68 deu uns 0,3 s na gravação (o miau subiu 4 semitons em 0,24 s); ficou 0,62–0,64. Ae Peak 1 tira o inchaço do ataque (o preset sobe uns 10 dB em 0,4 s).",
+   "camadas": [
+    {
+     "preset": "Portamento Female Nasal.adv",
+     "caminho": "sounds/Voices/Portamento Female Nasal.adv",
+     "uri": "query:Sounds#Voices:FileId_6616",
+     "origem": "Core Library (Operator)",
+     "parametros_instrumento": {
+      "Pe On": 0,
+      "Glide Time": 0.62,
+      "Ae Attack": 0.05,
+      "Ae Peak": 1.0
+     },
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Reverb/Room/Wooden Room.adv",
+       "parametros": {
+        "Dry/Wet": 0.1
+       },
+       "uri": "query:AudioFx#Reverb:Room:FileId_7501"
+      }
+     ],
+     "ganho_db": -4
+    }
+   ]
+  },
+  "assobio": {
+   "descricao": "Assobio sintetizado (Operator 'Whistler Winds', com a subidinha do envelope de altura no ataque): pios de pássaro, notas curtas e agudas (2026-10-23).",
+   "camadas": [
+    {
+     "preset": "Whistler Winds.adv",
+     "caminho": "sounds/Winds/Whistler Winds.adv",
+     "uri": "query:Sounds#Winds:FileId_6610",
+     "origem": "Core Library (Operator)",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Reverb/Room/Wooden Room.adv",
+       "parametros": {
+        "Dry/Wet": 0.1
+       },
+       "uri": "query:AudioFx#Reverb:Room:FileId_7501"
+      }
+     ],
+     "ganho_db": -6
+    }
+   ]
+  },
+  "sfx_ferramenta": {
+   "descricao": "Garfo de jardim percutido (Sound Objects 'Gardening Fork 2'): o metal das ferramentas (enxada, machado, picareta), sempre em camada com madeira, grave e ruído (2026-10-23).",
+   "camadas": [
+    {
+     "preset": "Gardening Fork 2.adv",
+     "caminho": "sounds/Mallets/Gardening Fork 2.adv",
+     "uri": "query:Sounds#Mallets:FileId_25578",
+     "origem": "Sound Objects Lite",
+     "efeitos": [
+      {
+       "caminho": "audio_effects/Reverb/Room/Wooden Room.adv",
+       "parametros": {
+        "Dry/Wet": 0.1
+       },
+       "uri": "query:AudioFx#Reverb:Room:FileId_7501"
+      }
+     ],
+     "ganho_db": -4
+    }
+   ]
+  },
+  "sfx_ruido_curto": {
+   "descricao": "O mesmo Wind Machine do sfx_ruido com o release das quatro fontes em 0,55 (uns 0,1 s) e o filtro abrindo na hora: rajadas curtas (asas, terra, folhas, fungada, água do regador) que acabam quando a nota acaba. O sfx_ruido segura uns segundos depois da nota e o filtro abre devagar: bom para vento e camas, ruim para kits, em que vazava de um trecho para o seguinte (medido em 2026-10-23). +10 dB em relação ao sfx_ruido, que com o filtro aberto na hora já sai mais cheio.",
+   "camadas": [
+    {
+     "preset": "Wind Machine.adv",
+     "caminho": "sounds/Effects/Wind Machine.adv",
+     "uri": "query:Sounds#Effects:FileId_6859",
+     "origem": "Core Library (Operator)",
+     "efeitos": [],
+     "ganho_db": 4,
+     "parametros_instrumento": {
+      "Ae Release": 0.55,
+      "Be Release": 0.55,
+      "Ce Release": 0.55,
+      "De Release": 0.55,
+      "Fe Attack": 0.0,
+      "Fe Release": 0.55
+     }
     }
    ]
   }

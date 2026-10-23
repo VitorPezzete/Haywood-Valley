@@ -1,0 +1,88 @@
+{
+  "chave": "som.picareta",
+  "titulo": "Picareta",
+  "bpm": 60,
+  "compasso": [1, 4],
+  "tom": "sem tom",
+  "compassos": 5,
+  "laco": false,
+  "cauda_s": 0.35,
+  "duracao_s": 5.0,
+  "trechos": [
+    {"nome": "golpe_1", "inicio_s": 0.0, "fim_s": 0.38},
+    {"nome": "golpe_2", "inicio_s": 1.0, "fim_s": 1.38},
+    {"nome": "golpe_3", "inicio_s": 2.0, "fim_s": 2.38},
+    {"nome": "pedra_quebra", "inicio_s": 3.0, "fim_s": 4.206}
+  ],
+  "trilhas": [
+    {
+      "papel": "sfx_ferramenta",
+      "notas": [
+        [84, 0, 0.06, 100],
+        [91, 0.005, 0.04, 60],
+        [86, 1, 0.06, 100],
+        [93, 1.005, 0.04, 60],
+        [83, 2, 0.06, 100],
+        [90, 2.005, 0.04, 60],
+        [86, 3, 0.05, 100]
+      ]
+    },
+    {
+      "papel": "percussao_latina",
+      "notas": [
+        [75, 0, 0.03, 70],
+        [75, 1, 0.03, 70],
+        [75, 2, 0.03, 70],
+        [75, 3.2, 0.03, 40],
+        [77, 3.35, 0.04, 34]
+      ]
+    },
+    {
+      "papel": "sfx_grave",
+      "notas": [
+        [40, 0, 0.06, 60],
+        [40, 1, 0.06, 60],
+        [40, 2, 0.06, 60],
+        [36, 3, 0.15, 100]
+      ]
+    },
+    {
+      "papel": "sfx_ruido_curto",
+      "notas": [
+        [64, 0.01, 0.07, 55],
+        [64, 1.01, 0.07, 55],
+        [64, 2.01, 0.07, 55],
+        [58, 3, 0.2, 90],
+        [66, 3.03, 0.15, 70]
+      ]
+    },
+    {
+      "papel": "sfx_sino",
+      "notas": [
+        [98, 0.02, 0.03, 26],
+        [98, 1.02, 0.03, 26],
+        [98, 2.02, 0.03, 26]
+      ]
+    },
+    {
+      "papel": "sfx_click",
+      "notas": [
+        [74, 3.045, 0.014, 70],
+        [80, 3.079, 0.014, 68],
+        [72, 3.107, 0.014, 67],
+        [86, 3.161, 0.014, 64],
+        [87, 3.22, 0.014, 53],
+        [86, 3.277, 0.014, 48],
+        [87, 3.345, 0.014, 52],
+        [90, 3.404, 0.014, 49],
+        [90, 3.484, 0.014, 45],
+        [93, 3.562, 0.014, 40],
+        [89, 3.639, 0.014, 32],
+        [87, 3.715, 0.014, 31],
+        [90, 3.82, 0.014, 29],
+        [77, 3.892, 0.014, 21]
+      ]
+    }
+  ],
+  "observacoes": "Picareta na pedra: três golpes (o metal agudo batendo, claves secas, um grave pequeno, a poeira em ruído e uma faísca) e a pedra partindo (pedra_quebra: o estalo, o \"crac\" grave, as pedrinhas caindo cada vez mais baixas e espaçadas)."
+}

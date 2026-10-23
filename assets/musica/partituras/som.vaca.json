@@ -1,0 +1,41 @@
+{
+  "chave": "som.vaca",
+  "titulo": "Vaca",
+  "bpm": 60,
+  "compasso": [1, 4],
+  "tom": "sem tom",
+  "compassos": 4,
+  "laco": false,
+  "cauda_s": 0.35,
+  "duracao_s": 4.0,
+  "trechos": [
+    {"nome": "muu_1", "inicio_s": 0.0, "fim_s": 1.7},
+    {"nome": "muu_2", "inicio_s": 2.0, "fim_s": 3.6}
+  ],
+  "trilhas": [
+    {
+      "papel": "voz_grave",
+      "notas": [
+        [43, 0, 0.21, 72],
+        [47, 0.18, 0.55, 94],
+        [46, 0.7, 0.43, 98],
+        [42, 1.1, 0.25, 80],
+        [45, 2, 0.15, 80],
+        [48, 2.12, 0.31, 96],
+        [45, 2.4, 0.1, 86],
+        [47, 2.62, 0.21, 92],
+        [44, 2.8, 0.28, 90],
+        [40, 3.05, 0.15, 72]
+      ]
+    },
+    {
+      "papel": "sfx_ruido_curto",
+      "notas": [
+        [50, 0, 0.3, 30],
+        [50, 2, 0.2, 26],
+        [50, 2.62, 0.2, 24]
+      ]
+    }
+  ],
+  "observacoes": "Vaca: dois mugidos (trechos muu_1, longo, 1,35 s; muu_2, \"mu-uuu\" em duas partes). Voz grave com portamento: começa embaixo, sobe uma terça, segura e cai no fim; um sopro de ruído grave por baixo no começo (o \"m\" de boca fechada)."
+}

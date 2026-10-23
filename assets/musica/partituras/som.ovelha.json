@@ -1,0 +1,52 @@
+{
+  "chave": "som.ovelha",
+  "titulo": "Ovelha",
+  "bpm": 60,
+  "compasso": [1, 4],
+  "tom": "sem tom",
+  "compassos": 4,
+  "laco": false,
+  "cauda_s": 0.35,
+  "duracao_s": 4.0,
+  "trechos": [
+    {"nome": "bee", "inicio_s": 0.0, "fim_s": 0.988},
+    {"nome": "carneirinho", "inicio_s": 2.0, "fim_s": 2.72}
+  ],
+  "trilhas": [
+    {
+      "papel": "voz_nasal",
+      "notas": [
+        [67, 0.0, 0.038, 96],
+        [66, 0.05, 0.038, 76],
+        [66, 0.1, 0.038, 92],
+        [66, 0.15, 0.038, 76],
+        [66, 0.2, 0.038, 92],
+        [66, 0.25, 0.038, 76],
+        [66, 0.3, 0.038, 92],
+        [65, 0.35, 0.038, 76],
+        [65, 0.4, 0.038, 92],
+        [65, 0.45, 0.038, 76],
+        [65, 0.5, 0.038, 92],
+        [64, 0.55, 0.038, 76],
+        [64, 0.6, 0.038, 92],
+        [64, 0.65, 0.038, 76],
+        [72, 2.0, 0.036, 92],
+        [71, 2.048, 0.036, 72],
+        [71, 2.096, 0.036, 88],
+        [71, 2.144, 0.036, 72],
+        [71, 2.192, 0.036, 88],
+        [70, 2.24, 0.036, 72],
+        [70, 2.288, 0.036, 88],
+        [70, 2.336, 0.036, 72],
+        [70, 2.384, 0.036, 88]
+      ]
+    },
+    {
+      "papel": "sfx_ruido_curto",
+      "notas": [
+        [70, 0, 0.08, 34]
+      ]
+    }
+  ],
+  "observacoes": "Ovelha: \"bééé\" (adulta, 0,7 s) e \"mééé\" (carneirinho, mais agudo e curto). Notas curtíssimas e soltas da voz nasal, a força alternando a cada 50 ms: o tremido do balido; a altura desce um tom ao longo do som. Um sopro curto no começo (o \"b\")."
+}

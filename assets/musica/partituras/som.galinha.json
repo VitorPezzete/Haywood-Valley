@@ -1,0 +1,63 @@
+{
+  "chave": "som.galinha",
+  "titulo": "Galinha",
+  "bpm": 60,
+  "compasso": [1, 4],
+  "tom": "sem tom",
+  "compassos": 5,
+  "laco": false,
+  "cauda_s": 0.35,
+  "duracao_s": 5.0,
+  "trechos": [
+    {"nome": "co_1", "inicio_s": 0.0, "fim_s": 0.495},
+    {"nome": "co_2", "inicio_s": 1.0, "fim_s": 1.575},
+    {"nome": "pergunta", "inicio_s": 2.0, "fim_s": 2.7},
+    {"nome": "ovo", "inicio_s": 3.0, "fim_s": 4.25}
+  ],
+  "trilhas": [
+    {
+      "papel": "voz_nasal",
+      "notas": [
+        [70, 0, 0.04, 92],
+        [65, 0.025, 0.06, 82],
+        [67, 0.16, 0.04, 84],
+        [62, 0.185, 0.06, 74],
+        [71, 1, 0.04, 92],
+        [66, 1.025, 0.06, 82],
+        [69, 1.12, 0.04, 86],
+        [64, 1.145, 0.06, 76],
+        [68, 1.24, 0.04, 80],
+        [63, 1.265, 0.06, 70],
+        [69, 2, 0.04, 86],
+        [64, 2.025, 0.06, 76],
+        [65, 2.2, 0.13, 78],
+        [71, 2.3, 0.25, 90],
+        [70, 3, 0.04, 92],
+        [65, 3.025, 0.06, 82],
+        [70, 3.13, 0.04, 88],
+        [65, 3.155, 0.06, 78],
+        [69, 3.26, 0.04, 86],
+        [64, 3.285, 0.06, 76],
+        [72, 3.42, 0.11, 96],
+        [76, 3.5, 0.27, 104],
+        [75, 3.74, 0.15, 96],
+        [69, 3.86, 0.14, 82]
+      ]
+    },
+    {
+      "papel": "sfx_click",
+      "notas": [
+        [86, 0, 0.012, 22],
+        [86, 0.16, 0.012, 22],
+        [86, 1, 0.012, 22],
+        [86, 1.12, 0.012, 22],
+        [86, 1.24, 0.012, 22],
+        [86, 2, 0.012, 22],
+        [86, 3, 0.012, 22],
+        [86, 3.13, 0.012, 22],
+        [86, 3.26, 0.012, 22]
+      ]
+    }
+  ],
+  "observacoes": "Galinha: quatro sons num arquivo (trechos co_1, co_2, pergunta, ovo). Cada \"có\" é uma nota curta da voz nasal que já cai uns 5 semitons (a nota seguinte, ligada, puxa o portamento), com um estalinho de bico por baixo; as notas soltas retomam o ataque, e é isso que faz o cacarejo pulsar. \"pergunta\" sobe no fim; \"ovo\" é o có-có-có-cocóóóc de quem botou ovo (o mais comprido, 1 s).\nNo jogo: um trecho sorteado quando a galinha é tocada ou come; \"ovo\" quando o ovo fica pronto. O sorteio de tom (±5%) já dá variedade."
+}

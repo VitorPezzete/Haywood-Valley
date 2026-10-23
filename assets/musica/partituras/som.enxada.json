@@ -1,0 +1,71 @@
+{
+  "chave": "som.enxada",
+  "titulo": "Enxada",
+  "bpm": 60,
+  "compasso": [1, 4],
+  "tom": "sem tom",
+  "compassos": 3,
+  "laco": false,
+  "cauda_s": 0.35,
+  "duracao_s": 3.0,
+  "trechos": [
+    {"nome": "golpe_1", "inicio_s": 0.0, "fim_s": 0.394},
+    {"nome": "golpe_2", "inicio_s": 1.0, "fim_s": 1.387},
+    {"nome": "golpe_3", "inicio_s": 2.0, "fim_s": 2.36}
+  ],
+  "trilhas": [
+    {
+      "papel": "sfx_ferramenta",
+      "notas": [
+        [60, 0, 0.05, 45],
+        [62, 1, 0.05, 45],
+        [59, 2, 0.05, 45]
+      ]
+    },
+    {
+      "papel": "sfx_grave",
+      "notas": [
+        [38, 0, 0.08, 88],
+        [37, 1, 0.08, 88],
+        [39, 2, 0.08, 88]
+      ]
+    },
+    {
+      "papel": "percussao_latina",
+      "notas": [
+        [62, 0, 0.06, 50],
+        [62, 1, 0.06, 50],
+        [62, 2, 0.06, 50]
+      ]
+    },
+    {
+      "papel": "sfx_ruido_curto",
+      "notas": [
+        [58, 0.01, 0.12, 72],
+        [66, 0.05, 0.08, 46],
+        [60, 1.01, 0.12, 72],
+        [68, 1.05, 0.08, 46],
+        [57, 2.01, 0.12, 72],
+        [65, 2.05, 0.08, 46]
+      ]
+    },
+    {
+      "papel": "sfx_click",
+      "notas": [
+        [86, 0.12, 0.012, 29],
+        [80, 0.181, 0.012, 32],
+        [81, 0.187, 0.012, 26],
+        [76, 0.232, 0.012, 30],
+        [80, 1.092, 0.012, 21],
+        [82, 1.096, 0.012, 22],
+        [76, 1.143, 0.012, 26],
+        [85, 1.225, 0.012, 28],
+        [90, 2.106, 0.012, 25],
+        [89, 2.182, 0.012, 21],
+        [81, 2.183, 0.012, 33],
+        [89, 2.198, 0.012, 22]
+      ]
+    }
+  ],
+  "observacoes": "Enxada na terra: três golpes. O baque (grave e conga abafada), a lâmina (metal bem baixo), a terra abrindo (duas rajadas de ruído, a segunda mais aguda) e uns grãozinhos caindo (cliques baixos sorteados)."
+}

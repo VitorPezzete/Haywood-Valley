@@ -1,0 +1,62 @@
+{
+  "chave": "som.moedas",
+  "titulo": "Moedas",
+  "bpm": 60,
+  "compasso": [1, 4],
+  "tom": "sem tom",
+  "compassos": 4,
+  "laco": false,
+  "cauda_s": 0.35,
+  "duracao_s": 4.0,
+  "trechos": [
+    {"nome": "poucas", "inicio_s": 0.0, "fim_s": 0.8},
+    {"nome": "muitas", "inicio_s": 2.0, "fim_s": 3.6}
+  ],
+  "trilhas": [
+    {
+      "papel": "crotales",
+      "notas": [
+        [91, 0, 0.12, 90],
+        [94, 0.09, 0.12, 80],
+        [89, 0.16, 0.12, 74],
+        [89, 2.0, 0.12, 95],
+        [86, 2.075, 0.12, 90],
+        [94, 2.133, 0.12, 85],
+        [91, 2.202, 0.12, 80],
+        [94, 2.244, 0.12, 75],
+        [96, 2.324, 0.12, 70],
+        [84, 2.398, 0.12, 65],
+        [93, 2.451, 0.12, 60],
+        [91, 2.503, 0.12, 55],
+        [96, 2.75, 0.4, 70]
+      ]
+    },
+    {
+      "papel": "sfx_metal",
+      "notas": [
+        [98, 0, 0.02, 45],
+        [101, 0.09, 0.02, 40],
+        [96, 0.16, 0.02, 37],
+        [96, 2.0, 0.02, 47],
+        [93, 2.075, 0.02, 45],
+        [101, 2.133, 0.02, 42],
+        [98, 2.202, 0.02, 40],
+        [101, 2.244, 0.02, 37],
+        [103, 2.324, 0.02, 35],
+        [91, 2.398, 0.02, 32],
+        [100, 2.451, 0.02, 30],
+        [98, 2.503, 0.02, 27]
+      ]
+    },
+    {
+      "papel": "glockenspiel",
+      "notas": [
+        [96, 0.25, 0.2, 70],
+        [88, 2.75, 0.4, 80],
+        [91, 2.75, 0.4, 76],
+        [96, 2.75, 0.5, 84]
+      ]
+    }
+  ],
+  "observacoes": "Moedas: poucas (três moedinhas e um \"tlin\": vendeu algo) e muitas (nove moedas caindo e o acorde da caixa registradora em glockenspiel: venda grande, pedido entregue). Crotales com um fio de metal curto por cima: o tilintar."
+}

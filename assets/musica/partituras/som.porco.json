@@ -1,0 +1,50 @@
+{
+  "chave": "som.porco",
+  "titulo": "Porco",
+  "bpm": 60,
+  "compasso": [1, 4],
+  "tom": "sem tom",
+  "compassos": 3,
+  "laco": false,
+  "cauda_s": 0.35,
+  "duracao_s": 3.0,
+  "trechos": [
+    {"nome": "oinc_1", "inicio_s": 0.0, "fim_s": 0.42},
+    {"nome": "oinc_2", "inicio_s": 1.0, "fim_s": 1.64},
+    {"nome": "fungada", "inicio_s": 2.0, "fim_s": 2.54}
+  ],
+  "trilhas": [
+    {
+      "papel": "voz_grave",
+      "notas": [
+        [50, 0, 0.09, 85],
+        [54, 0.06, 0.11, 100],
+        [51, 1, 0.09, 85],
+        [55, 1.06, 0.11, 100],
+        [49, 1.22, 0.09, 77],
+        [53, 1.28, 0.11, 92],
+        [45, 2.05, 0.1, 60]
+      ]
+    },
+    {
+      "papel": "sfx_ruido_curto",
+      "notas": [
+        [55, 0, 0.12, 52],
+        [55, 1, 0.12, 52],
+        [55, 1.22, 0.12, 52],
+        [52, 2, 0.08, 70],
+        [50, 2.1, 0.1, 60],
+        [54, 2.22, 0.07, 55]
+      ]
+    },
+    {
+      "papel": "sfx_grave",
+      "notas": [
+        [40, 0, 0.06, 30],
+        [40, 1, 0.06, 30],
+        [40, 1.22, 0.06, 30]
+      ]
+    }
+  ],
+  "observacoes": "Porco: \"oinc\" (voz grave curta que sobe uma terça maior, com uma fungada de ruído e um grave por baixo), \"oinc-oinc\" e uma fungada sozinha (três sopros e um grunhido baixinho), para quando ele fuça."
+}

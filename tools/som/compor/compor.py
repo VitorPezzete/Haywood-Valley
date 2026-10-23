@@ -10,7 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import importlib  # noqa: E402
 
-PECAS = ["titulo", "personalizar", "ilha", "sala", "interface", "efeitos"]
+PECAS = ["titulo", "personalizar", "ilha", "sala", "interface", "efeitos", "fazenda", "vila"]
 
 
 def main() -> int:

@@ -1,0 +1,85 @@
+{
+  "chave": "som.nivel",
+  "titulo": "Subir de nível",
+  "bpm": 60,
+  "compasso": [1, 4],
+  "tom": "sem tom",
+  "compassos": 3,
+  "laco": false,
+  "cauda_s": 0.35,
+  "duracao_s": 3.0,
+  "trechos": [
+    {"nome": "nivel", "inicio_s": 0.0, "fim_s": 2.25}
+  ],
+  "trilhas": [
+    {
+      "papel": "xilofone",
+      "notas": [
+        [72, 0.0, 0.15, 80],
+        [76, 0.07, 0.15, 84],
+        [79, 0.14, 0.15, 88],
+        [84, 0.21, 0.15, 92],
+        [88, 0.28, 0.15, 96]
+      ]
+    },
+    {
+      "papel": "harpa",
+      "notas": [
+        [60, 0.02, 0.6, 50],
+        [64, 0.05, 0.6, 52],
+        [67, 0.08, 0.6, 54],
+        [72, 0.11, 0.6, 56],
+        [76, 0.14, 0.6, 58],
+        [79, 0.17, 0.6, 60],
+        [84, 0.2, 0.6, 62],
+        [88, 0.23, 0.6, 64]
+      ]
+    },
+    {
+      "papel": "glockenspiel",
+      "notas": [
+        [96, 0.5, 0.6, 90],
+        [100, 0.62, 0.8, 84]
+      ]
+    },
+    {
+      "papel": "marimba",
+      "notas": [
+        [60, 0.55, 1.2, 80],
+        [64, 0.55, 1.2, 76],
+        [67, 0.55, 1.2, 76],
+        [72, 0.55, 1.2, 82]
+      ]
+    },
+    {
+      "papel": "cordas_pizzicato",
+      "notas": [
+        [48, 0.55, 0.5, 90],
+        [55, 0.55, 0.5, 80],
+        [64, 0.55, 0.5, 80]
+      ]
+    },
+    {
+      "papel": "flauta",
+      "notas": [
+        [79, 0.55, 0.13, 86],
+        [84, 0.7, 1.0, 92]
+      ]
+    },
+    {
+      "papel": "crotales",
+      "notas": [
+        [96, 0.55, 0.4, 70],
+        [91, 0.8, 0.4, 60],
+        [96, 1.0, 0.5, 64]
+      ]
+    },
+    {
+      "papel": "percussao_latina",
+      "notas": [
+        [81, 0.55, 0.6, 50]
+      ]
+    }
+  ],
+  "observacoes": "Subir de nível: arpejo de xilofone em Dó (Dó–Mi–Sol–Dó–Mi) com a harpa varrendo por baixo, e o acorde de chegada (marimba, pizzicato, flauta segurando o Dó agudo, glockenspiel, crotales e triângulo). Uns 2 s. É o único momento \"fanfarra\" da leva: alegre sem metais."
+}

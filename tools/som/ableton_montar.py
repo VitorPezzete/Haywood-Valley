@@ -262,6 +262,8 @@ class Montador:
         esperado = 2 + len(camada.get("efeitos", []))
         if len(devs) != esperado:
             raise ErroAbleton(f"trilha '{nome}': esperava {esperado} devices, há {[d['name'] for d in devs]}")
+        # Parâmetros do próprio instrumento (2026-10-23: portamento e envelope de altura das vozes dos animais).
+        self.ajustar(ti, 0, camada.get("parametros_instrumento", {}))
         for di, e in enumerate(camada.get("efeitos", []), start=1):
             self.ajustar(ti, di, e.get("parametros", {}))
         self.ajustar(ti, len(devs) - 1, {"Output Gain": camada.get("ganho_db", 0.0)})

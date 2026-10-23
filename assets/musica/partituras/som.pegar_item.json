@@ -1,0 +1,46 @@
+{
+  "chave": "som.pegar_item",
+  "titulo": "Pegar item",
+  "bpm": 60,
+  "compasso": [1, 4],
+  "tom": "sem tom",
+  "compassos": 3,
+  "laco": false,
+  "cauda_s": 0.35,
+  "duracao_s": 3.0,
+  "trechos": [
+    {"nome": "pega_1", "inicio_s": 0.0, "fim_s": 0.34},
+    {"nome": "pega_2", "inicio_s": 1.0, "fim_s": 1.34},
+    {"nome": "pega_3", "inicio_s": 2.0, "fim_s": 2.34}
+  ],
+  "trilhas": [
+    {
+      "papel": "sfx_bolha",
+      "notas": [
+        [70, 0, 0.04, 60],
+        [72, 1, 0.04, 60],
+        [74, 2, 0.04, 60]
+      ]
+    },
+    {
+      "papel": "marimba",
+      "notas": [
+        [76, 0.02, 0.06, 70],
+        [83, 0.07, 0.12, 75],
+        [74, 1.02, 0.06, 70],
+        [81, 1.07, 0.12, 75],
+        [77, 2.02, 0.06, 70],
+        [84, 2.07, 0.12, 75]
+      ]
+    },
+    {
+      "papel": "sfx_click",
+      "notas": [
+        [92, 0, 0.01, 30],
+        [92, 1, 0.01, 30],
+        [92, 2, 0.01, 30]
+      ]
+    }
+  ],
+  "observacoes": "Pegar item: um \"pop\" (bolha e clique) e duas notas de marimba subindo uma quinta. Três versões; é o som que mais vai tocar, então é curto (0,35 s) e sem cauda."
+}

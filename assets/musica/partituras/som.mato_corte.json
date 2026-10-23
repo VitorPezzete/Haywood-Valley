@@ -1,0 +1,60 @@
+{
+  "chave": "som.mato_corte",
+  "titulo": "Cortar mato",
+  "bpm": 60,
+  "compasso": [1, 4],
+  "tom": "sem tom",
+  "compassos": 3,
+  "laco": false,
+  "cauda_s": 0.35,
+  "duracao_s": 3.0,
+  "trechos": [
+    {"nome": "corte_1", "inicio_s": 0.0, "fim_s": 0.43},
+    {"nome": "corte_2", "inicio_s": 1.0, "fim_s": 1.43},
+    {"nome": "corte_3", "inicio_s": 2.0, "fim_s": 2.43}
+  ],
+  "trilhas": [
+    {
+      "papel": "sfx_ruido_curto",
+      "notas": [
+        [74, 0, 0.05, 60],
+        [80, 0.03, 0.06, 50],
+        [68, 0.1, 0.18, 36],
+        [76, 1, 0.05, 60],
+        [82, 1.03, 0.06, 50],
+        [68, 1.1, 0.18, 36],
+        [73, 2, 0.05, 60],
+        [79, 2.03, 0.06, 50],
+        [68, 2.1, 0.18, 36]
+      ]
+    },
+    {
+      "papel": "sfx_click",
+      "notas": [
+        [72, 0.06, 0.02, 60],
+        [70, 1.06, 0.02, 60],
+        [74, 2.06, 0.02, 60]
+      ]
+    },
+    {
+      "papel": "sfx_madeira",
+      "notas": [
+        [70, 0.06, 0.02, 40],
+        [70, 1.06, 0.02, 40],
+        [70, 2.06, 0.02, 40]
+      ]
+    },
+    {
+      "papel": "percussao_latina",
+      "notas": [
+        [70, 0.08, 0.05, 36],
+        [69, 0.12, 0.06, 30],
+        [70, 1.08, 0.05, 36],
+        [69, 1.12, 0.06, 30],
+        [70, 2.08, 0.05, 36],
+        [69, 2.12, 0.06, 30]
+      ]
+    }
+  ],
+  "observacoes": "Cortar mato ou arbusto: o \"swish\" (duas rajadas de ruído subindo), o talo partindo (clique e madeira fina) e as folhas (maracas, cabasa e um farfalhar que some)."
+}

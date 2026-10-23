@@ -34,7 +34,7 @@ import sys
 
 import numpy as np
 import soundfile as sf
-from scipy.signal import resample_poly
+from scipy.signal import butter, resample_poly, sosfiltfilt
 
 AQUI = os.path.dirname(os.path.abspath(__file__))
 RAIZ = os.path.dirname(os.path.dirname(AQUI))
@@ -51,6 +51,35 @@ CAUDA_MAX_S = 1.0
 CAUDA_FADE_FRACAO = 0.25
 CAUDA_FADE_MIN_S = 0.060
 CAUDA_FADE_MAX_S = 0.250
+# Trechos dos kits (--trechos-limpos, 2026-10-23): cada um vai até o som cair 40 dB abaixo do pico dele, no máximo
+# até 30 ms antes do seguinte, e some num fade de até 60 ms; o resto até o próximo vira silêncio. Sem isso a cauda de
+# um som (metal, reverb, voz) entrava no começo do seguinte a -20 dB e o `region` do jogo cortava no meio do som.
+TRECHO_DB = -40.0
+TRECHO_FOLGA_S = 0.030
+TRECHO_FADE_S = 0.060
+
+
+def limpar_trechos(x: np.ndarray, trechos: list[dict]) -> list[dict]:
+    """Recalcula o fim de cada trecho pela queda do som, põe o fade e silencia o vão; devolve os trechos novos."""
+    nivel = np.abs(x).max(axis=1)
+    novos = []
+    for i, t in enumerate(trechos):
+        a = int(round(t["inicio_s"] * SR))
+        prox = trechos[i + 1]["inicio_s"] if i + 1 < len(trechos) else len(x) / SR
+        lim = min(len(x), int(round((prox - TRECHO_FOLGA_S) * SR)))
+        seg = nivel[a:lim]
+        if len(seg) == 0:
+            novos.append(dict(t))
+            continue
+        acima = np.nonzero(seg > seg.max() * 10 ** (TRECHO_DB / 20))[0]
+        fim = min(lim, a + int(acima[-1]) + int(0.010 * SR)) if len(acima) else lim
+        n = min(int(TRECHO_FADE_S * SR), (fim - a) // 3)
+        if n > 0:
+            x[fim - n:fim] *= (0.5 + 0.5 * np.cos(np.linspace(0, np.pi, n)))[:, None]
+        prox_a = int(round(prox * SR)) if i + 1 < len(trechos) else len(x)
+        x[fim:prox_a] = 0.0
+        novos.append({**t, "fim_s": round(fim / SR, 3)})
+    return novos
 
 
 def destino(chave: str, args) -> tuple[str | None, str | None, str]:
@@ -137,6 +166,13 @@ def cortar(args) -> int:
         mapa = json.load(f)
     resumo_arq = os.path.join(os.path.dirname(os.path.abspath(args.mapa)), "cortes.json")
     audio = ler_export(args.export)
+    if args.passa_altas:
+        # 2026-10-23: o Thump (sfx_grave, com Saturator) e o Wind Machine (sfx_ruido) deixam um grave abaixo de 40 Hz
+        # e um pouco de DC que o ganho de normalização (+20 a +30 dB nos efeitos baixinhos) trazia para -20 dB, e que
+        # vazava de um trecho do kit para o começo do seguinte. Filtra o export inteiro (fase zero) antes de cortar.
+        sos = butter(4, args.passa_altas, "highpass", fs=SR, output="sos")
+        audio = sosfiltfilt(sos, audio, axis=0)
+        print(f"passa-altas de {args.passa_altas:g} Hz no export inteiro")
     total_s = len(audio) / SR
     print(f"export: {total_s:.2f} s, {audio.shape[1]} canal(is)")
 
@@ -188,6 +224,8 @@ def cortar(args) -> int:
                 nota = f"emenda limpa (salto {salto:.4f}, típico {tipico:.4f})"
         else:
             x = fades(x)
+            if args.trechos_limpos and p.get("trechos"):
+                p = {**p, "trechos": limpar_trechos(x, p["trechos"])}
             nota = f"fades de {FADE_S * 1000:.0f} ms"
             if args.cauda_auto:
                 # O fim some num fade de um quarto da duração (entre 60 e 250 ms), em curva quadrática.
@@ -232,6 +270,10 @@ def main(argv=None) -> int:
     ap.add_argument("--cauda-auto", action="store_true",
                     help="peças sem laço vão até o som cair 30 dB abaixo do pico (até 1 s a mais), com fade no fim")
     ap.add_argument("--so", nargs="*", default=None)
+    ap.add_argument("--trechos-limpos", action="store_true",
+                    help="kits: cada trecho vai até cair 40 dB (fade de 60 ms) e o vão até o seguinte fica em silêncio")
+    ap.add_argument("--passa-altas", type=float, default=None,
+                    help="filtro passa-altas (Hz) no export inteiro antes de cortar; 40 tira o grave e o DC dos efeitos")
     ap.add_argument("--qualidade-ogg", type=float, default=0.6, help="0 a 1 (Vorbis); 0,6 é uns 160 kbps em estéreo")
     args = ap.parse_args(argv)
     sys.stdout.reconfigure(encoding="utf-8")
