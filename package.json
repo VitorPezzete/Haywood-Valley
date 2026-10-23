@@ -17,6 +17,7 @@
     "aseprite:instalar": "node tools/aseprite_instalar.mjs",
     "aseprite:extensoes": "node tools/aseprite_extensoes.mjs",
     "diorama:mcp": "node tools/diorama_mcp.mjs",
+    "mundo:jogo": "node tools/mundo_jogo.mjs",
     "teste:ponte": "node --test tools/testes/ponte.test.mjs",
     "teste:pixel": "node --test tools/testes/pixel.test.mjs",
     "teste:aseprite": "node --test tools/testes/aseprite.test.mjs"

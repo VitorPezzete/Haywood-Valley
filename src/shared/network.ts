@@ -28,6 +28,10 @@ interface ClientToServerEvents {
 	decorPaint(key: number, colors: string): void;
 	decorStore(key: number): void;
 	decorMovePiece(id: string, ax: number, ay: number): void;
+	/** A fazenda do lote do mundo (`shared/farm.ts`, `FarmService`): arar, plantar e colher o canteiro `plot`. */
+	farmTill(plot: number): void;
+	farmPlant(plot: number, crop: string): void;
+	farmHarvest(plot: number): void;
 }
 
 interface ServerToClientEvents {

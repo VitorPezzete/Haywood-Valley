@@ -16,7 +16,10 @@ Nenhuma imagem entra no repositório: este script só lê e grava na pasta `--ra
 plano) foram lidos do `mundo_inteiro_etapa1_v3.png` à mão; o reino de cada um sai do `mundo_13_biomas.png` pelas regras
 de `reinos_raster` (as áreas batem com a tabela do plano: Haywood 22,8 setores = campos 12,2 + floresta 10,6).
 
-Uso: python -I tools/mundo_mapa.py [mundo | reinos | fase1 | tabela | tudo] [--raiz <pasta>]
+Uso: python -I tools/mundo_mapa.py [mundo | reinos | fase1 | tabela | jogo [--conferir] | conjuntos | tudo] [--raiz <pasta>]
+
+`jogo` grava os módulos do jogo em src/shared/world/ (plano.ts, terreno.ts, fase1.ts; ver a seção "Para o jogo").
+`conjuntos` monta a folha dos conjuntos da equipe (folha_conjuntos_v1.png na --raiz, para enviar com o OK do usuário).
 """
 from __future__ import annotations
 
@@ -1179,6 +1182,655 @@ def maquete_fase1(raiz: str, g, obj, x0=24, y0=0, x1=424, y1=232):
     return out
 
 
+# --- Para o jogo: src/shared/world/*.ts (fase 0 do MAPA_MUNDO.md, 2026-10-23) ------------------------------------
+# `jogo` grava três módulos que o jogo lê (gerados como os interiores: não editar à mão); `jogo --conferir` só compara.
+#
+# - `plano.ts`: o plano do mundo em dados: reinos, biomas, lugares (com distritos e lotes) e o reino e o bioma de cada
+#   bloco (832 × 832, uma linha RLE por linha de blocos).
+# - `terreno.ts`: os terrenos, as junções e os decalques da folha_juncao (diorama/catalogo/exterior.json) e o que só o
+#   mundo usa (diorama/catalogo/mundo.json): as texturas grandes, a água do rio e os conjuntos da equipe, por chave do
+#   registro (sem id, o jogo usa a folha_juncao).
+# - `fase1.ts`: a fase 1 (Ribeira leste e o D03, 12 × 9 blocos): o terreno do jogo de cada célula (uma linha RLE por
+#   linha de tiles), o que bloqueia, as zonas com nome, os lotes, o começo e os lugares marcados (tudo o que ainda não
+#   tem arte com id fica como marca, sem arte nova).
+RAIZ_REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+PASTA_JOGO = os.path.join(RAIZ_REPO, "src", "shared", "world")
+CODIGOS_PLANO = {GRAMA: "grama", TERRA: "terra", CALCADA: "calcada", AGUA: "agua", MATA: "mata", CAPIM: "capim",
+                 SOLO: "solo", PLANALTO: "planalto"}
+# Os lugares marcados: o que cada tipo do esboço é. "construcao" e "vegetacao" já existem refeitos (sem id); "criar"
+# ainda não existe (CRIAR); "cerca", sebes, cercas e muros (contorno).
+CERCAS = {"sebe_lote", "sebe_h", "sebe_v", "muro_h", "muro_v", "cerca"}
+VEGETACAO = {"arvore_grande", "arvore_pequena", "arvore_pequena_rosa", "moita_grande", "moita_cruz", "arbusto", "toco",
+             "pedra_leve", "flores_brancas", "mata_bloco", "morro", "lago_anel", "canteiro_flores_rosa"}
+# O que bloqueia o passo na fase 0: as construções (existentes ou a criar) ocupam o retângulo da marca.
+BLOQUEIAM = {"casa_vermelha", "casa_azul", "casa_madeira", "casa_azul_media", "casa_azul_grande", "casa_vermelha_loja",
+             "galpao_madeira", "casa_fazenda", "celeiro", "galinheiro", "mirante", "barraca", "caixa_venda",
+             "quadro_pedidos", "carroca", "poco_madeira", "poco_pedra", "cata_vento_praca", "bebedouro"}
+ZONAS_F1 = [
+    ("Alto do Mirante", (0, 0, 63, 63)),
+    ("Ribeira", (0, 64, 127, 255)),
+    ("Ribeira (em obras: fase 2)", (0, 256, 127, 575)),
+    ("Ponte do Lume", (128, 0, 191, 63)),
+    ("Rio Lume", (128, 64, 191, 575)),
+    ("Parada da estrada", (192, 0, 255, 63)),
+    ("Centro do distrito D03", (192, 64, 255, 319)),
+    ("Margem do Lume", (192, 320, 255, 575)),
+    ("Estrada do Leste", (256, 0, 575, 63)),
+    ("Bosque do Lume", (576, 0, 767, 63)),
+    ("Lote A", (256, 64, 511, 319)),
+    ("Lote B", (512, 64, 767, 319)),
+    ("Lote C", (256, 320, 511, 575)),
+    ("Lote D", (512, 320, 767, 575)),
+]
+
+
+def _ts(v) -> str:
+    return json.dumps(v, ensure_ascii=False)
+
+
+def _rle(linha) -> str:
+    """"gggtt" → "g3t2": cada corrida é o código (uma letra) e o comprimento."""
+    partes = []
+    i = 0
+    n = len(linha)
+    while i < n:
+        j = i
+        while j < n and linha[j] == linha[i]:
+            j += 1
+        partes.append(f"{linha[i]}{j - i}")
+        i = j
+    return "".join(partes)
+
+
+def _catalogo(nome: str) -> dict:
+    with open(os.path.join(RAIZ_REPO, "diorama", "catalogo", f"{nome}.json"), encoding="utf-8") as f:
+        return json.load(f)
+
+
+def _cabecalho(descricao: str) -> str:
+    return ("// Gerado por tools/mundo_mapa.py (`npm run mundo:jogo`) a partir do plano do mundo; não editar à mão.\n"
+            f"// {descricao}")
+
+
+def fase1_terreno_jogo(g: np.ndarray, obj: list, mundo: dict) -> tuple[np.ndarray, dict]:
+    """O terreno do jogo de cada célula da fase 1 (códigos de exterior.json; "G" é grama com capim)."""
+    out = np.empty(g.shape, "<U1")
+    for k, nome in CODIGOS_PLANO.items():
+        out[g == k] = mundo["do_plano"][nome]
+    out[(g == CAPIM) & (out == "g")] = "G"
+    agua = g == AGUA
+    # vau: onde o plano tem ponte, a água fica rasa de margem a margem (a ponte é um lugar marcado)
+    vau = np.zeros(g.shape, bool)
+    for t, x, y, w, h, _ in obj:
+        if t.startswith("ponte"):
+            vau[max(0, y - 3):y + h + 3, max(0, x - 3):x + w + 3] = True
+    fundo = ndimage.binary_erosion(agua, structure=np.ones((3, 3)), iterations=2, border_value=1) & ~vau
+    margem = ndimage.binary_dilation(agua, structure=np.ones((3, 3))) & ~agua
+    out[margem] = "a"
+    out[agua] = "r"
+    out[fundo] = "m"
+    info = {"agua": int(agua.sum()), "fundo": int(fundo.sum()), "margem": int(margem.sum()), "vau": int((vau & agua).sum())}
+    return out, info
+
+
+def conferir_pares(t: np.ndarray, exterior: dict) -> list[str]:
+    """Os tiles da grade dupla que juntariam dois terrenos sem junção no catálogo (devem ser zero)."""
+    nivel = {c: d["nivel"] for c, d in exterior["terrenos"].items()}
+    pares = {(j["sobre"], j["sob"]) for j in exterior["juncoes"]}
+    base = np.where(t == "G", "g", t)
+    ext = np.pad(base, ((0, 1), (0, 1)), mode="edge")
+    q = [ext[:-1, :-1], ext[:-1, 1:], ext[1:, :-1], ext[1:, 1:]]
+    misto = ~((q[0] == q[1]) & (q[0] == q[2]) & (q[0] == q[3]))
+    ruins = []
+    for y, x in zip(*np.nonzero(misto)):
+        cods = sorted({q[k][y, x] for k in range(4)}, key=lambda c: nivel[c])
+        for a, b in zip(cods, cods[1:]):
+            if (b, a) not in pares:
+                ruins.append(f"({x}, {y}): {b} sobre {a}")
+    return ruins
+
+
+def modulo_terreno(exterior: dict, mundo: dict) -> str:
+    folha = np.array(Image.open(os.path.join(RAIZ_REPO, "diorama", "folhas", "folha_juncao.png")).convert("RGBA"))
+    T = exterior["tile"]
+    terrenos = []
+    for cod, d in exterior["terrenos"].items():
+        tile = folha[d["base"] * T:(d["base"] + 1) * T, 0:4 * T]
+        cores, n = np.unique(tile.reshape(-1, 4), axis=0, return_counts=True)
+        cor = cores[n.argmax()]
+        # o recorte liso: 4 × 4 px só da cor que mais aparece (o miolo de 8 × 8 nas bases de uma cor só)
+        if len(cores) == 1:
+            liso = [4, d["base"] * T + 4, 8]
+        else:
+            igual = (tile == cor).all(-1)
+            liso = None
+            for yy in range(T - 4):
+                for xx in range(4 * T - 4):
+                    if igual[yy:yy + 4, xx:xx + 4].all():
+                        liso = [xx, d["base"] * T + yy, 4]
+                        break
+                if liso:
+                    break
+        terrenos.append({"codigo": cod, "nome": d["nome"], "nivel": d["nivel"], "base": d["base"], "acao": d["acao"],
+                         "liso": liso, "cor": "#%02x%02x%02x" % tuple(int(c) for c in cor[:3]),
+                         "textura": mundo["texturas_grandes"].get(cod, "")})
+    juncoes = [[j["sobre"], j["sob"], j["linha"], j.get("quadros", 1), j.get("dy", 0)] for j in exterior["juncoes"]]
+    decalques = {}
+    for grupo, lista in mundo["decalques"].items():
+        if not isinstance(lista, list):
+            continue
+        decalques[grupo] = []
+        for item in lista:
+            d = exterior["decalques"][item["id"]]
+            decalques[grupo].append([item["id"], d["sx"], d["sy"], d["w"], d["h"], item["por_mil"]])
+    conj = mundo["conjuntos"]
+    conjuntos = [[c["id"], c["a"], c["b"], (c["vaga"] % 16) * 64, (c["vaga"] // 16) * 96] for c in conj["lista"]]
+    linhas = [
+        _cabecalho("Fontes: diorama/catalogo/exterior.json (a folha_juncao) e diorama/catalogo/mundo.json."),
+        "",
+        "/** Um terreno do chão: código, nome, nível (quem fica por cima na junção), linha da base na folha_juncao, ação,",
+        " * o recorte liso [x, y, lado] (só a cor que mais aparece na base), a cor e a chave da textura grande no registro. */",
+        "export interface WorldTerrain {",
+        "\tcode: string;",
+        "\tname: string;",
+        "\tlevel: number;",
+        "\tbase: number;",
+        "\taction: string;",
+        "\tflat: [x: number, y: number, size: number];",
+        "\tcolor: string;",
+        "\ttexture: string;",
+        "}",
+        "",
+        "export const WORLD_TERRAINS: WorldTerrain[] = [",
+    ]
+    for t in terrenos:
+        linhas.append(
+            f"\t{{ code: {_ts(t['codigo'])}, name: {_ts(t['nome'])}, level: {t['nivel']}, base: {t['base']}, "
+            f"action: {_ts(t['acao'])}, flat: {_ts(t['liso'])}, color: {_ts(t['cor'])}, texture: {_ts(t['textura'])} }},")
+    linhas += [
+        "];",
+        "",
+        "/** As junções da folha_juncao: [de cima, de baixo, primeira linha, quadros, quanto o recorte desce por quadro]. */",
+        "export const WORLD_JUNCTIONS: [over: string, under: string, row: number, frames: number, dy: number][] = [",
+    ]
+    linhas += [f"\t{_ts(j)}," for j in juncoes]
+    linhas += [
+        "];",
+        "",
+        "/** Os decalques espalhados por semente: grupo → [id, x, y, largura, altura (células), quantos por mil células]. */",
+        "export const WORLD_DECALS: Record<string, [id: string, sx: number, sy: number, w: number, h: number, perMille: number][]> = {",
+    ]
+    for grupo, lista in decalques.items():
+        linhas.append(f"\t{grupo}: [")
+        linhas += [f"\t\t{_ts(x)}," for x in lista]
+        linhas.append("\t],")
+    linhas += [
+        "};",
+        "",
+        f"/** A chave no registro da folha dos conjuntos da equipe ({conj['lado']} × {conj['lado']}, desenho {conj['desenho']}). */",
+        f"export const WORLD_SETS_SHEET = {_ts(conj['folha'])};",
+        "/** Os conjuntos da equipe (Wang de 16 em 4 × 6 tiles): [id, terreno A, terreno B, canto x, canto y na folha]. */",
+        "export const WORLD_SETS: [id: string, a: string, b: string, x: number, y: number][] = [",
+    ]
+    linhas += [f"\t{_ts(c)}," for c in conjuntos]
+    linhas += [
+        "];",
+        "",
+        "/** O grupo do registro com os 4 quadros da água do rio (1024 × 1024). */",
+        f"export const WORLD_RIVER_FRAMES = {_ts(mundo['agua_rio'])};",
+        "",
+    ]
+    return "\n".join(linhas)
+
+
+def modulo_fase1(g, obj, mundo, exterior, objetos: dict) -> tuple[str, dict]:
+    t, info = fase1_terreno_jogo(g, obj, mundo)
+    ruins = conferir_pares(t, exterior)
+    if ruins:
+        raise SystemExit(f"fase 1: {len(ruins)} tiles sem junção, por exemplo {ruins[:5]}")
+    linhas_rle = ["".join(r) for r in t]
+    tipos = sorted({o[0] for o in obj if o[0] not in ("cerca_max", "hachura")})
+
+    def categoria(tp):
+        if tp in CRIAR:
+            return "criar"
+        if tp in CERCAS:
+            return "cerca"
+        if tp in VEGETACAO:
+            return "vegetacao"
+        return "construcao"
+
+    marcas = []
+    bloqueios = []
+    fechado = []
+    for tp, x, y, w, h, rot in obj:
+        if tp == "cerca_max":
+            continue
+        if tp == "hachura":
+            fechado.append([x, y, x + w - 1, y + h - 1, rot])
+            continue
+        marcas.append([tipos.index(tp), int(x), int(y), int(w), int(h), rot])
+        # Com arte no catálogo dos objetos, o bloqueio é o do catálogo (os pixels da imagem de verdade); sem arte (o que
+        # falta criar), a construção bloqueia o retângulo da marca.
+        if tp in objetos["tipos"]:
+            bloqueios += bloqueios_objeto(objetos["tipos"][tp], int(x), int(y), int(w), int(h))
+        elif tp in BLOQUEIAM:
+            bloqueios.append([int(x), int(y), int(x + w - 1), int(y + h - 1)])
+    marcas.sort(key=lambda m: (m[2], m[1]))
+    lotes = []
+    for nome, (lx, ly) in LOTES_F1.items():
+        fx, fy = lx + 96, ly + 96
+        portao = [fx + 70, fy + 29] if lx == 256 else [fx - 6, fy + 29]
+        lotes.append({"name": nome, "area": [lx, ly, lx + 255, ly + 255], "farm": [fx, fy, fx + 63, fy + 63],
+                      "gate": portao})
+    comeco = lotes[0]["gate"]
+    linhas = [
+        _cabecalho("A fase 1 (docs/mundo/reinos/haywood.md §4): Ribeira leste e os 4 primeiros lotes do D03, 12 × 9 blocos."),
+        "// Coordenadas em células (tiles de 16 px) a partir do canto da fase, a célula (blockX × 64, blockY × 64) do mundo.",
+        "",
+        "export const PHASE1 = {",
+        f"\t/** O bloco do mundo no canto de cima à esquerda da fase. */",
+        f"\tblockX: {BX0},",
+        f"\tblockY: {BY0},",
+        f"\tblocksWide: {LW // 64},",
+        f"\tblocksHigh: {LH // 64},",
+        f"\twidth: {LW},",
+        f"\theight: {LH},",
+        f"\t/** Onde o jogador começa: o portão do lote A. */",
+        f"\tspawn: {_ts(comeco)} as [x: number, y: number],",
+        "};",
+        "",
+        "/**",
+        " * O terreno de cada célula, uma linha RLE por linha de células (código e comprimento): m mar fundo, r mar raso,",
+        f" * a areia, t terra, g grama, G grama com capim. Água {info['agua']} células ({info['fundo']} fundas, {info['vau']} no vau),",
+        f" * margem de areia {info['margem']}.",
+        " */",
+        "export const PHASE1_ROWS = [",
+    ]
+    linhas += [f"\t{_ts(_rle(r))}," for r in linhas_rle]
+    linhas += [
+        "];",
+        "",
+        "/**",
+        " * O que bloqueia, além da água funda e da borda da fase: [x0, y0, x1, y1] inclusivos. Os objetos com arte, pelo",
+        " * catálogo (diorama/catalogo/mundo.json, `objetos`: o tronco da árvore, as paredes da casa); as construções sem arte, o",
+        " * retângulo da marca.",
+        " */",
+        "export const PHASE1_BLOCKERS: [x0: number, y0: number, x1: number, y1: number][] = [",
+    ]
+    linhas += [f"\t{_ts(b)}," for b in bloqueios]
+    linhas += [
+        "];",
+        "",
+        "/** As áreas fechadas na fase 1 (tapumes, sem passagem): [x0, y0, x1, y1, por quê]. */",
+        "export const PHASE1_CLOSED: [x0: number, y0: number, x1: number, y1: number, why: string][] = [",
+    ]
+    linhas += [f"\t{_ts(b)}," for b in fechado]
+    linhas += [
+        "];",
+        "",
+        "/** As zonas com nome (a plaquinha ao entrar): nome e [x0, y0, x1, y1] inclusivos. */",
+        "export const PHASE1_ZONES: [name: string, area: [x0: number, y0: number, x1: number, y1: number]][] = [",
+    ]
+    linhas += [f"\t[{_ts(n)}, {_ts(list(a))}]," for n, a in ZONAS_F1]
+    linhas += [
+        "];",
+        "",
+        "/** Os lotes (vagas de fazenda): a área de 4 × 4 blocos, a fazenda inicial de 64 × 64 e o portão (célula). */",
+        "export const PHASE1_LOTS: { name: string; area: number[]; farm: number[]; gate: number[] }[] = [",
+    ]
+    linhas += [f"\t{{ name: {_ts(l['name'])}, area: {_ts(l['area'])}, farm: {_ts(l['farm'])}, gate: {_ts(l['gate'])} }}," for l in lotes]
+    linhas += [
+        "];",
+        "",
+        "/** Os tipos de lugar marcado e o que cada um é: construcao (refeito, sem id), vegetacao, cerca, criar (não existe). */",
+        "export const PHASE1_MARK_KINDS: [kind: string, category: string][] = [",
+    ]
+    linhas += [f"\t[{_ts(tp)}, {_ts(categoria(tp))}]," for tp in tipos]
+    linhas += [
+        "];",
+        "",
+        "/** Os lugares marcados: [tipo (índice de PHASE1_MARK_KINDS), x, y, largura, altura, nome]. */",
+        "export const PHASE1_MARKS: [kind: number, x: number, y: number, w: number, h: number, label: string][] = [",
+    ]
+    linhas += [f"\t{_ts(m)}," for m in marcas]
+    linhas += ["];", ""]
+    stats = {"marcas": len(marcas), "bloqueios": len(bloqueios), **info,
+             "corridas": sum(len(_rle(r)) for r in linhas_rle)}
+    return "\n".join(linhas), stats
+
+
+def modulo_plano(cls, k, lugares) -> str:
+    def rle_raster(r):
+        linhas = []
+        for by in range(0, LADO, 2):
+            linha = "".join(chr(ord("a") + int(v)) for v in r[by, 0::2])
+            linhas.append(_rle(linha))
+        return linhas
+
+    lados = 832
+    linhas = [
+        _cabecalho("O plano do mundo (docs/mundo/MAPA_MUNDO.md): reinos, biomas, lugares e o reino e o bioma de cada bloco."),
+        "",
+        "/** O mundo: 13 × 13 setores de 64 × 64 blocos; um bloco tem 64 × 64 tiles de 16 px. */",
+        f"export const WORLD_SECTORS = 13;",
+        f"export const WORLD_BLOCKS = {lados};",
+        f"export const SECTOR_BLOCKS = 64;",
+        f"export const SECTOR_COLUMNS = {_ts(COLUNAS)};",
+        "",
+        "/** Os reinos (1 a 6) e as cidades livres (7 a 12); 0 é o mar. [nome, livre, cor, área em setores]. */",
+        "export const WORLD_REALMS: [name: string, free: boolean, color: string, area: number][] = [",
+        f"\t[\"mar\", false, \"#3d4f7f\", {(k == 0).sum() / PX_SETOR ** 2:.2f}],",
+    ]
+    for rid, (nome, cor) in REINOS.items():
+        linhas.append(f"\t[{_ts(nome)}, {_ts(rid in LIVRES)}, {_ts('#%02x%02x%02x' % cor)}, {(k == rid).sum() / PX_SETOR ** 2:.2f}],")
+    linhas += [
+        "];",
+        "",
+        "/** Os biomas do plano, na ordem do código (a = 0). */",
+        f"export const WORLD_BIOMES = {_ts(NOMES_BIOMAS)};",
+        "",
+        "/** Os lugares do plano: [nome, tipo, bloco x, bloco y, setor, reino, fase, lotes (distritos; 0 nos demais)]. */",
+        "export const WORLD_PLACES: [name: string, kind: string, bx: number, by: number, sector: string, realm: number, phase: number, lots: number][] = [",
+    ]
+    for l in lugares:
+        linhas.append("\t" + _ts([l["nome"], l["tipo"], l["bloco_x"], l["bloco_y"], l["setor"], l["reino_id"], l["fase"],
+                                  l["lotes"] or 0]) + ",")
+    linhas += [
+        "];",
+        "",
+        "/** O reino de cada bloco (código a = 0 mar, b = 1 Haywood...), uma linha RLE por linha de blocos. */",
+        "export const REALM_ROWS = [",
+    ]
+    linhas += [f"\t{_ts(r)}," for r in rle_raster(k)]
+    linhas += [
+        "];",
+        "",
+        "/** O bioma de cada bloco (código a = 0, a ordem de WORLD_BIOMES), uma linha RLE por linha de blocos. */",
+        "export const BIOME_ROWS = [",
+    ]
+    linhas += [f"\t{_ts(r)}," for r in rle_raster(cls)]
+    linhas += ["];", ""]
+    return "\n".join(linhas)
+
+
+def folha_conjuntos(raiz: str) -> str:
+    """Monta a folha dos conjuntos da equipe (mundo.json, `conjuntos`) em `<raiz>/folha_conjuntos_v1.png`, fora do
+    repositório, pronta para enviar (mundo.conjuntos no registro; só com o OK do usuário). Cada conjunto vem do
+    `*_melhorado.png` (ou `*_estilo.png`) de `<raiz>/assets/`; o que não é Wang de 4 × 6 tiles (64 × 96) fica de fora."""
+    conj = _catalogo("mundo")["conjuntos"]
+    folha = Image.new("RGBA", (conj["lado"], conj["lado"]), (0, 0, 0, 0))
+    linhas = []
+    for c in conj["lista"]:
+        img = None
+        for versao in ("melhorado", "estilo"):
+            arq = os.path.join(raiz, "assets", *c["fonte"].split("/")[:-1], f"{c['fonte'].split('/')[-1]}_{versao}.png")
+            if os.path.exists(arq):
+                img = Image.open(arq).convert("RGBA")
+                break
+        if img is None:
+            linhas.append(f"  {c['id']}: sem arquivo em assets/{c['fonte']}_*.png")
+            continue
+        if img.size != (64, 96):
+            linhas.append(f"  {c['id']}: {img.size[0]} × {img.size[1]}, não é Wang de 4 × 6: fica de fora")
+            continue
+        folha.paste(img, ((c["vaga"] % 16) * 64, (c["vaga"] // 16) * 96))
+        linhas.append(f"  {c['id']}: vaga {c['vaga']} ({versao})")
+    saida = os.path.join(raiz, "folha_conjuntos_v1.png")
+    folha.save(saida)
+    return os.linesep.join([saida, *linhas])
+
+
+
+# --- Objetos do mundo (MAPA_MUNDO.md §11, 2026-10-23) -------------------------------------------------------------
+# `diorama/catalogo/mundo.json`, `objetos`: cada tipo de lugar marcado que já tem arte refeita vira cartão (em pé),
+# deitado (no canvas fixo) ou linha/contorno (sebes e cercas, deitadas, numa tira já repetida). `jogo` grava
+# src/shared/world/objetos.ts (onde cada recorte fica na folha, só com os tamanhos do _indice.json) e tira daqui os
+# bloqueios de fase1.ts; `objetos` monta as folhas (imagens só em Haywood-Valley-recuperado\mundo\).
+FORMAS = {"cartao": 0, "deitado": 1}
+OCULTA = {"": 0, "tree": 1, "block": 2}
+FOLGA_FOLHA = 2  # pixels vazios entre dois recortes da folha
+# O jogo monta o mundo em pedaços de 32 × 32 tiles (512 px, worldMap.ts): um trecho de sebe dentro de um pedaço tem até
+# 512 px e começa no passo da peça (até 64 px). A tira mede até 576 px, para todas caberem numa folha só.
+PEDACO_PX = 512
+TIRA_MAX = 576
+
+
+def _indice(raiz: str) -> dict:
+    with open(os.path.join(raiz, "assets", "_indice.json"), encoding="utf-8") as f:
+        return {a["asset"]: a for a in json.load(f)}
+
+
+def _recorte_padrao(ind: dict, asset: str) -> list[int]:
+    if asset not in ind:
+        raise SystemExit(f"mundo.json, objetos: o asset {asset!r} não está no _indice.json")
+    w, h = ind[asset]["tamanho"]
+    return [0, 0, int(w), int(h)]
+
+
+def _tira(peca: dict, ind: dict, vertical: bool) -> dict:
+    """Uma peça de sebe ou cerca e a tira que a repete ao longo de até `lado` pixels (um número inteiro de passos)."""
+    rec = peca.get("recorte") or _recorte_padrao(ind, peca["asset"])
+    passo = int(peca["passo"])
+    comp = rec[3] if vertical else rec[2]
+    n = max(1, (TIRA_MAX - comp) // passo + 1)
+    total = (n - 1) * passo + comp
+    if total < PEDACO_PX + passo - 1:
+        raise SystemExit(f"objetos: a tira de {peca['asset']} (passo {passo}) não cobre um pedaço de {PEDACO_PX} px")
+    w, h = (rec[2], total) if vertical else (total, rec[3])
+    return {"asset": peca["asset"], "recorte": rec, "passo": passo, "vertical": vertical, "n": n, "w": w, "h": h,
+            "chave": f"{peca['asset']}:{','.join(map(str, rec))}:{'v' if vertical else 'h'}:{passo}"}
+
+
+def objetos_catalogo(raiz: str) -> dict:
+    """O catálogo dos objetos resolvido com os tamanhos do _indice.json: os tipos e os recortes únicos a empacotar."""
+    cat = _catalogo("mundo")["objetos"]
+    ind = _indice(raiz)
+    lado = int(cat["lado"])
+    tipos = {}
+    recortes = {}
+    for o in cat["lista"]:
+        forma = o.get("forma", "cartao")
+        if forma in FORMAS:
+            rec = o.get("recorte") or _recorte_padrao(ind, o["asset"])
+            chave = f"{o['asset']}:{','.join(map(str, rec))}"
+            recortes.setdefault(chave, {"asset": o["asset"], "recorte": rec, "w": rec[2], "h": rec[3], "chave": chave})
+            pe = o.get("pe") or [rec[2] // 2, rec[3]]
+            tipos[o["tipo"]] = {"forma": forma, "chave": chave, "w": rec[2], "h": rec[3], "pe": pe,
+                                "bloqueio": o.get("bloqueio", []), "oculta": o.get("oculta", "")}
+        else:
+            t = {"forma": forma, "vao": int(o.get("vao_baixo", 0))}
+            for lado_peca in ("h", "v"):
+                if lado_peca in o:
+                    tira = _tira(o[lado_peca], ind, lado_peca == "v")
+                    recortes.setdefault(tira["chave"], tira)
+                    t[lado_peca] = tira["chave"]
+            tipos[o["tipo"]] = t
+    return {"folha": cat["folha"], "lado": lado, "tipos": tipos, "recortes": recortes}
+
+
+def empacotar(recortes: dict, lado: int) -> dict:
+    """Linha do horizonte (skyline), do mais alto ao mais baixo, no ponto mais alto livre: chave → (folha, x, y).
+    Determinístico (a ordem desempata pela chave)."""
+    ordem = sorted(recortes.values(), key=lambda r: (-r["h"], -r["w"], r["chave"]))
+    folhas: list[list[list[int]]] = []  # cada folha: segmentos [x, largura, y] da linha do horizonte
+    pos = {}
+    for r in ordem:
+        if r["w"] > lado or r["h"] > lado:
+            raise SystemExit(f"objetos: {r['chave']} ({r['w']} × {r['h']}) não cabe numa folha de {lado}")
+        w, h = r["w"] + FOLGA_FOLHA, r["h"] + FOLGA_FOLHA
+        colocado = False
+        n = 0
+        while not colocado:
+            if n == len(folhas):
+                folhas.append([[0, lado + FOLGA_FOLHA, 0]])
+            sky = folhas[n]
+            melhor = None
+            for i, (sx, _, _) in enumerate(sky):
+                if sx + w > lado + FOLGA_FOLHA:
+                    break
+                topo, x, j = 0, sx, i
+                while x < sx + w and j < len(sky):
+                    topo = max(topo, sky[j][2])
+                    x += sky[j][1]
+                    j += 1
+                if topo + h <= lado + FOLGA_FOLHA and (melhor is None or (topo, sx) < melhor):
+                    melhor = (topo, sx)
+            if melhor is None:
+                n += 1
+                continue
+            topo, sx = melhor
+            pos[r["chave"]] = (n, sx, topo)
+            resto = []
+            for seg in sky:
+                a, b = seg[0], seg[0] + seg[1]
+                if b <= sx or a >= sx + w:
+                    resto.append(seg)
+                    continue
+                if a < sx:
+                    resto.append([a, sx - a, seg[2]])
+                if b > sx + w:
+                    resto.append([sx + w, b - (sx + w), seg[2]])
+            resto.append([sx, w, topo + h])
+            resto.sort()
+            sky[:] = resto
+            colocado = True
+    return {"pos": pos, "folhas": len(folhas)}
+
+
+def _ret_celulas(x0: float, y0: float, w: float, h: float) -> list[int]:
+    """As células (inclusivas) cujo meio cai no retângulo em pixels; a do meio do retângulo se nenhuma cair."""
+    cx0 = int(np.ceil((x0 - 8) / 16))
+    cy0 = int(np.ceil((y0 - 8) / 16))
+    cx1 = int(np.ceil((x0 + w - 8) / 16)) - 1
+    cy1 = int(np.ceil((y0 + h - 8) / 16)) - 1
+    if cx1 < cx0 or cy1 < cy0:
+        cx0 = cx1 = int((x0 + w / 2) // 16)
+        cy0 = cy1 = int((y0 + h / 2) // 16)
+    return [cx0, cy0, cx1, cy1]
+
+
+def bloqueios_objeto(tipo: dict, x: int, y: int, w: int, h: int) -> list[list[int]]:
+    """Os bloqueios (células inclusivas, desde o canto da fase) de um objeto do catálogo posto na marca (x, y, w, h):
+    o pé da imagem no meio da borda de baixo da marca, os retângulos do catálogo em pixels da imagem."""
+    if tipo["forma"] != "cartao":
+        return []
+    bx, by = (x + w / 2) * 16, (y + h) * 16
+    ix, iy = bx - tipo["pe"][0], by - tipo["pe"][1]
+    return [_ret_celulas(ix + rx, iy + ry, rw, rh) for rx, ry, rw, rh in tipo["bloqueio"]]
+
+
+def modulo_objetos(obj: dict) -> str:
+    pk = empacotar(obj["recortes"], obj["lado"])
+    pos = pk["pos"]
+    linhas = [
+        _cabecalho("Os objetos do mundo (diorama/catalogo/mundo.json, `objetos`): onde cada recorte fica na folha."),
+        "// A folha (`mundo.objetos.<n>` no registro) sai de `python -I tools/mundo_mapa.py objetos`; sem o id, o jogo desenha",
+        "// o lugar marcado (worldMap.ts). Pixels de arte; o pé é o ponto da imagem que fica no ponto do chão do objeto.",
+        "",
+        f"export const WORLD_OBJECT_SHEET = {_ts(obj['folha'])};",
+        f"export const WORLD_OBJECT_SHEETS = {pk['folhas']};",
+        "",
+        "/** Forma: 0 cartão (em pé), 1 deitado (no canvas fixo). Oculta: 0 nada, 1 árvore, 2 cheio (occlusion.ts). */",
+        "export const WORLD_OBJECTS: Record<",
+        "\tstring,",
+        "\t[sheet: number, x: number, y: number, w: number, h: number, ax: number, ay: number, form: number, hides: number]",
+        "> = {",
+    ]
+    tipos = obj["tipos"]
+    for nome in sorted(tipos):
+        t = tipos[nome]
+        if t["forma"] not in FORMAS:
+            continue
+        n, x, y = pos[t["chave"]]
+        linhas.append(f"\t{nome}: [{n}, {x}, {y}, {t['w']}, {t['h']}, {t['pe'][0]}, {t['pe'][1]}, "
+                      f"{FORMAS[t['forma']]}, {OCULTA[t['oculta']]}],")
+    linhas += [
+        "};",
+        "",
+        "/** Uma tira (a peça de sebe ou cerca repetida): folha, canto, largura e altura da tira, o passo e o lado da peça. */",
+        "export type WorldStrip = [sheet: number, x: number, y: number, w: number, h: number, step: number, piece: number];",
+        "",
+        "/** Sebes, muros e cercas: linha (um lado) ou contorno (os quatro, com o vão no meio de baixo), deitados. */",
+        "export const WORLD_LINES: Record<string, { outline: boolean; gap: number; h?: WorldStrip; v?: WorldStrip }> = {",
+    ]
+    for nome in sorted(tipos):
+        t = tipos[nome]
+        if t["forma"] in FORMAS:
+            continue
+        partes = [f"outline: {'true' if t['forma'] == 'contorno' else 'false'}", f"gap: {t['vao']}"]
+        for lado in ("h", "v"):
+            if lado in t:
+                r = obj["recortes"][t[lado]]
+                n, x, y = pos[t[lado]]
+                peca = r["recorte"][3] if r["vertical"] else r["recorte"][2]
+                partes.append(f"{lado}: [{n}, {x}, {y}, {r['w']}, {r['h']}, {r['passo']}, {peca}]")
+        linhas.append(f"\t{nome}: {{ {', '.join(partes)} }},")
+    linhas += ["};", ""]
+    return "\n".join(linhas)
+
+
+def folha_objetos(raiz: str) -> str:
+    """Monta as folhas dos objetos em `<raiz>/folha_objetos_v1_<n>.png` (fora do repositório, prontas para enviar como
+    mundo.objetos.<n>, só com o OK do usuário), com o mesmo empacotamento de objetos.ts."""
+    obj = objetos_catalogo(raiz)
+    ind = _indice(raiz)
+    pk = empacotar(obj["recortes"], obj["lado"])
+    folhas = [Image.new("RGBA", (obj["lado"], obj["lado"]), (0, 0, 0, 0)) for _ in range(pk["folhas"])]
+    linhas = []
+    for chave, r in sorted(obj["recortes"].items()):
+        a = ind[r["asset"]]
+        arq = a.get(a.get("recomendado", "estilo")) or a.get("estilo")
+        img = Image.open(arq).convert("RGBA")
+        x, y, w, h = r["recorte"]
+        peca = img.crop((x, y, x + w, y + h))
+        n, px, py = pk["pos"][chave]
+        if "passo" in r:
+            tira = Image.new("RGBA", (r["w"], r["h"]), (0, 0, 0, 0))
+            for k in range(r["n"]):
+                tira.alpha_composite(peca, (0, k * r["passo"]) if r["vertical"] else (k * r["passo"], 0))
+            peca = tira
+        folhas[n].alpha_composite(peca, (px, py))
+        linhas.append(f"  {chave}: folha {n} em {px},{py} ({peca.width} × {peca.height}, {os.path.basename(arq)})")
+    saidas = []
+    for n, folha in enumerate(folhas):
+        saida = os.path.join(raiz, f"folha_objetos_v1_{n}.png")
+        folha.save(saida)
+        saidas.append(saida)
+    return os.linesep.join([*saidas, *linhas])
+
+
+def exportar_jogo(raiz: str, cls, k, lugares, conferir: bool) -> int:
+    exterior = _catalogo("exterior")
+    mundo = _catalogo("mundo")
+    g, obj = fase1_layout()
+    objetos = objetos_catalogo(raiz)
+    fase1, stats = modulo_fase1(g, obj, mundo, exterior, objetos)
+    saidas = {
+        "plano.ts": modulo_plano(cls, k, lugares),
+        "terreno.ts": modulo_terreno(exterior, mundo),
+        "fase1.ts": fase1,
+        "objetos.ts": modulo_objetos(objetos),
+    }
+    diferentes = []
+    for nome, texto in saidas.items():
+        caminho_ts = os.path.join(PASTA_JOGO, nome)
+        antes = open(caminho_ts, encoding="utf-8").read() if os.path.exists(caminho_ts) else None
+        if antes != texto:
+            diferentes.append(nome)
+        if not conferir:
+            os.makedirs(PASTA_JOGO, exist_ok=True)
+            with open(caminho_ts, "w", encoding="utf-8", newline="\n") as f:
+                f.write(texto)
+        print(f"{'confere' if antes == texto else ('difere' if conferir else 'gravado')}: src/shared/world/{nome} "
+              f"({len(texto.encode('utf-8')) // 1024} kB)")
+    print(f"fase 1: {stats}")
+    if conferir and diferentes:
+        print(f"diferentes do gerado: {', '.join(diferentes)} (rode npm run mundo:jogo)")
+        return 1
+    return 0
+
+
 # --- Saída ------------------------------------------------------------------------------------------------------
 def tabela(lugares, cls, k):
     print("Áreas (setores):")
@@ -1191,13 +1843,22 @@ def tabela(lugares, cls, k):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("acao", nargs="?", default="tudo", choices=["mundo", "reinos", "fase1", "tabela", "tudo"])
+    ap.add_argument("acao", nargs="?", default="tudo", choices=["mundo", "reinos", "fase1", "tabela", "jogo", "conjuntos", "objetos", "tudo"])
     ap.add_argument("--raiz", default=RAIZ_PADRAO)
+    ap.add_argument("--conferir", action="store_true", help="com `jogo`: só compara com src/shared/world")
     a = ap.parse_args()
     sys.stdout.reconfigure(encoding="utf-8")
+    if a.acao == "conjuntos":
+        print(folha_conjuntos(a.raiz))
+        return 0
+    if a.acao == "objetos":
+        print(folha_objetos(a.raiz))
+        return 0
     cls = biomas_raster(a.raiz)
     k = reinos_raster(cls)
     lugares = lugares_resolvidos(k)
+    if a.acao == "jogo":
+        return exportar_jogo(a.raiz, cls, k, lugares, a.conferir)
     if a.acao == "tabela":
         tabela(lugares, cls, k)
         g, obj = fase1_layout()

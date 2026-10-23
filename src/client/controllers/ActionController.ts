@@ -37,6 +37,7 @@ import { CARRY_FRAMES, PUSH_FPS, PUSH_FRAMES, WALK_FRAMES, WALK_STEP_PX } from "
 import { INTERIOR_TILE, sheetRect } from "client/world/interior";
 import { PieceView } from "client/world/pieces";
 import { DialogueController } from "./DialogueController";
+import { FarmController } from "./FarmController";
 import { MapController } from "./MapController";
 import { MovementController } from "./MovementController";
 import { SceneController } from "./SceneController";
@@ -175,10 +176,12 @@ export class ActionController implements OnStart {
 		private movement: MovementController,
 		private mapController: MapController,
 		private dialogue: DialogueController,
+		private farm: FarmController,
 	) {}
 
 	onStart() {
-		if (this.scene.interior) {
+		// No mapa do mundo (sem interior) também: o jogador pode sair dele para um interior depois.
+		if (this.scene.interior || this.scene.worldMap) {
 			// Os avisos do servidor trazem o mapa: o que chega de um mapa de onde o jogador já saiu fica de fora.
 			const here = (map: string) => map === this.scene.mapKey && this.board !== undefined;
 			Events.pieceChanged.connect((map, id, x, y, mode, holder, variant) => {
@@ -240,7 +243,19 @@ export class ActionController implements OnStart {
 	private useMap() {
 		const map = this.scene.map;
 		const interior = this.scene.interior;
-		if (!map || !interior) return;
+		if (!map || !interior) {
+			// O mapa do mundo não tem peças nem móveis (ainda): solta o que era do mapa de antes.
+			if (this.board) {
+				this.stopHolding(true);
+				this.leaveSeat();
+				for (const [player] of this.beds) this.leaveBed(player);
+				this.fixtures?.destroy();
+				this.fixtures = undefined;
+				this.view = undefined;
+				this.board = undefined;
+			}
+			return;
+		}
 		this.stopHolding(true);
 		this.leaveSeat();
 		this.pendingPush = undefined;
@@ -312,6 +327,12 @@ export class ActionController implements OnStart {
 		if (this.board && !pose.swim && pose.anim !== 3 && pose.anim !== 2) {
 			const [x, y] = this.cellOf(position);
 			if (this.board.kind(x, y) === 6) {
+				pose.wade = true;
+				pose.shadow = false;
+			}
+		} else if (this.scene.worldMap && !pose.swim && pose.anim !== 3 && pose.anim !== 2) {
+			// No mundo, a água rasa vem do terreno do bloco (`shared/world`).
+			if (this.scene.worldMap.kindAt(position) === 6) {
 				pose.wade = true;
 				pose.shadow = false;
 			}
@@ -630,6 +651,11 @@ export class ActionController implements OnStart {
 	private press() {
 		const board = this.board;
 		const root = this.localRoot();
+		// No mapa do mundo (sem peças nem móveis): a fazenda do lote (`FarmController`).
+		if (!board && root && this.scene.worldMap && screen() === "playing" && !this.movement.holding()) {
+			this.farm.press(root, this.localFacing);
+			return;
+		}
 		if (!board || !root || screen() !== "playing" || this.holding || this.step) return;
 		const feet = this.pxOf(root.Position);
 		const carried = board.heldBy(Players.LocalPlayer.UserId);
@@ -914,6 +940,9 @@ export class ActionController implements OnStart {
 
 	private promptFor(root: BasePart | undefined): TextKey | undefined {
 		const board = this.board;
+		if (!board && root && this.scene.worldMap && screen() === "playing" && !this.movement.holding()) {
+			return this.farm.prompt(root, this.localFacing);
+		}
 		if (!board || !root || screen() !== "playing") return undefined;
 		if (this.holding) return "action.pull";
 		const carried = board.heldBy(Players.LocalPlayer.UserId);

@@ -158,11 +158,11 @@ Os que faltam e não existem no ALttP (celeiro, galinheiro, casa da fazenda, cai
 
 ### 4.4 Como montar
 
-1. **Fase 0 antes** (`MAPA_MUNDO.md` §3): o mapa `mundo` em blocos com streaming, o gerador de blocos a partir do plano, os conjuntos da equipe no gerador (`wang16_4x6`), a base em textura grande, a camada da fazenda.
+1. **Fase 0 antes** (`MAPA_MUNDO.md` §3): o mapa `mundo` em blocos com streaming, o gerador de blocos a partir do plano, os conjuntos da equipe no gerador (`wang16_4x6`), a base em textura grande, a camada da fazenda. **Feita em 2026-10-23** (menos a camada da fazenda; `MAPA_MUNDO.md` §11): o chão desta fase já sai do plano no jogo, com o que tem id e lugares marcados no resto.
 2. **Plano em dados**: `tools/mundo_mapa.py` grava, além dos esboços, o módulo do plano para `src/shared/world/` (biomas, reinos, polilinhas, lugares) **(a fazer)**; o rio, as estradas e a avenida da fase 1 saem como polilinhas.
 3. **Modelos no Diorama** (um bloco cada, três camadas chão/objeto/frente e o `exterior`): `quadra_casas_a`, `quadra_casas_b`, `quadra_pousada`, `quadra_largo_rio`, `quadra_cais`, `centro_distrito`, `parada`, `miolo_fazenda`. As quadras e o rio são assados (uma imagem por modelo).
 4. **Blocos autorais** em `diorama/mapas/mundo/blocos/<bx>_<by>.json`: (471, 762) Alto do Mirante, (472, 762) Portão Norte, (473, 762–766) rio e pontes, e onde cada modelo vai (o gerador põe os modelos pelas posições do plano).
-5. **Gerar e testar**: `npm run diorama:jogo -- mundo`, o atributo `InteriorTeste` = `mundo` com `InteriorTesteCelula` no portão do lote A; ler o Output e o `DevPanel` (imagens, cartões, tempo por quadro) no pior ponto (o Largo do Rio no zoom máximo).
+5. **Gerar e testar**: `npm run mundo:jogo` (o chão gerado) e `npm run diorama:jogo -- mundo` (os blocos autorais, quando houver), o atributo `MundoTeste` = `true` (portão do lote) ou `"bx,by"` (o bloco; `MAPA_MUNDO.md` §11); ler o Output e o `DevPanel` (imagens, cartões, tempo por quadro) no pior ponto (o Largo do Rio no zoom máximo).
 6. **Envio** (só com o OK do usuário): a lista da fase 1 está em `MAPA_MUNDO.md` §9.
 
 ## 5. Fases 2 a 4

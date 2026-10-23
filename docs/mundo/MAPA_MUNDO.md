@@ -76,8 +76,8 @@ A densidade de ALttP fica nas peças autorais (cidades, vilas, marcos, a margem 
 
 Hoje cada mapa é um bloco (`0_0`) desenhado inteiro por `buildInterior`, e os mapas ficam a `MAP_SPACING` = 512 studs um do outro no eixo X (`mapCenter`). O mundo não cabe nisso (26.624 studs de lado). Proposta:
 
-- O **mundo é um mapa à parte** (`mundo`), num lugar próprio do Workspace, fora da fila dos interiores: canto noroeste em (−13.312, 0, −30.000), então o mundo ocupa Z de −30.000 a −3.376 e os interiores continuam em Z = 0. A precisão do `float` a 30.000 studs é de uns 0,002 stud, longe do pixel de arte (1/32 stud).
-- O cliente monta **só os blocos perto da câmera**: os que tocam a vista mais 16 tiles de folga. No zoom máximo (768 px de arte de altura, uns 48 × 85 tiles) são até 3 × 3 blocos; no padrão, 2 × 2. Cada bloco tem o seu Part com `SurfaceGui` fixo; carregar e descarregar é criar e destruir o bloco, nunca mudar um canvas montado (a regra do plano de otimização). A camada viva e o canvas da água seguem por bloco.
+- O **mundo é um mapa à parte** (`mundo`), num lugar próprio do Workspace, fora da fila dos interiores: canto noroeste em (−13.312, 0, −30.000), então o mundo ocupa Z de −30.000 a uns −1.660 (o bloco tem 32 studs de largura e 34,06 de fundo: 28.340 de fundo no total) e os interiores continuam em Z = 0 (piso de −1.024 a 1.024). A precisão do `float` a 30.000 studs é de uns 0,002 stud, longe do pixel de arte (1/32 stud).
+- O cliente monta **só os blocos perto da câmera**: os que tocam a vista mais 16 tiles de folga. No zoom máximo (768 px de arte de altura, uns 48 × 85 tiles) são até 3 × 3 blocos; no padrão, 2 × 2. Na fase 0 (§11) a unidade montada virou o **pedaço** de 32 × 32 tiles (um quarto de bloco): o pior 3 × 3 de blocos da fase 1 tinha 4.027 imagens. Cada bloco tem o seu Part com `SurfaceGui` fixo; carregar e descarregar é criar e destruir o bloco, nunca mudar um canvas montado (a regra do plano de otimização). A camada viva e o canvas da água seguem por bloco.
 - Interiores (casas, lojas, pousadas, masmorras) continuam como hoje: saídas e entradas no estilo do `LINK` do Graal, com o véu. A casa do jogador é a cópia por dono de hoje; a porta da casa da fazenda leva a ela.
 - Colisão e ações: `blocks` e `actions` por bloco, do bloco autoral ou do gerador; `collider.ts` cria os bloqueios só dos blocos montados.
 
@@ -108,7 +108,7 @@ O que isso pede:
 
 O exterior de hoje (`EXTERIOR.md`) já usa a grade dupla com máscara de quadrantes (bit 1 em cima à esquerda, 2 em cima à direita, 4 embaixo à esquerda, 8 embaixo à direita) e uma junção por par de terrenos. Os conjuntos refeitos (`mundo\assets\terreno\*_estilo.png`) usam a mesma máscara num desenho diferente: 4 colunas × 6 linhas, o código c na linha c div 4 e coluna c mod 4 (linhas 0–3), os miolos do terreno de cima na linha 4 e os do de baixo na linha 5 (`tools/mundo_assets.py`, `wang16_cantos`). Para aceitar isso:
 
-1. `diorama/catalogo/exterior.json` ganha `conjuntos`: id, folha, desenho (`juncao_v1` para a `folha_juncao`, `wang16_4x6` para os da equipe), o par (cima, baixo) e os miolos. O gerador escolhe a junção pelo par como hoje; o miolo pela semente da célula (não mais pelo padrão 2 × 2).
+1. (Na fase 0 os conjuntos ficaram em `diorama/catalogo/mundo.json`, para não mexer no catálogo do Diorama; ver §11.) `diorama/catalogo/exterior.json` ganha `conjuntos`: id, folha, desenho (`juncao_v1` para a `folha_juncao`, `wang16_4x6` para os da equipe), o par (cima, baixo) e os miolos. O gerador escolhe a junção pelo par como hoje; o miolo pela semente da célula (não mais pelo padrão 2 × 2).
 2. Os **níveis** crescem: mar fundo < mar raso < água de rio < areia < terra < caminho < calçada < grama < mata (copa). Par sem conjunto: o gerador avisa e não desenha (como hoje).
 3. **Penhasco** é altura, não terreno: uma camada `altura` por célula (0 a 3) e um conjunto de penhasco em autotile (o refeito `penhasco_degraus` é uma lista por uso, ainda não autotile: falta organizar em bordas, cantos internos e externos, face e sombra). Célula com face de penhasco bloqueia; escada e rampa passam.
 4. **Água** no canvas de baixo (o papel `mar` de `ground.ts`, com 4 quadros), e as margens com a água transparente, para o rio animar sem refazer o canvas fixo. A espuma da areia da ilha (que o usuário gostou) vira o conjunto de costa animado.
@@ -230,6 +230,21 @@ Tudo pela conta do usuário e só com o OK dele (e a arte derivada do ALttP com 
 
 Cada um entra no registro (`assets/registro.json`) sem id, `npm run assets`, e só depois de enviado volta pelo `--importar`.
 
+**Já no registro, sem id (fase 0, 2026-10-23)**: o código do jogo já usa cada um assim que o id chegar, sem mudar nada.
+
+| Chave | O que é | De onde sai | O jogo sem ele |
+|---|---|---|---|
+| `mundo.base.grama` | textura sem emenda de 1024 × 1024 da grama | a montar dos miolos de `grama_variacoes` e `grama_terra` (refeitos) | grama lisa na cor da base da folha_juncao (`#4b7e52`) |
+| `mundo.base.terra` | idem, terra | miolos de `grama_terra` e `terra_pedrinhas` | terra lisa (`#8c5b4a`) |
+| `mundo.base.calcada` | idem, calçada | `grama_calcada`, `praca_lajotas` | a calçada é areia (a calçada vira terreno próprio com o conjunto `grama_calcada`) |
+| `mundo.base.mata` | idem, copa da mata | `mata_copa` | a mata é grama com lugar marcado |
+| `mundo.agua_rio.0` a `.3` | água do rio, 4 quadros de 1024 × 1024 | a fazer (a água da equipe, `ilha_quadros`) | água lisa (mar raso e mar fundo da folha_juncao), só a espuma da margem anima |
+| `mundo.conjuntos` | folha dos conjuntos da equipe, vagas de 4 × 6 tiles (Wang de 16) | **pronta**: `python -I tools/mundo_mapa.py conjuntos` grava `Haywood-Valley-recuperado\mundo\folha_conjuntos_v1.png` com `grama_terra` (vaga 0) e `agua_grama` (vaga 1); `grama_calcada` e `mata_copa` ainda são listas por uso, não Wang | as junções da folha_juncao |
+
+As texturas grandes e a água do rio ainda **não existem** (são montagem de arte nova a partir dos refeitos): ficam listadas, sem arte feita, pela regra do usuário.
+
+**Fase 1, objetos (2026-10-23)**: `mundo.objetos.0` | a folha dos objetos refeitos (casas, árvores, moitas, poços, ponte, bancos, placas, o morro e a lagoa, e as tiras de sebe e cerca), 1024 × 1024, uma folha só | **pronta**: `python -I tools/mundo_mapa.py objetos` grava `Haywood-Valley-recuperado\mundo\folha_objetos_v1_0.png` (arte derivada do ALttP: fica fora do repositório) | os lugares marcados de sempre. O que falta criar (casa da fazenda, celeiro, galinheiro, caixa de venda...) continua sem chave.
+
 ## 10. Decisões tomadas aqui e o que fica para o usuário
 
 Tomadas (com a autonomia de 2026-10-23):
@@ -248,3 +263,90 @@ Para o usuário:
 3. Tamanho do servidor na fase 1 (4 vagas) e depois (o plano tem 200 lotes; celular fraco pede bem menos jogadores por servidor).
 4. Envio das imagens da §9.
 5. A fronteira exata dos reinos (este plano tira dos biomas; o plano desenha faixas de fronteira que não se leem bem a 1 px = 32 tiles).
+
+## 11. Fase 0: o que foi feito (2026-10-23)
+
+O jogo já tem o mapa do mundo como um mapa novo (`mundo`), em blocos montados perto da câmera, com o chão gerado do plano na área da fase 1. Só se entra nele pelo teste; o começo normal do jogo (`START_INTERIOR`) não mudou.
+
+### Onde fica cada coisa
+
+| O quê | Onde |
+|---|---|
+| O plano em dados (gerado) | `src/shared/world/plano.ts` (reinos, biomas, lugares com distritos e lotes, o reino e o bioma de cada bloco em RLE), `terreno.ts` (terrenos, junções e decalques da folha_juncao; texturas grandes, água do rio e conjuntos da equipe pela chave do registro), `fase1.ts` (o terreno de cada célula da fase 1 em RLE, bloqueios, áreas fechadas, zonas, lotes, começo e os 733 lugares marcados) |
+| O gerador desses módulos | `tools/mundo_mapa.py jogo` (`npm run mundo:jogo`; `-- --conferir` só compara e sai com erro se difere). Lê o plano em `Haywood-Valley-recuperado\mundo\` e os catálogos `diorama/catalogo/exterior.json` e `mundo.json` (novo: o código do esboço → terreno do jogo, as texturas grandes, a água, os conjuntos e os decalques espalhados) |
+| Coordenadas, bloqueio, zonas, teste | `src/shared/world/index.ts`: célula do mundo = tile de 16 px desde o canto noroeste (0 a 53.247); `WORLD_ORIGIN` (−13.312, 0, −30.000); `worldCellPoint`, `worldCellOf`, `terrainAt`, `worldBlocked`, `worldKind`, `worldZoneAt`, `worldTest`, os lotes |
+| O gerador de blocos (no jogo) | `src/shared/world/generate.ts`, `composeBlock(bx, by)`: a grade dupla do exterior (`EXTERIOR.md`) feita no jogo, determinística, com os recortes juntados em retângulos sem passar da borda de um pedaço |
+| O streaming no cliente | `src/client/world/worldMap.ts` (`WorldMap`), ligado pelo `SceneController` quando o mapa do jogador é `mundo` |
+| O servidor | `MapService` (leva ao mundo e dá o lote: atributo `MundoLote`, "A" a "D"), `WorldService` (piso invisível só sob a área aberta) |
+| A folha dos conjuntos para enviar | `python -I tools/mundo_mapa.py conjuntos` → `Haywood-Valley-recuperado\mundo\folha_conjuntos_v1.png` |
+| Os objetos (fase 1) | catálogo `diorama/catalogo/mundo.json` (`objetos`) → `src/shared/world/objetos.ts` (gerado) e os bloqueios de `fase1.ts`; a folha: `python -I tools/mundo_mapa.py objetos` → `folha_objetos_v1_0.png`; o desenho: `worldMap.ts` (`drawObject`) |
+| A fazenda (fase 1) | `src/shared/farm.ts`, `FarmService`, `FarmController`, `client/world/farm.ts`; salvo em `PlayerData.farm` |
+
+### Decisões desta fase
+
+- **Gerar no jogo, não em módulo**: o gerador de blocos é TypeScript em `src/shared` (518 mil blocos não cabem em módulo); do Python sai só o terreno por célula (a fase 1 tem 62 kB em RLE) e o plano.
+- **Pedaços de 32 × 32**: o cliente monta o bloco em 4 pedaços, cada um com o seu canvas fixo de 512 × 512, só os que tocam a vista mais 16 tiles (desmonta além de 32). Com blocos inteiros, o pior 3 × 3 da fase 1 tinha 4.027 imagens (medido abaixo).
+- **Terreno de hoje, sem arte nova**: só a folha_juncao (com id). A calçada é areia; a mata, o capim e o planalto são grama com lugar marcado; o rio é mar raso com o meio fundo (bloqueia) e margem de areia de 1 célula (a folha_juncao não tem par água/grama nem água/terra). Onde o plano tem ponte, a água é rasa de margem a margem (vau; a ponte é marca). `conferir_pares`, no gerador, garante que nenhum tile junta dois terrenos sem junção.
+- **Base lisa sem textura grande**: a grama e a terra da folha_juncao são um padrão de 2 × 2 tiles que não junta (2.048 imagens por bloco de grama); sem `mundo.base.*`, a base sai lisa na cor que mais aparece nela (um recorte de 4 × 4 px esticado), e as bordas continuam com textura. Com o id, o tile da célula é o recorte (x mod 64, y mod 64) da textura e a base de um pedaço junta em poucos retângulos, sem mudar código. Do mesmo jeito, `mundo.agua_rio.0-3` põe a água animada no canvas de baixo e `mundo.conjuntos` troca a junção pelo tile Wang da equipe.
+- **Lugares marcados**: o que o esboço tem e que não tem arte com id (casas, árvores, cercas, o que falta criar) aparece como retângulo na cor da categoria (laranja: refeito sem id; rosa: a criar; verde: vegetação; marrom: cerca, só o contorno; cinza: fechado), com o nome ou o tipo. `MundoMarcas = false` no Workspace esconde. As construções bloqueiam o retângulo; o resto da Ribeira (fase 2) é área fechada.
+- **Lote como vaga**: o servidor dá a cada jogador que entra no mundo o primeiro lote livre (A a D; `MundoLote`), devolvido quando ele sai; sem bloco pedido no teste, ele chega ao portão do lote. A camada da fazenda por lote fica para quando houver o que plantar (sem dados de fazenda nem arte, seria um canvas vazio).
+- **O mundo como lugar compartilhado**: `placeOf` aceita `mundo` sem `mapData`; no mundo o `SceneController` não tem `interior` nem `map`, e `ground`/`live` são um canvas vivo que acompanha o jogador (as sombras). Peças, móveis e decoração ficam desligados no mundo; a água rasa do mundo faz o boneco andar na água (`ActionController.poseFor`); a plaquinha mostra as zonas do plano (Ribeira, Rio Lume, Lote A...). Ir e voltar entre o mundo e um interior funciona pelo `MapController` (testado mudando o atributo `Mapa` no servidor); ainda não há saída no mundo.
+
+### Como testar
+
+1. `npx rbxtsc` e `rojo build default.project.json -o ..\Haywood-Valley-recuperado\teste_mundo.rbxl`; abrir esse arquivo num Studio de teste (nunca o place do usuário).
+2. No Workspace: `MundoTeste` = `true` (o portão do lote do jogador) ou `"bx,by"` (um bloco do mundo, 471–482 × 762–770: a célula livre mais perto do meio dele). `OrcamentoTeste = true` abre o painel de desempenho; `HoraTeste = 12` deixa a captura clara.
+3. Play. O Output diz `[Mundo] mapa do mundo ligado` e avisa as chaves sem id. A pasta `Workspace.World.Mundo` tem os números nos atributos (`Pedacos`, `Blocos`, `Imagens`, `ImagensVivas`, `Bloqueios`, `Marcas`, `Cartoes`, `CompoePiorMs`, `MontaPiorMs`); o painel mostra os mesmos na linha do mapa. O jogador tem `NascerMs` (o tempo do nascer até o véu abrir, só no cliente), `MundoLote` e `Fazenda`.
+4. Andar por código (Client): `require(game.ReplicatedStorage.TS.world)` dá `worldCellPoint` e `worldCellOf`; `Humanoid:MoveTo(worldCellPoint(x, y))`.
+
+### Medido no Studio de teste (2026-10-23)
+
+- **Compor um bloco** (`composeBlock` no cliente do Studio): média 4,4 ms, pior 7,0 ms; os 108 blocos da fase em 0,5 s. No jogo a composição é dividida entre quadros (4 ms por quadro); montar um pedaço leva até 4,7 ms.
+- **Imagens por bloco**: média 143, pior 909 (o rio cruzando a cidade); os blocos de campo têm 15 a 100, a cidade e o rio 500 a 900 (as bordas da calçada em todas as ruas e as três bordas de cada margem).
+- **Na tela, por pedaços** (o pior centro da fase, com a folga de 16 tiles): zoom mais longe (1366 × 768 px de arte) **2.696 imagens** em 20 pedaços, no Largo do Rio; padrão (960 × 540) 2.420 em 16 pedaços; celular (844 × 390 no zoom 2) 1.715. Com blocos inteiros seriam 4.027 no pior 3 × 3. O pior caso ainda passa um pouco das 2.500: é o canto cidade + rio, que o plano manda assar (§3.3) e que a calçada própria e a textura grande também baixam.
+- **Andando** (viewport do Studio de 1463 × 850 físicos, zoom 2): Largo do Rio 1.010 imagens (8 pedaços), o vau 1.420 (9 pedaços, 231 na camada viva: a espuma), os lotes 340 a 430. Quadro de 16,7 ms (o limite de 60 do Studio), o pior 19,3 ms atravessando 4 blocos; nossos scripts 0,10 a 0,18 ms por quadro (`Mundo` 0,02). Canvas fixo refeito 0 vez por segundo; a camada viva 4 (a espuma).
+- **Bloqueio e água**: andando para o leste pelo Largo, o boneco para no mar fundo do rio com os pés na água rasa; pelo vau da Ponte do Portão ele atravessa andando na água e sai na avenida; o cata-vento da praça bloqueia; 10 tiles por segundo.
+- **Interiores**: `InteriorTeste` = `exterior_ilha` e `casa_teste_v2_l` (com `AcoesTeste`) montam como antes (20 peças, 2 baús e fogões, 13 halos).
+
+### Fase 1, primeiro passo (2026-10-23): o nascer, os objetos e a fazenda
+
+Os itens 2, 6 e 8 da lista de baixo, como estava antes deste passo.
+
+**O nascer sem espera** (item 8). A causa, medida no Studio de teste: o `CharacterAdded` chega com o personagem **fora** do Workspace (`Parent` vazio); um quadro depois o Roblox o põe no Workspace no ponto de nascer padrão (Y = 100, sem `SpawnLocation`), por cima de qualquer posição gravada antes. `MapService.place` desistia quando via o `Parent` vazio (a conferida era para o personagem destruído), então o servidor nunca levava o personagem ao nascer quando a escala já estava pronta (sempre nos interiores; no mundo dependia da ordem dos eventos), e só a conferida do cliente aos 3 s o levava. Agora:
+
+- `MapService.place` espera o personagem entrar no Workspace e leva na hora, já na altura de quem está em pé (`standingHeight`, `shared/character.ts`: quadril + meia raiz, 0,75 stud), sem a queda de 1 s desde Y = 100. No mundo, a célula pedida que um objeto bloqueia vira a livre mais perto (`nearestFree`), gravada de volta em `MapaCelula`.
+- `MapController.settleSpawn` (no lugar da conferida de 3 s): o véu começa fechado e fecha na hora a cada nascer; o personagem fica parado até estar dentro do mapa **com o pedaço do chão debaixo dele montado** (`WorldMap.groundAt`); aí o véu abre em 0,2 s. Sem o servidor em 1,5 s, o cliente leva (aviso `[Mapa] o servidor não levou o personagem ao nascer`). O tempo fica no atributo `NascerMs` do jogador (só no cliente).
+- Medido: casa de teste 44 a 90 ms do controller pronto ao véu abrir; mundo 75 a 141 ms (até 0,9 s no primeiro Play depois de abrir o Studio, com o cliente ainda carregando); renascer (`LoadCharacter`) 17 a 32 ms, com o personagem já no lugar no primeiro quadro em que o cliente o vê. Antes: 3 s, com o personagem caindo na origem.
+
+**Objetos em cartões** (item 2). O catálogo é `diorama/catalogo/mundo.json`, `objetos` (os campos estão na `nota_campos` dele): cada tipo de lugar marcado que já tem arte refeita (`_indice.json`, o arquivo `recomendado`, só a variante 0: os `*_melhorado` têm 4 variantes lado a lado, estações ou cores de telhado), com a forma, o pé, os bloqueios em pixels da imagem e a oclusão.
+
+| Forma | Tipos | Como fica |
+|---|---|---|
+| cartão (em pé, `card.ts`) | árvores, moitas, arbusto, toco, pedra, casas (6), galpão, portal, poços, cata-vento, placa, bancos, bebedouro, canteiro de potes, mata | o pé no meio da borda de baixo da marca; árvore grande com a oclusão de árvore, moitas, mata, portal e cata-vento com a cheia |
+| deitado (canvas fixo do pedaço) | ponte de madeira, canteiro de flores, flores brancas, morro, lagoa | a borda de baixo da imagem na da marca |
+| linha e contorno (canvas fixo) | sebes, muros (a sebe no lugar do muro, como na maquete), sebe dos lotes da cidade (vão de 5 tiles embaixo), cerca da fazenda | a tira já repetida na folha (até 576 px, um número inteiro de passos), um recorte por trecho reto dentro do pedaço, começando no passo certo |
+
+- **Gerador** (`tools/mundo_mapa.py`): `jogo` grava também `src/shared/world/objetos.ts` (onde cada recorte fica na folha, pelo empacotamento em linha do horizonte, só com os tamanhos do índice) e tira os bloqueios de `fase1.ts` do catálogo: o tronco da árvore, as paredes da casa (a fileira dos degraus passa), os dois postes do portal. O que não tem arte (o que falta criar) bloqueia o retângulo da marca, como antes. São 619 retângulos (eram 70): `shared/world/index.ts` os guarda em baldes por bloco (`phaseBlockersIn`), senão compor um bloco ia de 5 para 100 ms. `objetos` monta a folha (fora do repositório).
+- **Jogo** (`worldMap.ts`, `drawObject`): com o id de `mundo.objetos.0`, cada lugar marcado com arte vira o desenho dele; o cartão é do pedaço onde fica o pé (um por objeto), sai com o pedaço e tira o registro da oclusão. Sem o id, a marca de sempre. Os bloqueios valem com ou sem arte (são do gerador). Sebes e cercas **não bloqueiam** (a sebe da borda dos lotes cruza a avenida; a cerca da fazenda ainda não tem porteira). O pedaço recebe as marcas com 2 células de folga (`MARK_MARGIN`), para a arte deitada que passa do retângulo.
+- **Teste sem enviar**: `MundoObjetosTeste` (só no Studio) troca o id da folha. Copiar `folha_objetos_v1_0.png` para `%LOCALAPPDATA%\Roblox\Versions\<versão do Studio>\content\textures\hv_teste\folha_objetos.png` e pôr `MundoObjetosTeste = "rbxasset://textures/hv_teste/folha_objetos.png"`: o Studio mostra a folha de verdade sem ela ir ao Roblox (apagar a cópia depois). `MundoMarcas = "cartao"` mostra os objetos sem arte como cartões vazados do tamanho de verdade.
+- Medido no Studio de teste (viewport de 1463 × 850 físicos, zoom 2, com a folha pelo teste): Largo do Rio 1.055 imagens em 8 pedaços e 12 cartões; o vau 1.502 (213 vivas) e 10 cartões; uma quadra da cidade 729 e 37 cartões; centro do D03 759 e 13; a fazenda do lote A 357 e 28; a mata 234 e 5. Compor um bloco: 4,7 a 5,2 ms. A árvore grande na frente do personagem fica 55% transparente; as casas, na frente de quem passa atrás delas.
+
+**A camada da fazenda** (item 6). Regras em `src/shared/farm.ts`; servidor `FarmService`; cliente `FarmController` e `client/world/farm.ts`.
+
+- **Canteiro** de 2 × 2 tiles (32 × 32 px, a célula do protótipo, o tamanho da terra arada e do trigo de `sprites.ts`) na fazenda inicial de 64 × 64 do lote (32 × 32 canteiros); dá para cultivar o que tem os 4 tiles de terra do plano (os 3 canteiros de terra do esboço: 180 por fazenda) e nada bloqueando.
+- **Estados**: terra (nada guardado), arada, plantada; crescendo (de 1/3 do tempo) e pronta saem da hora em que se plantou, pelo relógio do servidor (`GetServerTimeNow`, segundos Unix, o mesmo em todo servidor: o trigo cresce com o jogador fora). Trigo: 120 s (`FARM_CROPS`); `FazendaCrescerTeste` (segundos) no Workspace para testar. Colher volta a arada; a colheita ainda não vai para lugar nenhum (sem economia).
+- **Desenho**: uma camada viva por lote com dono (`createGround`, papel `vivo`, 1024 × 1024 px sobre a fazenda), por cima do canvas fixo dos pedaços: duas fileiras de `Sprites.soil` por canteiro arado e o trigo (`wheat1` plantado, `wheat2` crescendo, `wheat3` pronto), deitados (`GroundLayer.Soil`). Muda só quando o atributo muda ou um canteiro troca de estágio (conferido a cada 1 s); o chão fixo nunca é refeito. Todos veem a fazenda de todos (o atributo `Fazenda` do dono vai a todos).
+- **Ação**: a tecla F (ou o botão na tela de toque) no mundo, sem peça nem móvel, mira o canteiro à frente do pé (12 px) ou debaixo dele, na própria fazenda: "Arar", "Plantar trigo", "Colher" (`action.till`, `action.plant`, `action.harvest`).
+- **Servidor**: `farmTill`, `farmPlant`, `farmHarvest` passam pelo limitador (`RATE.farm` = 8 por segundo, juntos) e são conferidos (no mundo, com lote, canteiro cultivável, personagem a até 3 tiles, estado certo); o que não passa é ignorado. Grava em `PlayerData.farm` e no atributo.
+- **Salvo**: `PlayerData` passou ao formato 2 (`PLAYER_DATA_VERSION`, campo `v`), com `farm = { v: FARM_SAVE_VERSION, plots }` (texto "índice,estado[,planta,hora];..."); o salvo de antes (sem `v` nem `farm`) se lê com a fazenda vazia; a fazenda salva por uma versão mais nova fica como veio. A gravação agora guarda os campos do salvo que o servidor não conhece. **Ao publicar, fechar os servidores antigos**: eles gravam só os campos que conhecem e apagariam a fazenda.
+- Testado no Studio de teste (eventos disparados pelo cliente, como faria a tecla): arar 4 canteiros, plantar 2, colher cedo (recusado), arar fora da terra (recusado), o trigo nas três fases com 20 s, colher (volta a arada), 30 pedidos de uma vez (só os do limite passam); a dica "Arar"/"Colher" aparece na frente do canteiro.
+
+### O que falta para a fase 1 ficar jogável
+
+1. **Envios** (só com o OK do usuário, §9): `mundo.conjuntos` e `mundo.objetos.0` (as folhas estão prontas), as texturas grandes e a água do rio (a montar dos refeitos) e as quadras assadas da cidade.
+2. **Objetos**: a arte do que falta criar (casa da fazenda, celeiro, galinheiro, caixa de venda, quadro de pedidos, espantalho, carroça, barraca, fogueira, ponte de pedra, píer, mirante, escada) entra no catálogo quando existir; as 4 variantes (estações, telhados) ainda não são escolhidas; a cerca da fazenda precisa da porteira para bloquear; o portal e a sebe da cidade se sobrepõem no Portão Leste; o cata-vento não gira (os quadros estão em `cata_vento_quadros`).
+3. **Terrenos que faltam**: calçada própria (com `grama_calcada` organizado em Wang), mata e penhasco em autotile (o Alto do Mirante), terra arada própria (hoje a arada é a terra do protótipo, que tem o desenho inclinado da vista antiga); quando `agua_grama` tiver id, o gerador do plano deixa de pôr a margem de areia onde o rio encosta na grama.
+4. **Modelos autorais no Diorama**: as quadras da Ribeira, o rio com as pontes, o centro do distrito, a parada e o miolo da fazenda (`diorama/modelos/`), e o gerador pondo cada modelo no bloco dele.
+5. **Saídas**: a porta da casa da fazenda (a casa do jogador de hoje, cópia por dono), as lojas e a pousada da Ribeira, e a volta do interior ao portão do lote. O lote só é dado ao entrar no servidor direto no mundo (`MapService.join`): a saída para o mundo também terá de dar o lote.
+6. **A fazenda de verdade**: sementes e colheita no inventário, outras plantas, a cerca crescendo (64, 128, 192), construções (cartões) e o mato do lote a limpar; o trigo pronto como cartão (hoje deitado, o boneco fica sempre por cima dele).
+7. **O começo do jogo** no portão do lote, no lugar de `START_INTERIOR`, quando o resto estiver no lugar.

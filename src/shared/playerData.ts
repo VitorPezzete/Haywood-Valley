@@ -1,20 +1,31 @@
 // O que fica salvo de cada jogador entre uma partida e outra (DataStore, PlayerDataService): o
 // personagem (visual e nome, para o Continuar do menu), as cabeças e os corpos favoritos e os visuais
-// salvos da tela de personalizar, e a decoração da casa. Peças são guardadas pelo
+// salvos da tela de personalizar, a decoração da casa e a fazenda do lote do mundo. Peças são guardadas pelo
 // id, não pela posição na lista, para continuarem certas quando chegarem peças novas.
 
 import { CLOTH_KEYS, DEFAULT_LOOK, DETAIL_KEYS, Look, ORIGINAL, ColorKey } from "./appearance";
 import { Graal } from "./graal";
 import { LEGACY_PIECE_STYLE, PieceStyle } from "./pieceStyle";
 import { emptyDecor, PlayerDecor } from "./decor";
+import { emptyFarm, PlayerFarm } from "./farm";
+
+/**
+ * Versão do formato salvo (o campo `v`). A 1 (sem o campo) é a de antes de 2026-10-23; a 2 acrescentou a fazenda
+ * (`farm`), e o salvo da 1 se lê igual, com a fazenda vazia. Quem grava guarda os campos que não conhece (o salvo de
+ * uma versão mais nova passa por um servidor velho sem perder nada); os servidores de antes da 2 ainda não fazem isso:
+ * ao publicar a 2, fechar os servidores antigos, que gravariam o salvo sem a fazenda.
+ */
+export const PLAYER_DATA_VERSION = 2;
 
 export interface PlayerData {
+	v: number;
 	favoriteHeads: string[];
 	favoriteBodies: string[];
 	savedLooks: string[];
 	character: string;
 	characterName: string;
 	decor: PlayerDecor;
+	farm: PlayerFarm;
 }
 
 /** Quantos visuais salvos cada jogador tem. */
@@ -29,12 +40,14 @@ export function emptyPlayerData(): PlayerData {
 	const savedLooks = new Array<string>();
 	for (let index = 0; index < SAVED_LOOKS; index++) savedLooks.push("");
 	return {
+		v: PLAYER_DATA_VERSION,
 		favoriteHeads: [],
 		favoriteBodies: [],
 		savedLooks,
 		character: "",
 		characterName: "",
 		decor: emptyDecor(),
+		farm: emptyFarm(),
 	};
 }
 

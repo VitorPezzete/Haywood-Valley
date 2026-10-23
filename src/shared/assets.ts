@@ -2,7 +2,7 @@
 // `npm run assets`. Aqui ficam só os ids; os recortes e os dados de cada folha continuam no módulo que a usa.
 /** Imagem vazia de propósito (não é um asset): quem pré-carrega pula este id e o "". */
 export const MISSING_IMAGE = "rbxassetid://0";
-/** O id de cada asset do registro, pela chave ("" enquanto não foi enviado): 184 imagens e 52 sons. */
+/** O id de cada asset do registro, pela chave ("" enquanto não foi enviado): 185 imagens e 52 sons. */
 export const ASSETS: Readonly<Record<string, string>> = {
 	"graal.aeko.0": "rbxassetid://101792482061813",
 	"graal.aeko.1": "rbxassetid://78713133588607",
@@ -177,6 +177,7 @@ export const ASSETS: Readonly<Record<string, string>> = {
 	"mundo.agua_rio.2": "",
 	"mundo.agua_rio.3": "",
 	"mundo.conjuntos": "",
+	"mundo.objetos.0": "",
 	"ui.atlas": "rbxassetid://79941251908026",
 	"ui.chat": "rbxassetid://79579734066854",
 	"ui.logo": "rbxassetid://130160068096699",
@@ -250,5 +251,6 @@ export const ASSET_LISTS: Readonly<Record<string, readonly string[]>> = {
 	"mar.infinito": ["rbxassetid://78952966417887", "rbxassetid://136483535503999", "rbxassetid://98556141436204", "rbxassetid://136483535503999"],
 	"recortes": [""],
 	"mundo.agua_rio": ["", "", "", ""],
+	"mundo.objetos": [""],
 	"som.passo_agua": ["rbxassetid://9117947974", "rbxassetid://9117946641", "rbxassetid://9117946658"],
 };

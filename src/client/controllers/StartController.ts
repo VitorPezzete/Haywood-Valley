@@ -16,6 +16,7 @@ import { OPEN_SECONDS, StartScreen } from "client/ui/StartScreen";
 import { figureLayers } from "client/world/graalArt";
 import { FACE_SHEET } from "client/world/characterArt";
 import { interiorTest } from "client/world/interiorTest";
+import { worldTest } from "shared/world";
 import { GRASS_TILE, Sprites } from "client/world/sprites";
 import { closeOpening } from "client/ui/opening";
 import { DialogueController } from "./DialogueController";
@@ -32,7 +33,7 @@ export class StartController implements OnStart {
 	) {}
 
 	onStart() {
-		if (interiorTest()) {
+		if (interiorTest() || worldTest()) {
 			this.startInteriorTest();
 			closeOpening();
 			return;

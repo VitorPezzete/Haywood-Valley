@@ -1,0 +1,91 @@
+{
+	"versao": 1,
+	"nota": "O chão do mapa do mundo (docs/mundo/MAPA_MUNDO.md, fase 0, 2026-10-23). Lido por tools/mundo_mapa.py (ação `jogo`), que grava src/shared/world/terreno.ts e fase1.ts. Os terrenos, as junções e os decalques de hoje vêm de exterior.json (a folha_juncao, que tem id); o que está aqui é o que só o mundo usa.",
+	"do_plano": {
+		"grama": "g",
+		"capim": "g",
+		"mata": "g",
+		"planalto": "g",
+		"terra": "t",
+		"solo": "t",
+		"calcada": "a",
+		"agua": "r"
+	},
+	"nota_do_plano": "Código do esboço da fase 1 (tools/mundo_mapa.py, fase1_layout) → terreno do jogo (exterior.json). Enquanto os conjuntos da equipe não têm id: a calçada sai como areia (a única base clara com junção para a grama e para a água), a mata, o capim e o planalto saem como grama e ficam como lugar marcado (sem copa nem penhasco). A água do rio é mar raso; o gerador põe o mar fundo no meio (2 células da margem), a margem de areia (1 célula em volta da água, para nenhum tile juntar água e grama ou terra, pares sem junção) e o vau (só mar raso) onde o plano tem ponte.",
+	"texturas_grandes": {
+		"g": "mundo.base.grama",
+		"t": "mundo.base.terra"
+	},
+	"nota_texturas_grandes": "Textura sem emenda de 1024 × 1024 (64 × 64 tiles) por terreno de base (MAPA_MUNDO.md §3.3): o tile da célula (x, y) é o recorte (x mod 64, y mod 64), então a base de um bloco inteiro junta em poucos retângulos. A calçada (mundo.base.calcada) entra quando ela for um terreno próprio, com o conjunto grama_calcada; hoje ela é a areia, que também é a margem do rio. Sem id, a base sai lisa na cor que mais aparece na base da folha_juncao (o recorte `liso` de terreno.ts).",
+	"agua_rio": "mundo.agua_rio",
+	"nota_agua_rio": "4 quadros de 1024 × 1024 (mundo.agua_rio.0 a 3) no canvas de baixo de cada bloco, trocados como o mar de fora (water.ts); com eles, a base da água fica transparente no canvas fixo e as junções da margem desenham por cima. Sem id, a água é a base lisa do mar raso e do mar fundo.",
+	"conjuntos": {
+		"folha": "mundo.conjuntos",
+		"lado": 1024,
+		"desenho": "wang16_4x6",
+		"nota": "Os conjuntos da equipe (mundo\\assets\\terreno\\*_melhorado.png ou *_estilo.png, tools/mundo_assets.py) numa folha de 1024 × 1024, cada um numa vaga de 64 × 96 (4 × 6 tiles: o código c na linha c div 4, coluna c mod 4; bit 1 canto de cima à esquerda, 2 cima à direita, 4 baixo à esquerda, 8 baixo à direita com o terreno A; linha 4 os miolos de A, linha 5 os de B). Vaga n em (n mod 16 × 64, n div 16 × 96). O tile Wang é opaco: substitui a base e a junção do par. Sem id da folha, vale a folha_juncao.",
+		"lista": [
+			{ "id": "grama_terra", "a": "t", "b": "g", "vaga": 0, "fonte": "terreno/grama_terra" },
+			{ "id": "agua_grama", "a": "r", "b": "g", "vaga": 1, "fonte": "terreno/agua_grama", "nota": "com ele a margem de areia do gerador deixa de ser obrigatória (água e grama passam a ter par); falta a animação da borda" },
+			{ "id": "grama_calcada", "a": "g", "b": "a", "vaga": 2, "fonte": "terreno/grama_calcada", "nota": "lista por uso, ainda não Wang (PLANO_REFAZER_ALTTP.md): falta organizar" },
+			{ "id": "mata_copa", "a": "k", "b": "g", "vaga": 3, "fonte": "terreno/mata_copa", "nota": "128 × 80, lista por uso: a borda de mata em autotile ainda não existe (k, a mata, ainda não é terreno do jogo)" }
+		]
+	},
+	"decalques": {
+		"grama": [
+			{ "id": "flor_1", "por_mil": 1.2 },
+			{ "id": "flor_2", "por_mil": 1.2 },
+			{ "id": "pedras_pequenas", "por_mil": 0.6 }
+		],
+		"capim": [
+			{ "id": "flor_1", "por_mil": 6 },
+			{ "id": "flor_2", "por_mil": 6 }
+		],
+		"nota": "Espalhados pelo gerador do jogo (src/shared/world/generate.ts) por semente da célula, só em grama pura de 2 × 2 tiles. O capim do plano ainda não tem decalque próprio (tufos da grama_variacoes, sem id): fica com mais flores, para a mancha se ver."
+	},
+	"objetos": {
+		"folha": "mundo.objetos",
+		"lado": 1024,
+		"nota": "Os objetos do mundo (MAPA_MUNDO.md §11, 2026-10-23): cada tipo de lugar marcado do plano (PHASE1_MARK_KINDS) que já tem arte refeita (mundo\\assets\\_indice.json, o arquivo `recomendado`, só a variante 0: os *_melhorado com 4 variantes lado a lado, estações ou cores de telhado, separadas por 4 px). tools/mundo_mapa.py lê esta lista: `jogo` grava src/shared/world/objetos.ts (onde cada recorte fica na folha, o pé, a forma, a oclusão) e tira os bloqueios de fase1.ts daqui; `objetos` monta as folhas (mundo.objetos.0, .1...) em Haywood-Valley-recuperado\\mundo\\folha_objetos_v1_<n>.png, sem enviar. O que não está aqui (o que falta criar: casa_fazenda, celeiro...) fica como lugar marcado e bloqueia o retângulo da marca, se for construção.",
+		"nota_campos": "asset: o nome no _indice.json; recorte: [x, y, w, h] no arquivo (padrão: a variante 0, [0, 0, tamanho]); forma: cartao (em pé, card.ts: o pé no meio da borda de baixo do retângulo da marca), deitado (no canvas fixo do pedaço, a borda de baixo da imagem na de baixo da marca), linha (sebe, muro: a tira repetida ao longo da marca, deitada) ou contorno (as quatro bordas da marca; vao_baixo: tiles abertos no meio da borda de baixo); pe: [x, y] da imagem que fica no ponto do chão (padrão: meio da borda de baixo); bloqueio: retângulos [x, y, w, h] em pixels da imagem (a célula cujo meio cai dentro bloqueia; sem bloqueio, nada bloqueia); oculta: tree ou block (occlusion.ts), o que fica meio transparente com o jogador atrás.",
+		"lista": [
+			{ "tipo": "arvore_grande", "asset": "arvore_grande", "bloqueio": [[20, 64, 24, 16]], "oculta": "tree" },
+			{ "tipo": "arvore_pequena", "asset": "arvore_pequena", "bloqueio": [[8, 20, 15, 12]] },
+			{ "tipo": "arvore_pequena_rosa", "asset": "arvore_pequena_rosa", "bloqueio": [[8, 20, 15, 12]] },
+			{ "tipo": "moita_grande", "asset": "moita_grande", "bloqueio": [[8, 32, 48, 32]], "oculta": "block" },
+			{ "tipo": "moita_cruz", "asset": "moita_cruz", "bloqueio": [[8, 30, 42, 30]], "oculta": "block" },
+			{ "tipo": "arbusto", "asset": "arbusto", "bloqueio": [[2, 8, 12, 8]] },
+			{ "tipo": "toco", "asset": "toco", "bloqueio": [[4, 12, 24, 20]] },
+			{ "tipo": "pedra_leve", "asset": "pedra_leve", "bloqueio": [[0, 3, 16, 12]] },
+			{ "tipo": "flores_brancas", "asset": "flores_brancas", "forma": "deitado" },
+			{ "tipo": "canteiro_flores_rosa", "asset": "canteiro_flores_rosa", "forma": "deitado" },
+			{ "tipo": "mata_bloco", "asset": "mata_bloco", "bloqueio": [[8, 16, 286, 140]], "oculta": "block" },
+			{ "tipo": "morro", "asset": "penhasco_morro_anel", "forma": "deitado", "nota": "sem bloqueio até o penhasco em autotile (o anel ainda é uma imagem só)" },
+			{ "tipo": "lago_anel", "asset": "lago_penhasco_anel", "forma": "deitado", "nota": "sem bloqueio até o penhasco e a água do lago virarem terreno" },
+			{ "tipo": "casa_vermelha", "asset": "casa_vermelha", "bloqueio": [[0, 0, 96, 80]] },
+			{ "tipo": "casa_azul", "asset": "casa_azul", "bloqueio": [[0, 0, 96, 80]] },
+			{ "tipo": "casa_azul_media", "asset": "casa_azul_media", "bloqueio": [[0, 0, 96, 80]] },
+			{ "tipo": "casa_madeira", "asset": "casa_madeira", "bloqueio": [[0, 0, 96, 80]] },
+			{ "tipo": "casa_azul_grande", "asset": "casa_azul_grande", "bloqueio": [[0, 0, 96, 128]] },
+			{ "tipo": "casa_vermelha_loja", "asset": "casa_vermelha_loja", "bloqueio": [[0, 0, 96, 64]] },
+			{ "tipo": "galpao_madeira", "asset": "galpao_madeira", "bloqueio": [[0, 0, 61, 56]] },
+			{ "tipo": "portal_madeira", "asset": "portal_madeira", "bloqueio": [[0, 24, 12, 16], [68, 24, 12, 16]], "oculta": "block", "nota": "os dois postes bloqueiam; o vão do meio passa" },
+			{ "tipo": "poco_madeira", "asset": "poco_madeira", "bloqueio": [[0, 6, 28, 24]] },
+			{ "tipo": "poco_pedra", "asset": "poco_pedra", "bloqueio": [[0, 6, 30, 26]] },
+			{ "tipo": "cata_vento_praca", "asset": "cata_vento_praca", "bloqueio": [[4, 37, 17, 16]], "oculta": "block" },
+			{ "tipo": "placa", "asset": "placa", "bloqueio": [[2, 8, 12, 8]] },
+			{ "tipo": "banco_madeira", "asset": "banco_madeira", "bloqueio": [[0, 4, 32, 12]] },
+			{ "tipo": "banco_pedra", "asset": "banco_pedra", "bloqueio": [[0, 4, 48, 12]] },
+			{ "tipo": "bebedouro", "asset": "bebedouro", "bloqueio": [[0, 4, 37, 14]] },
+			{ "tipo": "canteiro_potes", "asset": "canteiro_potes", "bloqueio": [[0, 16, 88, 32]] },
+			{ "tipo": "ponte_madeira", "asset": "ponte_madeira", "forma": "deitado", "nota": "deitada sobre o vau (água rasa de margem a margem): passa por cima" },
+			{ "tipo": "sebe_h", "forma": "linha", "h": { "asset": "sebe_horizontal", "recorte": [0, 0, 32, 23], "passo": 32 } },
+			{ "tipo": "sebe_v", "forma": "linha", "v": { "asset": "sebe_vertical", "recorte": [0, 0, 16, 32], "passo": 30 } },
+			{ "tipo": "muro_h", "forma": "linha", "h": { "asset": "sebe_horizontal", "recorte": [0, 0, 32, 23], "passo": 32 }, "nota": "o muro baixo da cidade ainda não existe: a sebe no lugar dele, como na maquete" },
+			{ "tipo": "muro_v", "forma": "linha", "v": { "asset": "sebe_vertical", "recorte": [0, 0, 16, 32], "passo": 30 } },
+			{ "tipo": "sebe_lote", "forma": "contorno", "vao_baixo": 5, "h": { "asset": "sebe_horizontal", "recorte": [0, 0, 32, 23], "passo": 32 }, "v": { "asset": "sebe_vertical", "recorte": [0, 0, 16, 32], "passo": 30 } },
+			{ "tipo": "cerca", "forma": "contorno", "h": { "asset": "cerca_estacas", "passo": 64 }, "v": { "asset": "cerca_pecas", "passo": 44 }, "nota": "a cerca da fazenda (64 × 64 tiles no meio do lote); ainda não bloqueia: falta a porteira na trilha do portão" }
+		],
+		"nota_linhas": "Sebes, muros e cercas não bloqueiam (como na fase 0): a sebe da borda dos lotes cruza a avenida e a cerca da fazenda ainda não tem porteira. Ficam deitadas no canvas fixo do pedaço (cartões seriam uns 35 por quadra da cidade, além dos 400 do orçamento), cada trecho reto num recorte só: a folha guarda a tira já repetida (até 1024 px, um número inteiro de passos)."
+	}
+}

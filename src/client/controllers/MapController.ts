@@ -14,7 +14,9 @@ import {
 	placeOf,
 	zoneAt,
 } from "shared/interiorChoice";
+import { standingHeight } from "shared/character";
 import { EN, TextKey } from "shared/i18n/en";
+import { cellOpen, WORLD_MAP_ID, worldCellOf, worldCellPoint, worldSpawn, worldZoneAt } from "shared/world";
 import { Events } from "client/network";
 import { perfBegin, perfEnd } from "client/perf";
 import { screen } from "client/state/screen";
@@ -37,8 +39,14 @@ const ARRIVED_STUDS = 1.5;
 /** A plaquinha da zona: quanto aparece inteira e quanto leva para surgir e sumir, em segundos. */
 const ZONE_SECONDS = 3;
 const ZONE_FADE = 0.3;
-/** Quanto depois de nascer o cliente confere se o personagem está mesmo no mapa dele. */
-const SPAWN_CHECK = 3;
+/**
+ * Ao nascer, quanto o cliente espera o servidor levar o personagem ao lugar dele (com o chão montado embaixo) antes de
+ * ele mesmo levar, em segundos. O servidor leva no quadro em que o personagem entra no Workspace (`MapService.place`,
+ * corrigido em 2026-10-23); antes, só esta conferida o levava, aos 3 s.
+ */
+const SPAWN_WAIT = 1.5;
+/** Ao nascer, quanto leva o véu para abrir, em segundos. */
+const SPAWN_FADE_IN = 0.2;
 
 /** Uma animação de 0 a 1 (ou de 1 a 0) de um número da tela. */
 interface Fade {
@@ -58,11 +66,14 @@ interface Fade {
  * - **Zonas**: a zona com nome em que o pé está (`zone`), com as propriedades que o som usa
  *   (`musica`, `ambiente`); ao entrar numa zona, o nome dela aparece no canto, traduzido quando é uma chave de
  *   texto (`zone.…`).
+ * - **Mundo** (`WORLD_MAP_ID`): a célula é a do mundo; as zonas são as do plano (`worldZoneAt`) e ainda não há saídas.
  */
 @Controller()
 export class MapController implements OnStart {
 	readonly zone = source<Zone | undefined>(undefined);
-	private veil = source(1);
+	/** Começa fechado: abre quando o personagem nasce no lugar dele, com o chão pronto (`settleSpawn`). */
+	private veil = source(0);
+	private spawnSerial = 0;
 	private zoneFade = source(1);
 	private zoneName = source("");
 	private zoneShownAt = -math.huge;
@@ -79,7 +90,7 @@ export class MapController implements OnStart {
 	) {}
 
 	onStart() {
-		if (!this.scene.interior) return;
+		if (!this.scene.interior && !this.scene.worldMap) return;
 		mount(
 			() =>
 				MapHud({
@@ -95,8 +106,8 @@ export class MapController implements OnStart {
 		Events.exitRefused.connect(() => this.finish());
 		RunService.Heartbeat.Connect(() => this.tick());
 		RunService.RenderStepped.Connect(() => this.animate());
-		Players.LocalPlayer.CharacterAdded.Connect((character) => this.checkSpawn(character));
-		if (Players.LocalPlayer.Character) this.checkSpawn(Players.LocalPlayer.Character);
+		Players.LocalPlayer.CharacterAdded.Connect((character) => this.settleSpawn(character));
+		if (Players.LocalPlayer.Character) this.settleSpawn(Players.LocalPlayer.Character);
 		this.follow();
 	}
 
@@ -109,7 +120,18 @@ export class MapController implements OnStart {
 		return root?.IsA("BasePart") ? root : undefined;
 	}
 
-	private arrival() {
+	private inWorld() {
+		return this.scene.mapId === WORLD_MAP_ID;
+	}
+
+	/** O centro da célula de chegada no chão, no mapa de agora. */
+	private cellPoint(cell: [number, number]) {
+		if (this.inWorld()) return worldCellPoint(cell[0], cell[1]);
+		return mapCellPoint(this.scene.mapId!, cell[0], cell[1], this.scene.mapSlot);
+	}
+
+	private arrival(): [number, number] | undefined {
+		if (this.inWorld()) return decodeCell(Players.LocalPlayer.GetAttribute(MAP_CELL_ATTRIBUTE)) || worldSpawn();
 		const data = mapData(this.scene.mapId);
 		if (!data) return undefined;
 		return decodeCell(Players.LocalPlayer.GetAttribute(MAP_CELL_ATTRIBUTE)) || data.spawn;
@@ -119,7 +141,7 @@ export class MapController implements OnStart {
 		const root = this.localRoot();
 		const cell = this.arrival();
 		if (!root || !cell || this.scene.mapId === undefined) return false;
-		const target = mapCellPoint(this.scene.mapId, cell[0], cell[1], this.scene.mapSlot);
+		const target = this.cellPoint(cell);
 		return new Vector3(root.Position.X - target.X, 0, root.Position.Z - target.Z).Magnitude < ARRIVED_STUDS;
 	}
 
@@ -128,21 +150,63 @@ export class MapController implements OnStart {
 		const root = this.localRoot();
 		const cell = this.arrival();
 		if (!character || !root || !cell || this.scene.mapId === undefined) return;
-		const point = mapCellPoint(this.scene.mapId, cell[0], cell[1], this.scene.mapSlot);
-		character.PivotTo(new CFrame(new Vector3(point.X, math.max(root.Position.Y, 1), point.Z)));
+		const point = this.cellPoint(cell);
+		character.PivotTo(new CFrame(new Vector3(point.X, standingHeight(character), point.Z)));
 	}
 
-	private checkSpawn(character: Model) {
-		task.delay(SPAWN_CHECK, () => {
-			if (Players.LocalPlayer.Character !== character || this.travel) return;
-			const root = this.localRoot();
-			const id = this.scene.mapId;
-			if (!root || id === undefined) return;
-			const [x, y] = cellOfPoint(mapCorner(id, this.scene.mapSlot), root.Position);
-			if (x < 0 || y < 0 || x >= 64 || y >= 64) {
-				warn(`[Mapa] o personagem nasceu fora de "${id}"; levando à chegada`);
-				this.placeHere();
+	/** Se o personagem está dentro do mapa de agora (no mundo, na área aberta). */
+	private insideMap(root: BasePart) {
+		const id = this.scene.mapId;
+		if (id === undefined) return false;
+		if (this.inWorld()) {
+			const [wx, wy] = worldCellOf(root.Position);
+			return cellOpen(wx, wy);
+		}
+		const [x, y] = cellOfPoint(mapCorner(id, this.scene.mapSlot), root.Position);
+		return x >= 0 && y >= 0 && x < 64 && y < 64;
+	}
+
+	/** Se o chão debaixo do personagem já está montado (no mundo, o pedaço do pé; o interior monta inteiro). */
+	private groundReady(root: BasePart) {
+		const world = this.scene.worldMap;
+		return !world || world.groundAt(root.Position);
+	}
+
+	/**
+	 * Ao nascer (e renascer): o véu fecha na hora e o personagem fica parado até o servidor o levar ao lugar dele e o
+	 * chão debaixo dele estar montado; aí o véu abre. Sem o servidor em `SPAWN_WAIT` segundos, o cliente leva (o
+	 * personagem é dele na física). Numa viagem em andamento quem cuida é o `follow`.
+	 */
+	private settleSpawn(character: Model) {
+		this.spawnSerial += 1;
+		const serial = this.spawnSerial;
+		if (this.travel) return;
+		this.veilFade = undefined;
+		this.veil(0);
+		const release = this.movement.hold();
+		task.spawn(() => {
+			const started = os.clock();
+			const current = () => serial === this.spawnSerial && Players.LocalPlayer.Character === character;
+			const settled = () => {
+				const root = this.localRoot();
+				return root !== undefined && this.insideMap(root) && this.groundReady(root);
+			};
+			while (current() && !this.travel && !settled() && os.clock() - started < SPAWN_WAIT) task.wait();
+			if (current() && !this.travel && !settled()) {
+				const root = this.localRoot();
+				if (root && !this.insideMap(root)) {
+					warn(`[Mapa] o servidor não levou o personagem ao nascer (${this.scene.mapId}); levando à chegada`);
+					this.placeHere();
+				}
+				// O pedaço do pé sai no quadro seguinte ao do personagem chegar (`SceneController.onRender`).
+				const placed = os.clock();
+				while (current() && !this.travel && !settled() && os.clock() - placed < SPAWN_WAIT) task.wait();
 			}
+			release();
+			if (!current() || this.travel) return;
+			this.fadeVeil(1, SPAWN_FADE_IN);
+			const ms = math.round((os.clock() - started) * 1000);
+			Players.LocalPlayer.SetAttribute("NascerMs", ms);
 		});
 	}
 
@@ -208,8 +272,12 @@ export class MapController implements OnStart {
 		// O servidor não respondeu à saída: abre o véu.
 		if (this.travel?.asked && now - this.travel.since > EXIT_TIMEOUT) this.finish();
 
-		const data = mapData(this.scene.mapId);
 		const root = this.localRoot();
+		if (this.inWorld()) {
+			if (root && !this.travel) this.checkWorld(root, now);
+			return;
+		}
+		const data = mapData(this.scene.mapId);
 		if (!data || !root || this.travel) return;
 		const [x, y] = cellOfPoint(mapCorner(data.id, this.scene.mapSlot), root.Position);
 
@@ -235,6 +303,26 @@ export class MapController implements OnStart {
 		}
 
 		const zone = zoneAt(data, x, y);
+		if (zone !== this.zone()) {
+			this.zone(zone);
+			if (zone) {
+				this.zoneName(MapController.zoneTitle(zone));
+				this.zoneShownAt = now;
+			}
+		}
+	}
+
+	/** No mundo: só a zona (as saídas do mundo vêm com a fase 1), quando o pé muda de célula. */
+	private checkWorld(root: BasePart, now: number) {
+		const [x, y] = worldCellOf(root.Position);
+		const seen = this.seenCell;
+		if (seen.x === x && seen.y === y && seen.map === WORLD_MAP_ID) return;
+		seen.x = x;
+		seen.y = y;
+		seen.map = WORLD_MAP_ID;
+		seen.slot = 0;
+		seen.exit = false;
+		const zone = worldZoneAt(x, y);
 		if (zone !== this.zone()) {
 			this.zone(zone);
 			if (zone) {

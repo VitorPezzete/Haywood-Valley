@@ -16,6 +16,8 @@ export const PERF_SYSTEMS = [
 	"Camera",
 	"Acoes",
 	"Mapa",
+	"Mundo",
+	"Fazenda",
 	"Humor",
 	"Decorar",
 	"Som",

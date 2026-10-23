@@ -2,6 +2,7 @@ import { OnStart, Service } from "@flamework/core";
 import { DataStoreService, Players, RunService } from "@rbxts/services";
 import { LOOK_ATTRIBUTE, parseLook } from "shared/appearance";
 import { PlayerDecor, sanitizeDecor } from "shared/decor";
+import { PlayerFarm, sanitizeFarm } from "shared/farm";
 import { NAME_ATTRIBUTE } from "shared/names";
 import {
 	decodeSavedLook,
@@ -9,6 +10,7 @@ import {
 	encodeSavedLook,
 	isPieceId,
 	MAX_FAVORITES,
+	PLAYER_DATA_VERSION,
 	PlayerData,
 	SAVED_LOOKS,
 } from "shared/playerData";
@@ -77,6 +79,10 @@ function lockedByOther(stored: Stored | undefined) {
  * - **Sem reenviar tudo**: o cliente muda os próprios dados na hora (`state/playerData.ts`); o servidor manda os
  *   dados inteiros só ao carregar e quando recusa um pedido (o favorito além do limite, por exemplo).
  * - **Limite de pedidos** (`server/rateLimit.ts`): `setFavorite` e `saveLook`.
+ *
+ * Desde 2026-10-23 (formato 2, `PLAYER_DATA_VERSION`): a fazenda do lote do mundo (`farm`, `FarmService`); a
+ * gravação guarda os campos do salvo que este servidor não conhece (de uma versão mais nova), e o salvo de uma versão
+ * mais nova fica com o número dela.
  */
 @Service()
 export class PlayerDataService implements OnStart {
@@ -166,6 +172,17 @@ export class PlayerDataService implements OnStart {
 
 	decorOf(player: Player) {
 		return this.data.get(player)?.decor;
+	}
+
+	farmOf(player: Player) {
+		return this.data.get(player)?.farm;
+	}
+
+	setFarm(player: Player, farm: PlayerFarm) {
+		const data = this.data.get(player);
+		if (!data) return;
+		data.farm = farm;
+		this.dirty.add(player);
 	}
 
 	setDecor(player: Player, decor: PlayerDecor) {
@@ -265,6 +282,8 @@ export class PlayerDataService implements OnStart {
 					}
 					if (typeIs(saved.characterName, "string")) data.characterName = saved.characterName.sub(1, 64);
 					data.decor = sanitizeDecor(saved.decor);
+					data.farm = sanitizeFarm(saved.farm);
+					if (typeIs(saved.v, "number") && saved.v > PLAYER_DATA_VERSION) data.v = saved.v;
 					if (typeIs(saved.savedLooks, "table")) {
 						for (let slot = 0; slot < SAVED_LOOKS; slot++) {
 							const look = saved.savedLooks[slot];
@@ -317,7 +336,12 @@ export class PlayerDataService implements OnStart {
 					lost = true;
 					return $tuple(undefined);
 				}
-				const value: Stored = { ...data, session: unlock ? undefined : { job: jobId(), at: os.time() } };
+				// Os campos que este servidor não conhece (de uma versão mais nova do jogo) ficam como estavam.
+				const value: Stored = {
+					...(old ?? {}),
+					...data,
+					session: unlock ? undefined : { job: jobId(), at: os.time() },
+				};
 				return $tuple(value, [player.UserId]);
 			});
 		});

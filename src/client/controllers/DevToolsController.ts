@@ -287,7 +287,7 @@ export class DevToolsController implements OnStart {
 		};
 		const actors = this.characters.counts();
 		this.budget({
-			map: this.scene.mapKey ?? "-",
+			map: this.mapLabel(),
 			images,
 			groundStill: groundImages.fixo,
 			groundLive: groundImages.vivo + groundImages.mar,
@@ -312,6 +312,14 @@ export class DevToolsController implements OnStart {
 			actorsOnScreen: actors.onScreen,
 			actorsPool: actors.pool,
 		});
+	}
+
+	/** O mapa no painel; no mundo, com os blocos montados e as imagens deles. */
+	private mapLabel() {
+		const world = this.scene.worldMap;
+		if (!world) return this.scene.mapKey ?? "-";
+		const n = world.counts();
+		return `${this.scene.mapKey} · ${n.pieces} pedaços (${n.blocks} blocos), ${n.images} imagens (${n.live} vivas), ${n.cards} cartões, pior ${string.format("%.0f", n.composeWorstMs)} + ${string.format("%.0f", n.buildWorstMs)} ms`;
 	}
 
 	private updatePhone() {

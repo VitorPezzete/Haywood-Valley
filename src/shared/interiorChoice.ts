@@ -7,6 +7,7 @@ import { ACTIONS_TEST_ATTRIBUTE } from "./interiorMap";
 import { INTERIORS } from "./interiors";
 import { INTERIOR_TEST_ATTRIBUTE, INTERIOR_TEST_CELL_ATTRIBUTE, InteriorData, InteriorExit, InteriorZone } from "./interiors/types";
 import { groundOffset, snapToArtPx, worldToArtPx } from "./view";
+import { WORLD_MAP_ID } from "./world";
 
 /** Lado do tile das folhas do Aeko, em pixels de arte: meio stud de largura (o jogo tem 32 pixels por stud). */
 export const INTERIOR_TILE = 16;
@@ -204,10 +205,13 @@ export function placeKey(id: string, owner: number) {
 	return owner > 0 ? `${id}#${owner}` : id;
 }
 
-/** O lugar em que o jogador está, pelos atributos que o servidor grava, ou nada. */
+/**
+ * O lugar em que o jogador está, pelos atributos que o servidor grava, ou nada. O mapa do mundo (`WORLD_MAP_ID`) é um
+ * lugar compartilhado sem dados de interior (`mapData` dele é nada).
+ */
 export function placeOf(player: Player): Place | undefined {
 	const id = player.GetAttribute(MAP_ATTRIBUTE);
-	if (!typeIs(id, "string") || mapData(id) === undefined) return undefined;
+	if (!typeIs(id, "string") || (id !== WORLD_MAP_ID && mapData(id) === undefined)) return undefined;
 	const owner = player.GetAttribute(MAP_OWNER_ATTRIBUTE);
 	const slot = player.GetAttribute(MAP_SLOT_ATTRIBUTE);
 	const o = typeIs(owner, "number") && owner > 0 ? owner : 0;

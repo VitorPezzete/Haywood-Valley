@@ -1,6 +1,6 @@
 import { OnStart, Service } from "@flamework/core";
 import { Players, Workspace } from "@rbxts/services";
-import { CHARACTER_SCALE } from "shared/character";
+import { CHARACTER_SCALE, standingHeight } from "shared/character";
 import {
 	arrivalCell,
 	cellOfPoint,
@@ -19,7 +19,17 @@ import {
 	mapData,
 	placeOf,
 } from "shared/interiorChoice";
-import { InteriorData } from "shared/interiors/types";
+import {
+	lotGate,
+	nearestFree,
+	WORLD_LOT_ATTRIBUTE,
+	WORLD_LOTS,
+	WORLD_MAP_ID,
+	worldBlocked,
+	worldCellPoint,
+	worldSpawn,
+	worldTest,
+} from "shared/world";
 import { Events } from "server/network";
 import { PieceService } from "server/services/PieceService";
 
@@ -45,6 +55,8 @@ const SCALE_TIMEOUT = 10;
  * - A casa (`HOUSE_MAPS`) é de cada jogador: quem entra nela vai à cópia do dono (hoje sempre a própria), num
  *   lugar do mundo só dela (`MapaDono` e `MapaLugar` no jogador). O lugar fica reservado enquanto o dono está no
  *   servidor.
+ * - O mapa do mundo (`WORLD_MAP_ID`, fase 0 do `docs/mundo/MAPA_MUNDO.md`) é um lugar compartilhado; a célula
+ *   (`MapaCelula`) é a do mundo. Hoje só se chega a ele pelo teste `MundoTeste`; ele ainda não tem saídas.
  */
 /** Quanto esperar o cliente receber a volta do destino antes de levar o personagem, em segundos. */
 const STREAM_TIMEOUT = 2;
@@ -56,6 +68,8 @@ const HOUSE_SLOT_TEST_ATTRIBUTE = "CasaLugarTeste";
 export class MapService implements OnStart {
 	private lastTravel = new Map<Player, number>();
 	private slots = new Map<number, number>();
+	/** O lote do mundo de cada jogador (`UserId` → nome do lote): a vaga de fazenda, como o lugar da casa. */
+	private lots = new Map<number, string>();
 
 	constructor(private readonly pieces: PieceService) {}
 
@@ -63,6 +77,7 @@ export class MapService implements OnStart {
 		Players.PlayerAdded.Connect((player) => this.join(player));
 		Players.PlayerRemoving.Connect((player) => {
 			this.lastTravel.delete(player);
+			this.lots.delete(player.UserId);
 			// O lugar da casa fica livre quando o dono sai e ninguém mais está nela.
 			const owner = player.UserId;
 			task.defer(() => {
@@ -75,13 +90,37 @@ export class MapService implements OnStart {
 	}
 
 	private join(player: Player) {
+		const world = worldTest();
 		const start = chosenInterior();
-		if (start && player.GetAttribute(MAP_ATTRIBUTE) === undefined) {
+		if (world && player.GetAttribute(MAP_ATTRIBUTE) === undefined) {
+			// O lote dele; sem bloco pedido no teste, ele chega ao portão do lote.
+			const lot = this.lotFor(player);
+			const gate = lot !== "" ? lotGate(lot) : undefined;
+			player.SetAttribute(MAP_CELL_ATTRIBUTE, encodeCell(world.block ? world.cell : (gate ?? world.cell)));
+			this.setPlace(player, WORLD_MAP_ID);
+		} else if (start && player.GetAttribute(MAP_ATTRIBUTE) === undefined) {
 			player.SetAttribute(MAP_CELL_ATTRIBUTE, encodeCell(start.cell));
 			this.setPlace(player, start.data.id);
 		}
 		player.CharacterAdded.Connect((character) => this.place(player, character));
 		if (player.Character) this.place(player, player.Character);
+	}
+
+	/**
+	 * O lote do mundo do jogador (fase 0 do `MAPA_MUNDO.md`, §3.5): o primeiro livre, gravado em `MundoLote`; "" quando
+	 * os lotes da fase acabaram (hoje 4: o servidor da fase 1 tem 4 vagas).
+	 */
+	private lotFor(player: Player) {
+		let lot = this.lots.get(player.UserId);
+		if (lot === undefined) {
+			const used = new Set<string>();
+			for (const [, name] of this.lots) used.add(name);
+			lot = WORLD_LOTS.find((name) => !used.has(name)) ?? "";
+			if (lot !== "") this.lots.set(player.UserId, lot);
+			else warn(`[Mapa] ${player.Name}: os ${WORLD_LOTS.size()} lotes do mundo estão ocupados`);
+		}
+		player.SetAttribute(WORLD_LOT_ATTRIBUTE, lot);
+		return lot;
 	}
 
 	private slotFor(owner: number) {
@@ -105,25 +144,47 @@ export class MapService implements OnStart {
 		player.SetAttribute(MAP_ATTRIBUTE, id);
 	}
 
+	/**
+	 * Leva o personagem que acabou de nascer ao lugar dele no mapa. O `CharacterAdded` chega **antes** de o personagem
+	 * estar no Workspace (medido no Studio em 2026-10-23: `Parent` vazio no evento, `Workspace` um quadro depois, na
+	 * altura do nascer padrão, Y = 100); ao entrar no Workspace o Roblox o põe no ponto de nascer, por cima do que se
+	 * tivesse gravado antes. Até 2026-10-23 este código desistia quando via o `Parent` vazio (era para o personagem
+	 * destruído) e só a conferida do cliente aos 3 s o levava (`MapController`); agora espera ele entrar no Workspace e
+	 * leva na hora, já na altura de quem está em pé (sem a queda de 1 s desde Y = 100).
+	 */
 	private place(player: Player, character: Model) {
 		task.spawn(() => {
 			const root = character.WaitForChild("HumanoidRootPart", 10);
 			if (!root?.IsA("BasePart")) return;
 			const started = os.clock();
 			while (character.GetScale() > CHARACTER_SCALE * 1.5 && os.clock() - started < SCALE_TIMEOUT) task.wait();
-			if (character.Parent === undefined) return;
+			while (!character.IsDescendantOf(Workspace) && player.Character === character && os.clock() - started < SCALE_TIMEOUT) {
+				task.wait();
+			}
+			if (!character.IsDescendantOf(Workspace) || player.Character !== character) return;
 			const place = placeOf(player);
+			if (place?.id === WORLD_MAP_ID) {
+				const asked = decodeCell(player.GetAttribute(MAP_CELL_ATTRIBUTE));
+				// A célula pedida (o portão do lote, a de renascer) ou a livre mais perto dela: um objeto do catálogo pode
+				// bloquear a célula exata.
+				const start = asked ?? worldSpawn();
+				const cell = !worldBlocked(start[0], start[1]) ? start : (nearestFree(start[0], start[1]) ?? worldSpawn());
+				if (asked === undefined || cell[0] !== asked[0] || cell[1] !== asked[1]) {
+					player.SetAttribute(MAP_CELL_ATTRIBUTE, encodeCell(cell));
+				}
+				this.move(character, worldCellPoint(cell[0], cell[1]));
+				return;
+			}
 			const data = place && mapData(place.id);
 			if (!place || !data) return;
 			const cell = decodeCell(player.GetAttribute(MAP_CELL_ATTRIBUTE)) ?? data.spawn;
-			this.move(character, data, cell, place.slot);
+			this.move(character, mapCellPoint(data.id, cell[0], cell[1], place.slot));
 		});
 	}
 
-	private move(character: Model, data: InteriorData, cell: [number, number], slot: number, travel = false) {
+	private move(character: Model, point: Vector3, travel = false) {
 		const root = character.FindFirstChild("HumanoidRootPart");
-		const height = root?.IsA("BasePart") ? math.max(root.Position.Y, 1) : 1;
-		const point = mapCellPoint(data.id, cell[0], cell[1], slot);
+		const height = standingHeight(character);
 		// Na viagem, com o streaming, o lugar novo fica longe (os mapas a `MAP_SPACING` uns dos outros): o servidor
 		// pede que o cliente receba a volta do destino antes de levar o personagem (o jeito que a documentação do
 		// streaming manda para levar alguém longe). Ao nascer não: o cliente acabou de entrar e o pedido atrasava o
@@ -176,7 +237,7 @@ export class MapService implements OnStart {
 		const cell = arrivalCell(target, exit.arrival);
 		player.SetAttribute(MAP_CELL_ATTRIBUTE, encodeCell(cell));
 		this.setPlace(player, target.id);
-		this.move(character, target, cell, placeOf(player)?.slot ?? 0, true);
+		this.move(character, mapCellPoint(target.id, cell[0], cell[1], placeOf(player)?.slot ?? 0), true);
 		print(`[Mapa] ${player.Name}: ${data.id} → ${target.id} (${encodeCell(cell)})`);
 	}
 }

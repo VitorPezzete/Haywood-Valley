@@ -3,10 +3,12 @@ import { Players, Workspace } from "@rbxts/services";
 import { actionsStart, mapCorner, mapData, placeOf } from "shared/interiorChoice";
 import { InteriorMap } from "shared/interiorMap";
 import { cellToWorld, groundOffset, snapToArtPx } from "shared/view";
+import { WORLD_MAP_ID, worldTest } from "shared/world";
 import { createCard } from "client/world/card";
 import { createCollider } from "client/world/collider";
 import { perfBegin, perfEnd } from "client/perf";
 import { createGround, GroundLayer, LIVE_Z_OFFSET } from "client/world/ground";
+import { WorldMap } from "client/world/worldMap";
 import { buildInterior } from "client/world/interior";
 import { interiorTest, startInterior } from "client/world/interiorTest";
 import { Occlusion, Silhouette } from "client/world/occlusion";
@@ -104,7 +106,9 @@ function insideField(position: Vector3) {
 }
 
 /**
- * O mapa em que o jogador está: um mapa do Diorama (interior, exterior ou os dois), montado em `buildInterior`.
+ * O mapa em que o jogador está: um mapa do Diorama (interior, exterior ou os dois), montado em `buildInterior`, ou o
+ * mapa do mundo (`WORLD_MAP_ID`, fase 0 do `docs/mundo/MAPA_MUNDO.md`), em blocos montados perto da câmera
+ * (`worldMap`; no mundo não há `interior` nem `map`, e `ground` e `live` são o canvas vivo que acompanha o jogador).
  * Cada cliente monta só o mapa do próprio jogador (o atributo `Mapa`, que o servidor grava) e troca de mapa
  * quando o jogador passa por uma saída (`enter`, chamado pelo `MapController`); quem desenha algo do mapa
  * (luzes, peças, sombras) se inscreve em `onMapChanged`. Sem nenhum mapa gerado, a cena fixa do protótipo:
@@ -117,6 +121,8 @@ export class SceneController implements OnInit, OnStart, OnRender {
 	ground!: Ground;
 	live!: Ground;
 	interior?: Interior;
+	/** O mapa do mundo, quando o jogador está nele. */
+	worldMap?: WorldMap;
 	map?: InteriorMap;
 	mapId?: string;
 	mapKey?: string;
@@ -134,6 +140,11 @@ export class SceneController implements OnInit, OnStart, OnRender {
 		// O mapa que o servidor já deu ao jogador; sem ele ainda, o de começo (o teste do Diorama vale mais; sem
 		// ele, o interior de começo do jogo normal, a casa de teste). O servidor chega à mesma escolha.
 		const place = placeOf(Players.LocalPlayer);
+		// O mundo: o servidor já levou o jogador para lá, ou o teste `MundoTeste` vai levar.
+		if (place?.id === WORLD_MAP_ID || (place === undefined && worldTest())) {
+			this.buildWorld();
+			return;
+		}
 		const start = (place && mapData(place.id)) ?? (interiorTest() || startInterior())?.data;
 		if (start) {
 			this.build(start, place?.id === start.id ? place : undefined);
@@ -145,6 +156,7 @@ export class SceneController implements OnInit, OnStart, OnRender {
 
 	mapImages() {
 		const images = new Set<string>();
+		if (this.worldMap) return this.worldMap.images();
 		const folder = this.interior?.folder;
 		if (folder) {
 			for (const child of folder.GetDescendants()) {
@@ -161,12 +173,35 @@ export class SceneController implements OnInit, OnStart, OnRender {
 	}
 
 	enter(place: Place) {
+		if (place.key === this.mapKey && place.slot === this.mapSlot) return false;
+		if (!this.interior && !this.worldMap) return false;
 		const data = mapData(place.id);
-		if (!data || (place.key === this.mapKey && place.slot === this.mapSlot) || !this.interior) return false;
-		this.interior.destroy();
-		this.build(data, place);
+		if (place.id !== WORLD_MAP_ID && !data) return false;
+		this.interior?.destroy();
+		this.interior = undefined;
+		this.worldMap?.destroy();
+		this.worldMap = undefined;
+		if (data) this.build(data, place);
+		else this.buildWorld();
 		for (const listener of this.listeners) listener();
 		return true;
+	}
+
+	/** O mapa do mundo: sem interior nem mapa de ações; os blocos saem perto da câmera (`onRender`). */
+	private buildWorld() {
+		this.map = undefined;
+		this.interior = undefined;
+		this.mapId = WORLD_MAP_ID;
+		this.mapKey = WORLD_MAP_ID;
+		this.mapSlot = 0;
+		this.worldMap = new WorldMap(this.world, this.occlusion);
+		this.ground = this.worldMap.actors;
+		this.live = this.worldMap.actors;
+		const root = Players.LocalPlayer.Character?.FindFirstChild("HumanoidRootPart");
+		const focus = root?.IsA("BasePart") ? root.Position : undefined;
+		this.worldMap.update(focus);
+		const n = this.worldMap.counts();
+		print(`[Mundo] mapa do mundo ligado (${n.pieces} pedaços de ${n.blocks} blocos montados)`);
 	}
 
 	private build(data: MapData, place?: Place) {
@@ -189,7 +224,7 @@ export class SceneController implements OnInit, OnStart, OnRender {
 	}
 
 	onStart() {
-		if (this.interior) return;
+		if (this.interior || this.worldMap) return;
 		for (let i = FIELD.i0; i <= FIELD.i1; i++) {
 			for (let j = FIELD.j0; j <= FIELD.j1; j++) {
 				const position = cellToWorld(i, j);
@@ -230,7 +265,14 @@ export class SceneController implements OnInit, OnStart, OnRender {
 		perfEnd("Vento", started);
 		started = perfBegin("Tiles");
 		this.interior?.animate(now);
+		this.worldMap?.animate(now);
 		perfEnd("Tiles", started);
+		if (this.worldMap) {
+			started = perfBegin("Mundo");
+			const feet = Players.LocalPlayer.Character?.FindFirstChild("HumanoidRootPart");
+			this.worldMap.update(feet?.IsA("BasePart") ? new Vector3(feet.Position.X, 0, feet.Position.Z) : undefined);
+			perfEnd("Mundo", started);
+		}
 		started = perfBegin("Oclusao");
 		const root = Players.LocalPlayer.Character?.FindFirstChild("HumanoidRootPart");
 		this.occlusion.update(

@@ -49,4 +49,6 @@ export const RATE = {
 	pieces: 20,
 	decor: 8,
 	ready: 2,
+	/** Arar, plantar e colher (`FarmService`), juntos. */
+	farm: 8,
 };
