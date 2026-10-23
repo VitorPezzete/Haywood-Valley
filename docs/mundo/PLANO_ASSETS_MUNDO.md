@@ -164,3 +164,5 @@ O Mundo da Luz do ALttP cobre campos, floresta, montanha, deserto, lago e pânta
 2. **Objetos**: rascunho (o recorte do mapa base, ou o Spriteloom para o que o ALttP não tem, como celeiro e estábulo), depois estilo da equipe/Aeko (`tools/estilo_aeko_arte.py`, nota mínima 8) e limpeza de linhas (`aseprite/pixel/limpeza.lua`).
 3. **Mudar só a cor** (estações, variações): recolorir, não pedir à IA (a IA redesenha; ver a árvore de outono de 2026-10-23).
 4. Começar pelo **P1**, o reino de Haywood.
+
+A separação e a primeira passada de estilo dos assets que vêm do ALttP (P1 inteiro e o que as fontes têm do P2), com os conjuntos de terreno em Wang de 16, as notas e o que precisa de mão da equipe, estão em `PLANO_REFAZER_ALTTP.md` (2026-10-23; `tools/mundo_assets.py`).
