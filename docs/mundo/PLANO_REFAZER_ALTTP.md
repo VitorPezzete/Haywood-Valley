@@ -101,7 +101,7 @@ O ALttP não tem celeiro, silo, estábulo, galinheiro, curral, moinho: ver a se�
 | `pedra_escura` (pede luva) | mapa (131, 79) | todos | 9,6 / 10 | melhorado |
 | `canteiro_potes` | mapa, vila | vila, fazenda | 10 / 10 | melhorado (potes: os do Aeko já existem) |
 
-Ficaram de fora do P1: a escada de pedra no barranco e a entrada de caverna (dá para recortar do mapa da vila na próxima rodada), a ponte de pedra e o castelo (P3).
+A escada de pedra no barranco, a entrada de caverna e a ponte de pedra entraram na segunda rodada (seção 8); o castelo inteiro continua P3.
 
 ### 3.5 P2, só das fontes (12)
 
@@ -126,14 +126,14 @@ Contagem: **P1 = 43** (9 terreno, 13 vegetação, 13 construções, 8 objetos); 
 
 - **Terreno do P1**: cada cor do ALttP vai para a cor da equipe do mesmo papel (`PAPEIS_TERRENO`: grama `52995b`/`2f7c5c`, terra `956538`/`7c5634`/`604e2e`, água `5289ff`/`72b3f0`/`2b70e2`/`cee7ff`, barranco nos marrons e `323f33` no lugar do preto, calçada em bege). A forma fica intacta. É a versão recomendada: a ferramenta de estilo, presa à paleta curta da equipe, achata as faixas do barranco e escurece a água.
 - **Árvores e moita**: quatro estações (verão, primavera, outono, inverno) trocando a rampa da copa pelas rampas das árvores da equipe; a sombra no chão acompanha (folhas, pétalas, neve).
-- **Construções e objetos**: a madeira (bege e oliva do ALttP) vai para a rampa de madeira da equipe (troncos, placa, terra) pelo brilho mais perto; a pedra verde-menta, para o cinza das pedras da ilha da equipe. As duas casas de exemplo ganham o telhado em quatro cores.
+- **Construções e objetos**: a madeira (bege e oliva do ALttP) vai, pelo brilho mais perto, para uma rampa de madeira marrom-quente: os escuros e meios dos móveis de madeira do Aeko (folha `casa`: `2a1812`, `5b300c`, `793c18`, `8d5a1a`, `aa6d3c`) com a terra e a placa "NOME" da equipe (`956538`, `c89769`, `ebbc6d`), matiz entre 15 e 37 graus. A rampa da primeira rodada vinha dos troncos das árvores da equipe (`4c2b3b`, `6b444b`, `985d50`, matiz de ameixa) e deixou a madeira vermelho-rosada (corrigido na segunda rodada, seção 8.1). A pedra verde-menta vai para o cinza das pedras da ilha da equipe. As duas casas de exemplo ganham o telhado em quatro cores.
 - Não houve melhorado onde o recolorido piorava: o rosa (fica o estilo, só com a cerejeira na paleta), a lápide (a pedra bege caía na madeira) e o terreno do P2 (as cores do deserto, da montanha e do gelo não têm papel na arte da equipe).
 
 ## 5. O que a conversão automática não resolve (mão da equipe)
 
 1. **Copa das árvores**: o ALttP desenha a copa em anéis concêntricos lisos; o usuário recusou copa lisa e a referência é a do Caramel (tufos, vãos escuros), como as árvores da equipe. `arvore_grande`, `mata_bloco`, `mata_copa`, `arvore_vermelha`, `arvore_dourada`: usar a forma e o tamanho, redesenhar a copa. A linha delas fica entre 7,3 e 7,9.
 2. **Cantos da água no barranco** (`agua_penhasco`): faltam os cantos de fora e as diagonais.
-3. **Penhasco em degraus**: a lista e o anel mostram todas as peças, mas o conjunto (alto, baixo, cantos, escadas) tem de ser montado.
+3. **Penhasco em degraus**: montado na segunda rodada a partir do barranco de Kakariko (seção 8.4); faltam nas fontes os degraus de lado e de costas e os cantos de dentro.
 4. **Borda da calçada**: alinhada no tile no ALttP; decidir a borda.
 5. **Animação da água na margem**: no jeito da ilha da equipe (`mundo\ilha_quadros\`, espuma e areia molhada subindo e descendo).
 6. **Cores dos biomas P2**: a arte da equipe não tem areia de deserto, rocha de montanha nem gelo; o estilo puxa para as cores que existem.
@@ -149,7 +149,7 @@ Pelo pedido do usuário ("não cria não"), nada foi desenhado nem recolorido pa
 | Neve e tundra (Invernia) | neve com bordas, árvores com neve, casas com neve (só há o gelo da Ilha de Gelo e as nuvens do alto da montanha) |
 | Taiga e pinhais | pinheiros, cabana de lenhador |
 | Savana e terra vermelha (Terracota) | terra vermelha, baobá, capim seco, cupinzeiro |
-| Deserto e oásis | cacto, palmeira de oásis, tendas (o chão e as ossadas do ALttP existem) |
+| Deserto e oásis | palmeira de oásis (o chão, as bordas, o cacto, a planta seca, as ossadas, a estátua do templo e a tenda existem nas fontes e entraram na segunda rodada) |
 | Selva tropical (Verdália) | árvores tropicais, cipó, folhagem grande, palafitas |
 | Terras vulcânicas (Brasalta) | rocha vulcânica, lava, cinza, fumarola |
 | Costa e recifes (Marésia) | coral, conchas, farol, cais (areia e mar já existem na equipe) |
@@ -163,8 +163,60 @@ Pelo pedido do usuário ("não cria não"), nada foi desenhado nem recolorido pa
 Em `Documents\Haywood-Valley-recuperado\mundo\assets\`:
 
 - `<categoria>\<nome>_original.png`, `_estilo.png`, `_melhorado.png`; nos conjuntos de Wang, `_montagem_original.png` e `_montagem_melhorado.png`.
-- `_comparar_terreno.png`, `_comparar_vegetacao.png`, `_comparar_construcoes.png`, `_comparar_objetos.png`: original | estilo | melhorado, ampliados, com as notas e a recomendação.
+- `_comparar_<categoria>_<n>.png` (terreno 1 a 5, vegetação 1 a 4, construções 1 a 4, objetos 1 a 4): original | estilo | melhorado, ampliados, com as notas e a recomendação; cada página tem até 1800 px de altura, para abrir no celular. Substituem as folhas únicas da primeira rodada.
 - `_indice.json`: por asset, categoria, bioma, prioridade, fonte (tiles do mapa, peça da gablaxian ou recorte), arquivos, opções e nota de estilo, limpeza (nota de linha antes e depois, doubles e jaggies corrigidos, órfãos relatados), melhoria, recomendação, o que a equipe já tem e o que precisa de mão da equipe.
 - `_paleta_*.png`: as cores da equipe usadas como paleta de cada grupo.
 
-Fontes que chegaram no fim e ainda não foram usadas (próxima rodada): `alttp_outras_fontes\folha_tiles_por_peca_vila.png` e `folha_tiles_por_peca_comparacao.jpg` (como cada objeto se divide na grade de 16 px: útil para cortar as casas em tiles), `folha_objetos_overworld_2.png`, `folha_casas_vila_hero_of_swords.jpg`, `folha_tiles_mundo_mista.png`, as folhas de interior de templo e os mapas de dungeon (só pisos, paredes, escadas, portas e móveis; nunca inimigos, texto nem o logo do site).
+As fontes que tinham chegado no fim foram usadas na segunda rodada (seção 8).
+
+## 8. Segunda rodada (2026-10-23)
+
+Pedido: corrigir a madeira; separar o que ficou de fora das outras fontes; a escada no barranco, a entrada de caverna e o conjunto de degraus; os conjuntos de terreno e os objetos das regiões do Mundo da Luz e das Trevas (sem dungeons); tudo melhorado e estilizado, com folhas menores. A regra continua: **nada que não exista nas fontes**. `python -I tools/mundo_assets.py tudo --prioridade todas --rodada segunda` refaz só esta rodada.
+
+### 8.1 Madeira corrigida
+
+`casa_madeira`, `galpao_madeira`, `portal_madeira` (o pórtico), `poco_madeira`, `cerca_estacas` e `cerca_pecas` (e todo melhorado com madeira) saíam vermelho-rosados: a rampa (`MADEIRA_EQUIPE`) era a dos troncos das árvores da equipe, que são cor de ameixa (matiz 330 a 10). Trocada pela rampa da seção 4 (móveis do Aeko com a terra e a placa da equipe). Conferido nas folhas com três rampas: só com os meios do Aeko (`733c18`, `b66d42`) ficava laranja; com os claros dos troncos da equipe (`765142`, `a7795a`), ainda rosado; a escolhida lê como madeira marrom.
+
+### 8.2 Fontes usadas
+
+- `gablaxian_pecas` (177 peças): entraram as de mundo que faltavam. Ficaram de fora as de dungeon e interior (pisos de ouro, molduras, colunas roxas, a moldura de diálogo), o logo e o alfabeto, a Pedra-Tartaruga e a pirâmide (marcos, P3) e as de inimigo.
+- `folha_objetos_overworld_2.png` é a mesma imagem da folha da gablaxian (conferido pixel a pixel).
+- `folha_tiles_mundo_mista.png` (PNG): grama alta, mancha de terra, terra com pedrinhas, toco grande, toco com buraco, cerca de troncos, tenda, pedras, cascalho, buraco, estaca, arbusto seco, o chão desenhado das Terras sombrias, monte de anéis.
+- `folha_tiles_por_peca_vila.png` (PNG, fundo branco): os três quadros do cata-vento, a moita rosa dupla, o arbusto laranja.
+- `folha_casas_vila_hero_of_swords.jpg` e `folha_tiles_por_peca_comparacao.jpg`: não deram peça que não exista em PNG (casas, sebes, árvores e o resto estão na gablaxian ou nos mapas).
+- `folha_interior_templo_hero_of_swords*.png`: interior de templo (dungeon), fora do mundo.
+- Regiões (`alttp_vgmaps\`): Kakariko, Montanha da Morte (oeste), Castelo, Deserto, Grande Pântano, Lago Hylia, Vila dos Excluídos, Floresta das Caveiras, Pântano do Mal; o cemitério no mapa do Mundo da Luz.
+
+### 8.3 O que entrou (87 assets; 142 no total)
+
+Nota estilo / linha; rec. = versão recomendada (o índice tem todas as notas). Notas de estilo da rodada entre 8,35 e 10.
+
+**P1, terreno (12)**: `praca_lajotas` e `praca_lajotas_clara` (gablaxian 001), `grama_alta`, `mancha_terra_grama`, `terra_pedrinhas` (mista), `mancha_terra` (069), `ilhota_grama` (052), `lagoa_pequena` (055), `escada_barranco` e `entrada_caverna_degrau` (Kakariko), `penhasco_degraus_conjunto` (seção 8.4), `cemiterio_chao` (um tile só: o chão do cemitério é a grama com um calçamento que se repete). Todos 10 / –, melhorado (recolorido papel a papel).
+
+**P1, vegetação (14)**: `sebe_cercado` (a sebe da praça com cantos, pontas e aberturas; 8,9 / 5,7, estilo), `arbustos_quatro`, `brotos_grama`, `arbusto_trevo`, `moita_rosa_dupla`, `arbusto_laranja` (9,0 / 8,9), `flor_branca_grande`, `flor_laranja`, `broto`, `planta_grande` (estilo); `tronco_caido`, `toco_oco`, `toco_grande`, `toco_buraco` (madeira, melhorado).
+
+**P1, construções (4)**: `cerca_troncos`, `casa_verde` (madeira), `ponte_pedra` (a ponte do castelo, pedra no cinza), melhorado; `casa_sebe` (estilo: o verde é a sebe, não pedra).
+
+**P1, objetos (15)**: `estaca_madeira`, `placa_larga`, `estaca_redonda` (madeira), `estatua_gargula`, `pedra_grande`, `pedra_grande_escura`, `pedras_quatro`, `cascalho`, `buraco_pedra` (pedra no cinza), `cata_vento_quadros` (os três quadros da animação), melhorado; `pote_vermelho`, `bau_grande`, `bau_pequeno`, `buraco`, `monte_terra` (estilo). Todos 10 / 10, menos o cata-vento (9,1 / 1,0, ver 8.5).
+
+**P2, terreno (14)**: listas das bordas, porque nas regiões o Wang de cantos saía com 10 a 14 peças faltando (as transições não caem nos quadrantes de 8 px): `pantano_grama_alta`, `agua_funda_rasa` (Lago Hylia), `castelo_piso` (estilo); `deserto_penhasco`, `montanha_penhasco`, `trevas_caminho`, `trevas_floresta_chao`, `trevas_pantano`, `trevas_chao_desenho`, `monte_aneis`, `entrada_caverna`, `entrada_caverna_viga`, `entrada_caverna_telhado`, `escada_madeira_penhasco` (original: a arte da equipe não tem as cores do deserto, da montanha nem das Terras sombrias).
+
+**P2, vegetação (8)**: `cacto` e `planta_seca_deserto` (Deserto), `arbusto_seco`, `flor_roxa_trevas`, `arvore_roxa`, `arvore_manchada`, `arvore_trevas`, `arvore_rosa_trevas` (estilo).
+
+**P2, construções (8)**: `tenda`, `ponte_corda` (o céu entre as tábuas tirado), `entrada_mina` (madeira, melhorado); `casa_trevas_caveira`, `casa_trevas`, `escada_pedra`, `portao_castelo`, `estatua_deserto` (estilo).
+
+**P2, objetos (12)**: `rocha_menta_grande`, `estatua_coruja`, `postes_pedra` (pedra), `estaca_agua` (madeira), melhorado; `pedra_caveira`, `pedra_inscrita`, `estatuas_dragao`, `estatua_vila_trevas`, `pedra_montanha`, `ossada`, `costelas`, `caveira_pedra` (estilo).
+
+### 8.4 Degraus do penhasco
+
+`penhasco_degraus_conjunto`: cinco pedaços do barranco de Kakariko, com a mesma linha de base e grama completando em cima: ponta esquerda (sobe na diagonal, 4×5 tiles), meio (2×3), escada (3×3), meio depois da escada (2×3) e ponta direita (sobe na diagonal, 6×8). `_montagem_original.png` e `_montagem_melhorado.png` montam ponta, meio, meio, escada, meio, meio, ponta: a emenda fecha sem costura. **Não é Wang nem blob**: o degrau do ALttP tem frente e costas (só se pula para baixo), então não vale girado nem espelhado, e o anel da gablaxian (002) não está na grade de 16 px. As fontes não têm degrau virado para os lados nem para cima, nem canto de dentro.
+
+### 8.5 Mão da equipe
+
+1. **Copas de anéis** também em `arvore_roxa`, `arvore_manchada`, `arvore_trevas`, `arvore_rosa_trevas` (linha 2,6 a 5,8 nas três primeiras): usar forma e tamanho, redesenhar a copa em tufos.
+2. `cata_vento_quadros`: a grama embaixo do pedestal veio junto nos três quadros (a peça está sobre a grama na folha) e derruba a nota de linha (1,0); no melhorado ela ficou cinza junto com a pedra. Tirar a grama à mão.
+3. `sebe_cercado`: linha 5,7 porque a limpeza lê o pontilhado claro da sebe como serrilhado; conferir à mão.
+4. `pedra_caveira`: o quadrado de terra atrás das caveiras faz parte da peça; tirar se for objeto solto.
+5. `praca_lajotas`: a borda de pedrinhas é solta; decidir se vira conjunto de bordas (como a calçada, seção 5.4).
+6. **Cores dos biomas P2**: deserto, montanha e Terras sombrias seguem no original até a equipe ter as cores (seção 5.6).
+7. Os conjuntos das regiões são listas, não Wang: a equipe monta as bordas, como em `penhasco_degraus`.
