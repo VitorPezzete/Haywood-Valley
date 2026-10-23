@@ -133,7 +133,7 @@ Folha da equipe `Haywood-Valley-recuperado\equipe\folha_equipe_mundo_e_mais.png`
 | Palmeira | `palmeira.png` | costa, oásis |
 | Tufo de grama | `tufo_grama.png` | decoração |
 
-Também há a nossa ilha do jogo (`exterior_ilha`, `nossa_ilha_exterior.gif`) e as árvores da MADX (`equipe\arvores_antes_depois_madx.png`).
+Também há as árvores da MADX (`equipe\arvores_antes_depois_madx.png`) e a ilha animada (`mundo\nossa_ilha_exterior.gif`, 10 quadros a 70 ms, ampliada 2×; quadros em tamanho real em `mundo\ilha_quadros\`). **Dessa ilha, o que o usuário gostou e vale como referência é a animação da água chegando na areia** (espuma e areia molhada subindo e descendo na borda, 2026-10-23): a costa do mundo (praias, lagos, rios com margem de areia) deve ter esse conjunto de borda animado.
 
 ## O que o mapa base não tem (e o mundo do Haywood precisa)
 
