@@ -142,6 +142,12 @@ export function PainelTestar(props: { plugin: Plugin }) {
 			pararTeste();
 			return mensagem();
 		},
+		/** "Guardar onde o jogador está" (só durante o Play, na sessão do servidor). */
+		guardar_jogador: () => {
+			if (modoAtual() === "edicao") error("só durante o Play", 0);
+			ondeOJogadorEsta();
+			return { mensagem: mensagem(), pendente: textoPendente() };
+		},
 	};
 	cleanup(registrarAcoes("testar", acoes));
 

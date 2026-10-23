@@ -98,6 +98,8 @@ Antes de gravar, a ponte põe o bloco na forma em que o importador grava e o ger
 - `exterior.terreno` como lista de 64 × 64 códigos (o que o plugin manda, `""` para nada) vira as 64 linhas de 64 caracteres com `.`;
 - `exterior.decalques` e `exterior.formas` vazios saem; um `exterior` sem terreno pintado, decalques, formas nem `runs_importados` sai inteiro;
 - `zonas[].props` que veio como `[]` (o `JSONEncode` do Roblox manda `[]` para toda tabela vazia) vira `{}`.
+- as chaves voltam à ordem do importador (`versao`, `mapa`, `bloco`, `folhas`, `vazio`, `camadas` `chao`/`objeto`/`frente`, `exterior`, `nascimento`, `entradas`, `saidas`, `zonas`, `moradores`, `carimbo`... e `carimbo_conteudo` por último; dentro das zonas, entradas, saídas e moradores também), porque o `JSONDecode`/`JSONEncode` do Roblox não guarda ordem (2026-10-23);
+- o arquivo sai no formato do importador e do gerador (`tools/diorama_lib/json.mjs`, uma célula por linha), e o `mapa.json` também. Antes (até 2026-10-23) saía com `JSON.stringify` e tabulação: cada Salvar do editor abria cada lista num item por linha e embaralhava as chaves (o bloco do `teste_d_ligacoes` ia de 340 a 2.337 linhas por uma troca de nome de zona).
 
 O que mais vier (`carimbo`, `carimbo_conteudo`, `bloqueios`, `acoes`, `nota`...) é gravado como está. `plugin/teste/ciclos.mjs` confere que os 14 mapas importados, abertos e salvos pelo código do plugin por esta rota, geram o mesmo módulo.
 
@@ -147,7 +149,7 @@ O texto de `diorama/catalogo/<nome>.json` (`zonas`, `pecas`, `fundos`), como est
 
 ### `PUT /catalogo/<nome>`
 
-Grava o corpo (qualquer JSON válido) em `diorama/catalogo/<nome>.json`.
+Grava o corpo (qualquer JSON válido) em `diorama/catalogo/<nome>.json`. Se o arquivo já existe, as chaves do corpo voltam à ordem dele (itens de lista casados pelo `id`, senão pela posição; peça nova na ordem da primeira) e `[]` onde ele tinha um objeto volta a `{}`; o formato (o de `json.mjs` ou o `JSON.stringify` com tabulação) é o do arquivo. Sem isso, um "Salvar peças" sem mudança vindo do Studio reescrevia as 3.300 linhas do `pecas.json` (2026-10-23).
 
 ```
 PUT /catalogo/fundos

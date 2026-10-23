@@ -25,6 +25,7 @@ import { PNG } from "pngjs";
 import { criarCanais } from "./diorama_lib/canais.mjs";
 import { observarPacote } from "./diorama_lib/pacote.mjs";
 import { criarIa } from "./diorama_lib/ia.mjs";
+import { textoJson } from "./diorama_lib/json.mjs";
 
 export const VERSAO = "0.6.0";
 const HOST = "127.0.0.1";
@@ -240,6 +241,16 @@ function gravarJson(base, caminho, valor) {
 	gravarAtomico(caminho, JSON.stringify(valor, null, "\t") + "\n");
 }
 
+/**
+ * Blocos e mapa.json no formato do importador e do gerador (diorama_lib/json.mjs: uma célula por linha). Com o
+ * `gravarJson`, cada Salvar do editor (e cada bloco que o "Pedir ao Claude" gravava) abria cada lista num item por
+ * linha: o bloco do teste_d_ligacoes foi de 340 a 2.337 linhas por uma troca de nome de zona (achado em 2026-10-23).
+ */
+function gravarJsonMapa(caminho, valor) {
+	semLinks(PASTAS.mapas, caminho);
+	gravarAtomico(caminho, textoJson(valor));
+}
+
 // ---------------------------------------------------------------------------------------------------------------
 // Mapas e blocos
 
@@ -385,7 +396,7 @@ function atualizarMapaJson(id, [bx, by], remover = false) {
 	mapa.blocos = mapa.blocos.filter((b) => Array.isArray(b) && !(b[0] === bx && b[1] === by));
 	if (!remover) mapa.blocos.push([bx, by]);
 	mapa.blocos.sort((a, b) => a[1] - b[1] || a[0] - b[0]);
-	gravarJson(PASTAS.mapas, caminho, mapa);
+	gravarJsonMapa(caminho, mapa);
 	return mapa;
 }
 
@@ -423,6 +434,84 @@ export function normalizarBloco(bloco) {
 			z && typeof z === "object" && Array.isArray(z.props) && z.props.length === 0 ? { ...z, props: {} } : z,
 		);
 	}
+	return ordenarBloco(saida);
+}
+
+// A ordem das chaves do importador (diorama_lib/importar.mjs), que é a dos blocos no git. O JSONEncode do Roblox não
+// guarda ordem: sem isto, cada Salvar do plugin embaralhava as chaves do arquivo (achado em 2026-10-23).
+const ORDEM_BLOCO = ["versao", "mapa", "bloco", "folhas", "vazio", "camadas", "exterior", "nascimento", "entradas", "saidas", "zonas", "moradores", "carimbo", "bloqueios", "acoes"];
+const ORDEM_DENTRO = {
+	camadas: ["chao", "objeto", "frente"],
+	exterior: ["terreno", "decalques", "formas", "runs_importados", "caixa_importada"],
+	entradas: ["nome", "x", "y"],
+	saidas: ["x", "y", "largura", "altura", "mapa", "chegada"],
+	zonas: ["nome", "areas", "props"],
+	moradores: ["nome", "x", "y", "olhando", "visual", "pose"],
+	decalques: ["x", "y", "id"],
+	formas: ["x", "y", "painel", "bx", "by"],
+	bloqueios: ["mais", "menos"],
+};
+
+/** As chaves de `ordem` primeiro, as outras depois, na ordem em que vieram. */
+function emOrdem(objeto, ordem) {
+	if (!objeto || typeof objeto !== "object" || Array.isArray(objeto)) return objeto;
+	const saida = {};
+	for (const k of ordem) if (Object.hasOwn(objeto, k)) saida[k] = objeto[k];
+	for (const k of Object.keys(objeto)) if (!Object.hasOwn(saida, k)) saida[k] = objeto[k];
+	return saida;
+}
+
+function objetoSimples(v) {
+	return v !== null && typeof v === "object" && !Array.isArray(v);
+}
+
+/**
+ * `novo` com as chaves na ordem de `molde` (o mesmo arquivo antes de gravar): as chaves que o molde tem, na ordem dele;
+ * as novas depois. Itens de lista casam pelo `id`, senão pela posição, senão pelo primeiro objeto da lista (para uma
+ * peça nova sair na ordem das outras). `[]` onde o molde tinha um objeto volta a `{}` (o JSONEncode do Roblox).
+ */
+export function comoAntes(novo, molde) {
+	if (Array.isArray(novo)) {
+		if (novo.length === 0 && objetoSimples(molde)) return {};
+		if (!Array.isArray(molde)) return novo;
+		const porId = new Map();
+		for (const m of molde) if (objetoSimples(m) && typeof m.id === "string") porId.set(m.id, m);
+		const tipico = molde.find((m) => m !== null && typeof m === "object");
+		return novo.map((v, i) => {
+			let m = objetoSimples(v) && typeof v.id === "string" ? porId.get(v.id) : undefined;
+			if (m === undefined) m = molde[i] !== undefined && (!objetoSimples(v) || v.id === undefined || porId.size === 0) ? molde[i] : tipico;
+			return comoAntes(v, m);
+		});
+	}
+	if (!objetoSimples(novo) || !objetoSimples(molde)) return novo;
+	const saida = {};
+	for (const k of Object.keys(molde)) if (Object.hasOwn(novo, k)) saida[k] = comoAntes(novo[k], molde[k]);
+	for (const k of Object.keys(novo)) if (!Object.hasOwn(saida, k)) saida[k] = novo[k];
+	return saida;
+}
+
+function cadaEmOrdem(lista, ordem) {
+	return Array.isArray(lista) ? lista.map((item) => emOrdem(item, ordem)) : lista;
+}
+
+function ordenarBloco(bloco) {
+	const { carimbo_conteudo, ...resto } = bloco;
+	const saida = emOrdem(resto, ORDEM_BLOCO);
+	if (saida.camadas) saida.camadas = emOrdem(saida.camadas, ORDEM_DENTRO.camadas);
+	if (saida.exterior && typeof saida.exterior === "object" && !Array.isArray(saida.exterior)) {
+		saida.exterior = emOrdem(saida.exterior, ORDEM_DENTRO.exterior);
+		for (const k of ["decalques", "formas"]) if (saida.exterior[k]) saida.exterior[k] = cadaEmOrdem(saida.exterior[k], ORDEM_DENTRO[k]);
+	}
+	for (const k of ["entradas", "saidas", "moradores"]) if (saida[k]) saida[k] = cadaEmOrdem(saida[k], ORDEM_DENTRO[k]);
+	if (saida.zonas) {
+		saida.zonas = cadaEmOrdem(saida.zonas, ORDEM_DENTRO.zonas).map((z) =>
+			z && typeof z === "object" && z.props && typeof z.props === "object" && !Array.isArray(z.props)
+				? { ...z, props: Object.fromEntries(Object.keys(z.props).sort().map((k) => [k, z.props[k]])) }
+				: z,
+		);
+	}
+	if (saida.bloqueios) saida.bloqueios = emOrdem(saida.bloqueios, ORDEM_DENTRO.bloqueios);
+	if (carimbo_conteudo !== undefined) saida.carimbo_conteudo = carimbo_conteudo;
 	return saida;
 }
 
@@ -431,7 +520,7 @@ export function gravarBloco(id, coordenadas, bloco) {
 	if (problemas.length > 0) throw new ErroHttp(400, `bloco inválido: ${problemas.join("; ")}`);
 	const [bx, by] = coordenadas;
 	const caminho = path.join(pastaMapa(id), "blocos", `${bx}_${by}.json`);
-	gravarJson(PASTAS.mapas, caminho, normalizarBloco(bloco));
+	gravarJsonMapa(caminho, normalizarBloco(bloco));
 	const mapa = atualizarMapaJson(id, coordenadas);
 	const avisos = avisosDoBloco(bloco);
 	return { ok: true, arquivo: path.relative(RAIZ, caminho), mapa, ...(avisos.length > 0 ? { avisos } : {}) };
@@ -901,7 +990,7 @@ const ia = criarIa({
 	lerObjeto,
 	raiz: RAIZ,
 	portaPonte: () => servidorAtual?.address()?.port ?? PORTA_PADRAO,
-	enfileirarStudio: (tipo, args) => canais.enfileirar(tipo, args),
+	enfileirarStudio: (tipo, args, sessao) => canais.enfileirar(tipo, args, sessao),
 });
 
 /** Anuncia um evento da ponte (a IA anota os mapas gravados enquanto aplica uma proposta). */
@@ -1018,7 +1107,26 @@ const ROTAS = [
 		/^\/catalogo\/([^/]+)$/,
 		async ([nome], req) => {
 			const caminho = caminhoCatalogo(nome);
-			gravarJson(PASTAS.catalogo, caminho, await lerJson(req));
+			const novo = await lerJson(req);
+			// O JSONEncode do Roblox não guarda a ordem das chaves e manda {} como []: sem o molde do arquivo de antes, um
+			// "Salvar peças" sem mudança nenhuma reescrevia as 3.300 linhas do pecas.json (achado em 2026-10-23).
+			let antes;
+			try {
+				antes = existe(caminho) ? fs.readFileSync(caminho, "utf8").replace(/\r\n/g, "\n") : undefined;
+			} catch {
+				antes = undefined;
+			}
+			let molde;
+			try {
+				molde = antes !== undefined ? JSON.parse(antes) : undefined;
+			} catch {
+				molde = undefined;
+			}
+			const valor = molde !== undefined ? comoAntes(novo, molde) : novo;
+			if (molde !== undefined && antes === textoJson(molde)) {
+				semLinks(PASTAS.catalogo, caminho);
+				gravarAtomico(caminho, textoJson(valor));
+			} else gravarJson(PASTAS.catalogo, caminho, valor);
 			return { json: { ok: true, arquivo: path.relative(RAIZ, caminho) } };
 		},
 	],

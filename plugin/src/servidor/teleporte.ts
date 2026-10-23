@@ -17,6 +17,12 @@ export interface Teleporte {
 	celula: string;
 	/** os.time() de quando foi pedido. */
 	quando: number;
+	/**
+	 * O PlaceId do Play que pediu (2026-10-23): as configurações do plugin valem para todos os Studios abertos, e sem
+	 * isto o pedido feito no Play de um Studio de teste podia ser aplicado no place de outro Studio (o do autor).
+	 * O Play tem o mesmo PlaceId da edição que o abriu. Pedido sem o campo (de antes) vale em qualquer um.
+	 */
+	place?: number;
 }
 
 export function pendente(plugin: Plugin): Teleporte | undefined {
@@ -24,7 +30,12 @@ export function pendente(plugin: Plugin): Teleporte | undefined {
 	if (!ok || !typeIs(valor, "table")) return undefined;
 	const t = valor as Partial<Teleporte>;
 	if (!typeIs(t.mapa, "string") || t.mapa === "") return undefined;
-	return { mapa: t.mapa, celula: typeIs(t.celula, "string") ? t.celula : "", quando: typeIs(t.quando, "number") ? t.quando : 0 };
+	return {
+		mapa: t.mapa,
+		celula: typeIs(t.celula, "string") ? t.celula : "",
+		quando: typeIs(t.quando, "number") ? t.quando : 0,
+		place: typeIs(t.place, "number") ? t.place : undefined,
+	};
 }
 
 function esquecer(plugin: Plugin) {
@@ -45,7 +56,7 @@ function gravarAgora(t: Teleporte): { ok: boolean; mensagem: string } {
  * painel.
  */
 export function teleportar(plugin: Plugin, mapa: string, celula: string): { ok: boolean; mensagem: string } {
-	const t: Teleporte = { mapa, celula, quando: os.time() };
+	const t: Teleporte = { mapa, celula, quando: os.time(), place: game.PlaceId };
 	if (modoAtual() === "edicao") {
 		const r = gravarAgora(t);
 		if (!r.ok) return r;
@@ -69,6 +80,8 @@ export function aplicarPendente(plugin: Plugin): string | undefined {
 	if (modoAtual() !== "edicao") return undefined;
 	const t = pendente(plugin);
 	if (!t) return undefined;
+	// De outro place (outro Studio aberto): fica para o Studio dele.
+	if (t.place !== undefined && t.place !== game.PlaceId) return undefined;
 	const r = gravarAgora(t);
 	if (!r.ok) {
 		warn(`[Diorama] teleporte pendente não aplicado: ${r.mensagem}`);

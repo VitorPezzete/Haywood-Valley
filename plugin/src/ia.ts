@@ -3,7 +3,7 @@
 // Contrato com a ponte em docs/diorama/CONEXOES.md, seção 7; o back-end é a ponte (tools/diorama_lib/ia.mjs), que roda
 // o Claude Code do PC. Com uma ponte antiga, sem as rotas, o pedido volta com "Ainda não disponível: atualize a ponte".
 //
-//   POST /ia/pedidos { texto, contexto: { mapa, secao, selecao, problemas }, modo: "agir" } → { id }
+//   POST /ia/pedidos { texto, contexto: { mapa, secao, selecao, problemas }, modo: "agir", sessao } → { id }
 //   GET  /ia/pedidos/<id>?espera=30 → { estado: "pensando" | "proposta" | "feito" | "erro", resposta, proposta? }
 //        (202 enquanto pensa)
 //   POST /ia/pedidos/<id>/confirmar { aceitar } → o mesmo formato do GET
@@ -12,6 +12,7 @@
 // A conversa fica no módulo: dura a sessão do Studio (some numa recarga do pacote, como o resto do estado).
 import { HttpService } from "@rbxts/services";
 import { source } from "@rbxts/vide";
+import { ambienteSeHouver } from "./ambiente";
 import { pedir } from "./ponte";
 
 export interface Proposta {
@@ -135,7 +136,9 @@ export function enviarPedido(texto: string, contexto: ContextoPedido) {
 	}
 	anotar({ quem: "voce", texto: limpo });
 	pensando(true);
-	const r = chamar("POST", "/ia/pedidos", { texto: limpo, contexto, modo: "agir" });
+	// `sessao`: este Studio. A ponte só reabre o mapa (e o Claude só fala com o Studio) desta sessão; sem ela, um
+	// "abrir_mapa { descartar: true }" iria ao Studio mais recente, que pode ser outro (o place do autor). 2026-10-23.
+	const r = chamar("POST", "/ia/pedidos", { texto: limpo, contexto, modo: "agir", sessao: ambienteSeHouver()?.sessao });
 	if (!r.ok) {
 		pensando(false);
 		anotar({ quem: "sistema", texto: r.erro });

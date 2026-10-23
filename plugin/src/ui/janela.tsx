@@ -10,12 +10,12 @@ import { ambienteSeHouver } from "../ambiente";
 import { estadoCanal } from "../canal";
 import { definirUltimaSecao } from "../config";
 import { mapaAberto, mapaSujo, mapas, recarregarMapas, statusPonte, ultimosProblemas } from "../estado";
-import { ContextoPedido } from "../ia";
+import { ContextoPedido, conversa, decidir, enviarPedido, limparConversa, pararPedido, pensando, propostaPendente } from "../ia";
 import { controleMapas } from "../mapas/controle";
 import { COMO_LIGAR, enderecoPonte, erroPonte, ponteLigada, status } from "../ponte";
 import { DefinicaoSecao, ICONE_CLAUDE, SECOES } from "../secoes";
 import { modoAtual } from "../servidor/execucao";
-import { acoesDe } from "../simulacao";
+import { acoesDe, argTexto, registrarAcoes } from "../simulacao";
 import { VERSAO } from "../versao";
 import { definirQuadro, janelaAberta, mostrar, secaoAberta } from "../widget";
 import { copiarTexto } from "./copiar";
@@ -432,6 +432,54 @@ function Janela(props: { gui: DockWidgetPluginGui; secoes: ReadonlyArray<Definic
 			const numeros: Enum.KeyCode[] = [Enum.KeyCode.One, Enum.KeyCode.Two, Enum.KeyCode.Three, Enum.KeyCode.Four, Enum.KeyCode.Five, Enum.KeyCode.Six, Enum.KeyCode.Seven];
 			const i = numeros.indexOf(k);
 			if (i >= 0 && props.secoes[i] && UserInputService.GetFocusedTextBox() === undefined) abrirSecao(props.secoes[i].id);
+		}),
+	);
+
+	// "Pedir ao Claude" visto de fora (simulacao.ts; `simular { ferramenta: "claude", acao }`, 2026-10-23): os mesmos
+	// passos dos cliques da caixa. `enviar` e `aplicar` não esperam o Claude (pode levar minutos): `estado` diz onde está.
+	cleanup(
+		registrarAcoes("claude", {
+			abrir: () => {
+				props.gui.Enabled = true;
+				sobreposicao("claude");
+				return true;
+			},
+			fechar: () => {
+				sobreposicao(undefined);
+				return true;
+			},
+			enviar: (args) => {
+				const texto = argTexto(args, "texto");
+				if (pensando()) error("o Claude ainda está pensando; espere ou pare o pedido", 0);
+				sobreposicao("claude");
+				task.spawn(enviarPedido, texto, contextoDoPedido());
+				return true;
+			},
+			aplicar: () => {
+				if (!propostaPendente()) error("não há proposta esperando o Aplicar", 0);
+				task.spawn(decidir, true);
+				return true;
+			},
+			cancelar: () => {
+				if (!propostaPendente()) error("não há proposta esperando", 0);
+				decidir(false);
+				return true;
+			},
+			parar: () => {
+				pararPedido();
+				return true;
+			},
+			limpar: () => {
+				limparConversa();
+				return true;
+			},
+			estado: () => ({
+				aberta: props.gui.Enabled && sobreposicao() === "claude",
+				pensando: pensando(),
+				proposta: propostaPendente()?.proposta,
+				conversa: conversa().map((m) => ({ quem: m.quem, texto: m.texto, proposta: m.proposta, decisao: m.decisao })),
+				contexto: contextoDoPedido(),
+			}),
 		}),
 	);
 

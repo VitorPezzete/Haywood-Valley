@@ -80,7 +80,7 @@ export function verificarAssets(conteudo: unknown): Problema[] {
 			});
 		}
 	}
-	// Imagens e sons sem id têm caminhos diferentes: a ferramenta Assets só envia imagem, e os sons sem arquivo se
+	// Imagens e sons sem id têm caminhos diferentes: a seção Arte (antes, a ferramenta Assets) só envia imagem, e os sons sem arquivo se
 	// perderam (DUVIDAS.md, item 19). Um aviso por tipo, cada um com o que fazer.
 	const imagens = semId.filter((nome) => assets[nome].tipo !== "som");
 	const sons = semId.filter((nome) => assets[nome].tipo === "som");
@@ -92,7 +92,7 @@ export function verificarAssets(conteudo: unknown): Problema[] {
 			grupo: "assets",
 			onde,
 			oQue: `${imagens.size()} de ${total} chave(s) de imagem sem id: ${listar(imagens)}.`,
-			comoCorrigir: "Envie as imagens (ferramenta Assets ou upload_image do MCP) e rode npm run assets -- --importar. O jogo avisa e segue sem elas.",
+			comoCorrigir: "Envie as imagens (seção Arte, que pergunta a cada envio, ou upload_image do MCP) e rode npm run assets -- --importar. O jogo avisa e segue sem elas.",
 		});
 	}
 	if (sons.size() > 0) {
@@ -103,7 +103,7 @@ export function verificarAssets(conteudo: unknown): Problema[] {
 			onde,
 			oQue: `${sons.size()} de ${total} chave(s) de som sem id${semArquivo > 0 ? ` (${semArquivo} sem arquivo)` : ""}: ${listar(sons)}.`,
 			comoCorrigir:
-				"A ferramenta Assets não envia som. Os sons sem arquivo se perderam e serão refeitos (docs/audio/ESTUDO_PACOTES_ABLETON.md); um som com arquivo vai pelo Creator Hub, e o id entra com npm run assets -- --importar. O jogo avisa [Som] e segue sem eles.",
+				"A seção Arte não envia som. Os sons sem arquivo se perderam e serão refeitos (docs/audio/ESTUDO_PACOTES_ABLETON.md); um som com arquivo vai pelo Creator Hub, e o id entra com npm run assets -- --importar. O jogo avisa [Som] e segue sem eles.",
 		});
 	}
 	return problemas;

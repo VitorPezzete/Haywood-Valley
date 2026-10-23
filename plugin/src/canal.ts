@@ -276,8 +276,14 @@ const COMANDOS: Record<string, (args: Args) => unknown> = {
 		const ferramenta = texto(args.ferramenta);
 		const acao = texto(args.acao);
 		if (ferramenta === undefined || acao === undefined) error("falta ferramenta ou acao", 0);
-		const erro = mostrar(ferramenta);
-		if (erro !== undefined) error(`a seção ${ferramenta} não montou: ${erro}`, 0);
+		if (idsFerramentas().includes(resolverSecao(ferramenta))) {
+			const erro = mostrar(ferramenta);
+			if (erro !== undefined) error(`a seção ${ferramenta} não montou: ${erro}`, 0);
+		} else {
+			// Não é seção (ex. "claude", a caixa do cabeçalho, registrada pela moldura): só abre a janela.
+			const gui = janela();
+			if (gui) gui.Enabled = true;
+		}
 		const acoes = esperarAcoes(ferramenta);
 		if (!acoes) error(`a seção ${ferramenta} não registrou ações para simular`, 0);
 		if (acao === "acoes") return listaDeAcoes(ferramenta);

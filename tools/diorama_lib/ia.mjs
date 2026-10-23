@@ -359,8 +359,8 @@ function fraseDeErro({ codigo, stderr, resultado }) {
 
 /**
  * `criarIa({ ErroHttp, lerObjeto, raiz, portaPonte, enfileirarStudio, log })` → `{ rotas, estado, aoEvento, fechar }`.
- * `portaPonte()`: a porta em que a ponte escuta (vai para o MCP do processo filho). `enfileirarStudio(tipo, args)`:
- * o `enfileirar` do canal do Studio (lança 503 sem Studio). `aoEvento(tipo, dados)`: a ponte chama a cada evento
+ * `portaPonte()`: a porta em que a ponte escuta (vai para o MCP do processo filho). `enfileirarStudio(tipo, args, sessao)`:
+ * o `enfileirar` do canal do Studio (lança 503 sem Studio ou sem aquela sessão). `aoEvento(tipo, dados)`: a ponte chama a cada evento
  * que ela mesma emite (a IA anota os mapas gravados durante a aplicação para o editor reler).
  */
 export function criarIa({ ErroHttp, lerObjeto, raiz, portaPonte, enfileirarStudio, log = console.log }) {
@@ -408,14 +408,23 @@ export function criarIa({ ErroHttp, lerObjeto, raiz, portaPonte, enfileirarStudi
 		}
 	}
 
-	/** O arquivo do MCP só com o `diorama`, apontando para esta ponte. */
-	function arquivoMcp() {
+	/**
+	 * O arquivo do MCP só com o `diorama`, apontando para esta ponte. `DIORAMA_STUDIO_SESSAO` prende os comandos do
+	 * Studio do MCP ao Studio que fez o pedido (2026-10-23): sem isso, eles iam ao Studio mais recente na edição, que
+	 * pode ser o place do autor. Sem sessão conhecida (plugin antigo), um valor que não casa com nenhuma: os comandos
+	 * do Studio falham em vez de ir a outro.
+	 */
+	function arquivoMcp(sessaoStudio) {
 		const pasta = path.join(os.tmpdir(), "diorama-ponte");
 		fs.mkdirSync(pasta, { recursive: true });
 		const arquivo = path.join(pasta, `ia-mcp-${portaPonte()}.json`);
 		const config = {
 			mcpServers: {
-				diorama: { command: process.execPath, args: [ARQUIVO_MCP], env: { DIORAMA_PONTE: `http://127.0.0.1:${portaPonte()}` } },
+				diorama: {
+					command: process.execPath,
+					args: [ARQUIVO_MCP],
+					env: { DIORAMA_PONTE: `http://127.0.0.1:${portaPonte()}`, DIORAMA_STUDIO_SESSAO: sessaoStudio ?? "nenhuma-sessao-do-studio" },
+				},
 			},
 		};
 		fs.writeFileSync(arquivo, JSON.stringify(config, null, "\t"));
@@ -432,7 +441,7 @@ export function criarIa({ ErroHttp, lerObjeto, raiz, portaPonte, enfileirarStudi
 			...(fase === "proposta" ? ["--session-id", p.sessao] : ["--resume", p.sessao]),
 			"--strict-mcp-config",
 			"--mcp-config",
-			arquivoMcp(),
+			arquivoMcp(p.sessaoStudio),
 			...argumentosDaFase(fase),
 			"--append-system-prompt",
 			SISTEMA,
@@ -543,11 +552,15 @@ export function criarIa({ ErroHttp, lerObjeto, raiz, portaPonte, enfileirarStudi
 		const mapa = p.contexto.mapa;
 		if (dados?.ok !== false && typeof mapa === "string" && p.gravados.has(mapa) && p.contexto.selecao?.nao_salvo !== true) {
 			// O editor está com o mapa aberto e o disco mudou: relê (nada a perder, o autor não tinha mudança não salva).
-			try {
-				enfileirarStudio("abrir_mapa", { id: mapa, descartar: true });
-				extra = " O editor releu o mapa.";
-			} catch {
-				// sem Studio conectado: o autor reabre
+			// Só no Studio que fez o pedido: com `descartar`, ir a outro Studio jogaria fora mudanças de lá (2026-10-23).
+			extra = " Reabra o mapa para ver a mudança.";
+			if (p.sessaoStudio) {
+				try {
+					enfileirarStudio("abrir_mapa", { id: mapa, descartar: true }, p.sessaoStudio);
+					extra = " O editor releu o mapa.";
+				} catch {
+					// o Studio saiu: o autor reabre
+				}
 			}
 		}
 		log(`[ia] ${p.id} aplicar: ${dados?.ok === false ? "não conseguiu" : "feito"} (${segundos} s)`);
@@ -591,12 +604,14 @@ export function criarIa({ ErroHttp, lerObjeto, raiz, portaPonte, enfileirarStudi
 		if (texto.length > TEXTO_MAXIMO) throw new ErroHttp(400, `o pedido passa de ${TEXTO_MAXIMO} caracteres`);
 		if (corpo.modo !== undefined && corpo.modo !== "agir") throw new ErroHttp(400, `modo desconhecido: ${JSON.stringify(corpo.modo)} (só "agir")`);
 		const contexto = lerContexto(corpo.contexto);
+		// O Studio que pediu (o plugin manda a sessão do canal desde 2026-10-23).
+		const sessaoStudio = typeof corpo.sessao === "string" && /^[A-Za-z0-9_-]{1,80}$/.test(corpo.sessao) ? corpo.sessao : undefined;
 		if (rodando) throw new ErroHttp(409, `o Claude ainda está trabalhando no pedido ${rodando.id}; espere ou pare esse antes.`);
 		const claude = acharClaude();
 		if (!claude.achado) throw new ErroHttp(503, `Pedir ao Claude não funciona: ${claude.motivo}.`);
 		// Um pedido novo deixa as propostas anteriores para trás.
 		for (const velho of pedidos.values()) if (velho.estado === "proposta") cancelar(velho, "Proposta deixada para trás por um pedido novo; nada mudou.");
-		const p = { id: `p${++contador}`, texto, contexto, estado: "pensando", fase: "proposta", sessao: randomUUID(), criado: Date.now(), ouvintes: new Set() };
+		const p = { id: `p${++contador}`, texto, contexto, sessaoStudio, estado: "pensando", fase: "proposta", sessao: randomUUID(), criado: Date.now(), ouvintes: new Set() };
 		guardar(p);
 		log(`[ia] ${p.id} pedido: ${texto.slice(0, 80)}${texto.length > 80 ? "…" : ""}`);
 		executar(p, "proposta").catch((erro) => mudar(p, { estado: "erro", resposta: `erro na ponte: ${erro.message}` }));

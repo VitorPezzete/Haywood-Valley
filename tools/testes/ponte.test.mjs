@@ -502,6 +502,42 @@ test("catálogo: ida e volta, sem temporários", async () => {
 	assert.equal((await pedir("GET", "/catalogo/naoexiste")).status, 404);
 });
 
+test("formato: bloco na ordem e no formato do importador; catálogo na ordem do arquivo de antes", async () => {
+	// O plugin manda o JSON do Roblox: chaves em qualquer ordem e {} como [] (2026-10-23).
+	const bloco = blocoValido("teste_fmt", { nascimento: [1, 1], zonas: [{ props: [], areas: [[0, 0, 1, 1]], nome: "Sala" }] });
+	const embaralhado = Object.fromEntries(Object.entries(bloco).reverse());
+	embaralhado.camadas = { frente: [], objeto: [], chao: bloco.camadas.chao };
+	assert.equal((await pedir("PUT", "/mapas/teste_fmt/blocos/0_0", { corpo: embaralhado })).status, 200);
+	const texto = fs.readFileSync(path.join(raiz, "diorama", "mapas", "teste_fmt", "blocos", "0_0.json"), "utf8");
+	assert.equal(
+		texto,
+		'{\n\t"versao": 1,\n\t"mapa": "teste_fmt",\n\t"bloco": [0, 0],\n\t"folhas": ["f"],\n\t"vazio": ["f", 0, 0],\n\t"camadas": {\n\t\t"chao": [\n\t\t\t[1, 1, "f", 0, 0]\n\t\t],\n\t\t"objeto": [],\n\t\t"frente": []\n\t},\n\t"nascimento": [1, 1],\n\t"zonas": [\n\t\t{\n\t\t\t"nome": "Sala",\n\t\t\t"areas": [\n\t\t\t\t[0, 0, 1, 1]\n\t\t\t],\n\t\t\t"props": {}\n\t\t}\n\t]\n}\n',
+	);
+	assert.match(fs.readFileSync(path.join(raiz, "diorama", "mapas", "teste_fmt", "mapa.json"), "utf8"), /"blocos": \[\n\t\t\[0, 0\]\n\t\]/);
+	assert.equal((await pedir("DELETE", "/mapas/teste_fmt")).status, 200);
+
+	const arquivo = path.join(raiz, "diorama", "catalogo", "pecas.json");
+	const antes = { versao: 1, nota: "n", pecas: [{ id: "a", nome: "A", area: [0, 0, 1, 1], extra: {} }, { id: "b", nome: "B", area: [1, 0, 1, 1], extra: { x: 1 } }] };
+	fs.writeFileSync(arquivo, JSON.stringify(antes, null, "\t") + "\n");
+	const doRoblox = {
+		pecas: [
+			{ extra: { x: 1 }, area: [1, 0, 1, 1], nome: "B", id: "b" },
+			{ area: [0, 0, 1, 1], extra: [], id: "a", nome: "A" },
+			{ nome: "C", extra: [], id: "c", area: [2, 0, 1, 1] },
+		],
+		nota: "n",
+		versao: 1,
+	};
+	assert.equal((await pedir("PUT", "/catalogo/pecas", { corpo: doRoblox })).status, 200);
+	const depois = {
+		versao: 1,
+		nota: "n",
+		pecas: [antes.pecas[1], antes.pecas[0], { id: "c", nome: "C", area: [2, 0, 1, 1], extra: {} }],
+	};
+	assert.equal(fs.readFileSync(arquivo, "utf8"), JSON.stringify(depois, null, "\t") + "\n");
+	fs.rmSync(arquivo);
+});
+
 // ---------------------------------------------------------------------------------------------------------------
 // Canal do Studio
 
@@ -820,8 +856,8 @@ function opcao(args, nome) {
 	return i >= 0 ? args[i + 1] : undefined;
 }
 
-async function pedidoIa(texto, contexto = { mapa: null, secao: "mapa", selecao: {}, problemas: [] }) {
-	const r = await pedir("POST", "/ia/pedidos", { corpo: { texto, contexto, modo: "agir" } });
+async function pedidoIa(texto, contexto = { mapa: null, secao: "mapa", selecao: {}, problemas: [] }, sessao) {
+	const r = await pedir("POST", "/ia/pedidos", { corpo: { texto, contexto, modo: "agir", ...(sessao ? { sessao } : {}) } });
 	assert.equal(r.status, 201, r.texto);
 	return r.json.id;
 }
@@ -871,7 +907,8 @@ test("IA: explicação sem mudança volta como feito", { timeout: 20_000 }, asyn
 test("IA: proposta, confirmação na mesma sessão, ferramentas de cada fase, editor relê o mapa", { timeout: 30_000 }, async () => {
 	const antes = chamadasFalso().length;
 	const contexto = { mapa: "ia_mapa", secao: "mapa", selecao: { celula: [3, 4], nao_salvo: false }, problemas: ["[erro] mapa ia_mapa: teste"] };
-	const id = await pedidoIa("#proposta põe uma zona Cozinha", contexto);
+	await presenca("s_ia");
+	const id = await pedidoIa("#proposta põe uma zona Cozinha", contexto, "s_ia");
 	const r = await respostaIa(id);
 	assert.equal(r.json.estado, "proposta");
 	assert.equal(r.json.resposta, "Achei o lugar.");
@@ -916,6 +953,8 @@ test("IA: proposta, confirmação na mesma sessão, ferramentas de cada fase, ed
 	const mcp = JSON.parse(fs.readFileSync(opcao(proposta.args, "--mcp-config"), "utf8"));
 	assert.deepEqual(Object.keys(mcp.mcpServers), ["diorama"]);
 	assert.equal(mcp.mcpServers.diorama.env.DIORAMA_PONTE, `http://127.0.0.1:${porta}`);
+	// O MCP do Claude fica preso ao Studio que pediu (2026-10-23).
+	assert.equal(mcp.mcpServers.diorama.env.DIORAMA_STUDIO_SESSAO, "s_ia");
 	// Fase 2: a mesma sessão, escrita só no necessário.
 	assert.equal(aplicar.fase, "aplicar");
 	assert.equal(opcao(aplicar.args, "--resume"), sessao);

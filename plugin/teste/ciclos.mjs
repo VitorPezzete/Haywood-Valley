@@ -24,7 +24,8 @@ const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", ".
 const SAIDA = path.join(RAIZ, "plugin", "out", "teste");
 const require = createRequire(import.meta.url);
 const ts = require(path.join(RAIZ, "node_modules", "typescript"));
-const { gravarBloco } = await import(pathToFileURL(path.join(RAIZ, "tools", "diorama_ponte.mjs")).href);
+const { gravarBloco, comoAntes } = await import(pathToFileURL(path.join(RAIZ, "tools", "diorama_ponte.mjs")).href);
+const { textoJson } = await import(pathToFileURL(path.join(RAIZ, "tools", "diorama_lib", "json.mjs")).href);
 
 const args = process.argv.slice(2);
 const manter = args.includes("--manter");
@@ -169,9 +170,24 @@ function rodarGerador(argumentos) {
 	return { codigo: r.status, log: (r.stdout ?? "") + (r.stderr ?? "") };
 }
 
-/** Grava como a ponte grava (JSON com tabulação e quebra de linha no fim). */
+/** Grava como a ponte grava um catálogo (JSON com tabulação e quebra de linha no fim). */
 function textoPonte(valor) {
 	return JSON.stringify(valor, null, "\t") + "\n";
+}
+
+/** O texto de um arquivo como o git o guarda (o checkout no Windows pode trazer CRLF). */
+function semCr(texto) {
+	return texto.replace(/\r\n/g, "\n");
+}
+
+/**
+ * As chaves de cada objeto em ordem invertida: o JSONDecode/JSONEncode do Luau não guarda a ordem, e a ponte é que
+ * a refaz (o molde do arquivo de antes no catálogo, a ordem do importador nos blocos; 2026-10-23).
+ */
+function embaralhar(valor) {
+	if (Array.isArray(valor)) return valor.map(embaralhar);
+	if (valor && typeof valor === "object") return Object.fromEntries(Object.keys(valor).reverse().map((k) => [k, embaralhar(valor[k])]));
+	return valor;
 }
 
 const restaurar = [];
@@ -199,7 +215,7 @@ function cicloCatalogo(formato) {
 	console.log("\n== Ciclo 1: catálogo (pecas.json, fundos.json → plugin → --decorar)");
 	const pasta = path.join(RAIZ, "diorama", "catalogo");
 	const arquivos = { pecas: path.join(pasta, "pecas.json"), fundos: path.join(pasta, "fundos.json") };
-	const originais = { pecas: fs.readFileSync(arquivos.pecas, "utf8"), fundos: fs.readFileSync(arquivos.fundos, "utf8") };
+	const originais = { pecas: semCr(fs.readFileSync(arquivos.pecas, "utf8")), fundos: semCr(fs.readFileSync(arquivos.fundos, "utf8")) };
 
 	const pecas = formato.lerCatalogo(JSON.parse(originais.pecas), "pecas", formato.lerPeca);
 	const fundos = formato.lerCatalogo(JSON.parse(originais.fundos), "fundos", formato.lerFundo);
@@ -221,8 +237,10 @@ function cicloCatalogo(formato) {
 	}
 	resultado("células em texto e de volta", diferentes === 0, `${celulas} células, ${diferentes} variante(s) diferente(s)`);
 
-	const textoPecas = textoPonte(formato.catalogoParaJson("pecas", pecas.itens.map(formato.pecaParaJson), pecas.extras, pecas.ordem));
-	const textoFundos = textoPonte(formato.catalogoParaJson("fundos", fundos.itens.map(formato.fundoParaJson), fundos.extras, fundos.ordem));
+	// Como chega à ponte vindo do Studio (ordem perdida, {} como []) e como a ponte grava (PUT /catalogo).
+	const comoGrava = (json, original) => textoPonte(comoAntes(embaralhar(comoJsonEncodeDoLuau(json)), JSON.parse(original)));
+	const textoPecas = comoGrava(formato.catalogoParaJson("pecas", pecas.itens.map(formato.pecaParaJson), pecas.extras, pecas.ordem), originais.pecas);
+	const textoFundos = comoGrava(formato.catalogoParaJson("fundos", fundos.itens.map(formato.fundoParaJson), fundos.extras, fundos.ordem), originais.fundos);
 	resultado("pecas.json gravado byte a byte igual", textoPecas === originais.pecas);
 	resultado("fundos.json gravado byte a byte igual", textoFundos === originais.fundos);
 
@@ -266,7 +284,7 @@ function cicloBlocos(bloco) {
 		}
 		// O que sai do plugin passa pelo HttpService:JSONEncode do Roblox, que manda `[]` para toda tabela vazia
 		// (`props: {}` vira `props: []`); a ponte tem de desfazer isso.
-		const saida = comoJsonEncodeDoLuau(modelo.paraJson());
+		const saida = embaralhar(comoJsonEncodeDoLuau(modelo.paraJson()));
 		const antes = gitStatusSrc();
 		guardarParaRestaurar(caminho);
 		guardarParaRestaurar(caminhoMapa);
@@ -277,11 +295,14 @@ function cicloBlocos(bloco) {
 			restaurarTudo();
 			continue;
 		}
-		const gravado = JSON.parse(fs.readFileSync(caminho, "utf8"));
+		const textoGravado = fs.readFileSync(caminho, "utf8");
+		const gravado = JSON.parse(textoGravado);
+		// O arquivo que a ponte grava é o mesmo do git, byte a byte (formato e ordem do importador; 2026-10-23).
+		resultado(`${id}: bloco gravado byte a byte igual`, textoGravado === semCr(original));
 		const mesmoConteudo = JSON.stringify(canonico(gravado)) === JSON.stringify(canonico(json));
 		const g = rodarGerador([id]);
 		const depois = gitStatusSrc();
-		const regravou = fs.readFileSync(caminho, "utf8") !== textoPonte(gravado);
+		const regravou = fs.readFileSync(caminho, "utf8") !== textoJson(gravado);
 		const ok = g.codigo === 0 && depois === antes && !regravou;
 		resultado(
 			`${id}`,

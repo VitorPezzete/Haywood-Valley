@@ -342,8 +342,19 @@ function resumirBloco(conteudo) {
  * Manda um comando ao plugin (POST /studio/comandos) e espera a resposta com GET /studio/respostas/<id>?espera=30,
  * repetindo enquanto vier 202, até `limiteS` segundos.
  */
+/**
+ * Preso a um Studio (2026-10-23): a ponte põe DIORAMA_STUDIO_SESSAO no MCP que o "Pedir ao Claude" sobe, para os
+ * comandos do Studio irem só ao Studio que fez o pedido (sem sessão, iam ao mais recente na edição, que pode ser o
+ * place do autor). Com ela, outra `sessao` é recusada.
+ */
+const SESSAO_PRESA = process.env.DIORAMA_STUDIO_SESSAO || undefined;
+
 async function comandoStudio(tipo, args, sessao, limiteS = ESPERA_STUDIO_S) {
 	const corpo = { tipo, args: args ?? {} };
+	if (SESSAO_PRESA && sessao && sessao !== SESSAO_PRESA) {
+		throw new ErroPonte(`Este MCP só fala com o Studio que fez o pedido (sessão ${SESSAO_PRESA}); a sessão ${sessao} foi recusada.`);
+	}
+	if (SESSAO_PRESA) sessao = SESSAO_PRESA;
 	if (sessao) corpo.sessao = sessao;
 	let enviado;
 	try {

@@ -291,6 +291,8 @@ export function PainelAssets() {
 		registrarAcoes("arte", {
 			filtrar: (args) => {
 				filtro(typeIs(args.texto, "string") ? args.texto : "");
+				// `so_falta`: liga ou desliga "Só o que falta enviar" (o Verificar leva às chaves sem id com ele ligado).
+				if (typeIs(args.so_falta, "boolean")) soSemId(args.so_falta);
 				task.wait();
 				const lista = filtradas();
 				if (lista.size() === 1) selecionar(lista[0]);

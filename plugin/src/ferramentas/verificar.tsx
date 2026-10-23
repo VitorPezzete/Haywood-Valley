@@ -72,11 +72,16 @@ function destino(p: Problema): { rotulo: string; ir: () => void } | undefined {
 	}
 	if (p.grupo === "assets") {
 		const [chave] = p.onde.match("registro%.json: ([^,]+)");
+		// Sem chave no "onde" (ex. "16 chaves de som sem id"): a lista do que falta enviar, sem o filtro de antes
+		// (antes ficava o filtro da última ida, e a lista mostrava outra coisa; 2026-10-23).
+		const semId = p.oQue.find("sem id", 1, true)[0] !== undefined;
 		return {
 			rotulo: "Ver em Arte",
 			ir: () => {
 				mostrar("arte");
-				if (chave !== undefined) task.spawn(() => esperarAcoes("arte")?.filtrar({ texto: tostring(chave) }));
+				task.spawn(() =>
+					esperarAcoes("arte")?.filtrar(chave !== undefined ? { texto: tostring(chave), so_falta: false } : { texto: "", so_falta: semId }),
+				);
 			},
 		};
 	}
