@@ -50,11 +50,12 @@ const POSES: Array<{ valor: Pose; texto: string }> = [
 ];
 
 /**
- * Os ambientes que o jogo conhece (cópia de AMBIENCE_PROFILES em src/shared/sounds.ts, 2026-10-20; a zona com outro
- * nome fica sem ambiente). As músicas vêm do registro de assets: cada `musica.<lugar>_<período>` vira o lugar.
+ * Os ambientes que o jogo conhece (cópia de AMBIENCE_PROFILES em src/shared/sounds.ts, 2026-10-20; "campo" desde
+ * 2026-10-23; a zona com outro nome fica sem ambiente). As músicas vêm do registro de assets: cada
+ * `musica.<lugar>_<período>` vira o lugar; as de uma faixa só para todos os períodos (a "vila") ficam na reserva.
  */
-const AMBIENTES = ["casa", "exterior", "mar"];
-const MUSICAS_RESERVA = ["ilha", "sala"];
+const AMBIENTES = ["campo", "casa", "exterior", "mar"];
+const MUSICAS_RESERVA = ["ilha", "sala", "vila"];
 const PERIODOS = ["manha", "dia", "tarde", "noite"];
 
 function musicasDoRegistro(): string[] {

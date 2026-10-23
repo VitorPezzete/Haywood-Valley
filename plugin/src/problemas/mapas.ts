@@ -220,6 +220,18 @@ function verificarBloco(
 			erro(lugar, "sem mapa de destino.", "Escolha o mapa para onde a saída leva.");
 			return;
 		}
+		// O mapa do mundo (`mundo`, MAPA_MUNDO.md §11; 2026-10-23) não é um mapa do Diorama: o servidor leva ao lote do
+		// jogador (`MapService.enterWorld`). A chegada é "lote", nada (o portão do lote) ou uma célula do mundo [x, y].
+		if (saida.mapa === "mundo") {
+			const chegada = saida.chegada;
+			const celula = typeIs(chegada, "table") ? (chegada as unknown[]) : undefined;
+			const valida =
+				chegada === undefined ||
+				chegada === "lote" ||
+				(celula !== undefined && typeIs(celula[0], "number") && typeIs(celula[1], "number") && celula[0] >= 0 && celula[1] >= 0);
+			if (!valida) erro(lugar, `chegada "${tostring(chegada)}" no mundo fora do formato.`, 'No mundo, a chegada é "lote", nada (os dois: o portão do lote do jogador) ou uma célula do mundo [x, y].');
+			return;
+		}
 		if (!mapasConhecidos.has(saida.mapa)) {
 			erro(lugar, `leva ao mapa "${saida.mapa}", que não existe em diorama/mapas.`, "O servidor recusaria a saída (\"o destino não foi gerado\"). Crie o mapa ou corrija o destino.");
 			return;

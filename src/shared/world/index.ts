@@ -183,10 +183,12 @@ export function worldKind(x: number, y: number) {
 	return code === "r" ? 6 : code === "m" ? 11 : 0;
 }
 
-const zones: InteriorZone[] = PHASE1_ZONES.map(([name, [x0, y0, x1, y1]]) => ({
+// As propriedades de som de cada zona (`ambiente`, `musica`) vêm do gerador (`ZONAS_F1` em tools/mundo_mapa.py, desde
+// 2026-10-23), como as das zonas do Diorama: o `SoundController` e o `MusicController` as leem pela zona do pé.
+const zones: InteriorZone[] = PHASE1_ZONES.map(([name, [x0, y0, x1, y1], props]) => ({
 	name,
 	areas: [[x0 + PHASE1_CELL_X, y0 + PHASE1_CELL_Y, x1 + PHASE1_CELL_X, y1 + PHASE1_CELL_Y]],
-	props: { ambiente: "exterior" },
+	props,
 }));
 
 /** A zona com nome da célula (x, y) do mundo (a plaquinha do `MapController`), ou nada. */
@@ -196,6 +198,35 @@ export function worldZoneAt(x: number, y: number): InteriorZone | undefined {
 		if (x >= x0 && y >= y0 && x <= x1 && y <= y1) return zone;
 	}
 	return undefined;
+}
+
+/** De quantas em quantas células se pega um ponto da água (`worldWaterSample`): 2 células são 1 stud. */
+const WATER_SAMPLE_STEP = 2;
+
+let waterSample: [number, number][] | undefined;
+
+/**
+ * As células de água (rasa ou funda) da fase, uma a cada `WATER_SAMPLE_STEP` em cada eixo, em células do mundo: o som do
+ * rio vai à mais perto do jogador (`SoundController`), como o mar dos interiores. Lido das corridas de `PHASE1_ROWS` uma
+ * vez, na primeira chamada (uns 1.000 pontos para as 4.062 células de água; procurar em todas a cada passo pesaria).
+ */
+export function worldWaterSample(): ReadonlyArray<[number, number]> {
+	if (waterSample) return waterSample;
+	const found = new Array<[number, number]>();
+	for (let j = 0; j < PHASE1.height; j += WATER_SAMPLE_STEP) {
+		const row = rowOf(j);
+		row.codes.forEach((code, index) => {
+			if (code !== "r" && code !== "m") return;
+			const from = row.starts[index];
+			const to = index + 1 < row.starts.size() ? row.starts[index + 1] : PHASE1.width;
+			// Cada corrida dá ao menos um ponto (a água estreita, no vau, também soa).
+			const first = math.ceil(from / WATER_SAMPLE_STEP) * WATER_SAMPLE_STEP;
+			if (first >= to) found.push([PHASE1_CELL_X + from, PHASE1_CELL_Y + j]);
+			for (let i = first; i < to; i += WATER_SAMPLE_STEP) found.push([PHASE1_CELL_X + i, PHASE1_CELL_Y + j]);
+		});
+	}
+	waterSample = found;
+	return found;
 }
 
 /** A célula livre mais perto de (x, y), num raio de `radius` células (em anéis), ou nada. */

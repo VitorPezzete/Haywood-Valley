@@ -32,15 +32,19 @@ import { settings } from "client/state/settings";
 import { setUiSoundPlayer, UiSoundName } from "client/uiSound";
 import { lightOf } from "client/world/lightTiles";
 import { findFixtures } from "shared/fixtures";
+import { PLOT_TILES, plotCell } from "shared/farm";
+import { groundOffset } from "shared/view";
+import { WORLD_TILE, worldCellCorner, worldCellPoint, worldWaterSample } from "shared/world";
 import { ActionController } from "./ActionController";
 import { CharacterController } from "./CharacterController";
+import { FarmController, FarmWork } from "./FarmController";
 import { MapController } from "./MapController";
 import { SceneController } from "./SceneController";
 import { SettingsController } from "./SettingsController";
 
 /** Logo depois de trocar de mapa, os avisos de torneira são o servidor contando como elas estão: sem o clique. */
 const TAP_SYNC_SECONDS = 2;
-/** A cada quanto o mar procura a célula de água mais perto do jogador, em segundos. */
+/** A cada quanto o mar (ou o rio, no mundo) procura a célula de água mais perto do jogador, em segundos. */
 const SEA_SEARCH_SECONDS = 0.25;
 /** Ao sair da tela do jogo (ou voltar a ela), o ambiente some e volta neste tempo. */
 const SCREEN_FADE = 2;
@@ -123,10 +127,14 @@ interface Walker {
  *   mapa, `MAP_SOUND_PROPS`) e pelo período do dia (`gameHour`), com troca suave. Dentro de casa, o de fora fica
  *   baixo e abafado (`EqualizerSoundEffect` sem os agudos).
  * - **Pelo lugar** (`LinearSquare`): a lareira, a torneira aberta e o mar ao longo da costa (um som só, que vai à
- *   célula de água mais perto). A lareira e a torneira só se ouvem na zona delas. Fora do alcance, em pausa.
+ *   célula de água mais perto). A lareira e a torneira só se ouvem na zona delas. Fora do alcance, em pausa. No mapa
+ *   do mundo (2026-10-23), o rio, do mesmo jeito que o mar: um laço só, que vai ao ponto de água mais perto
+ *   (`worldWaterSample`). As posições são as físicas, como a do ouvinte (que não é a câmera): `toView` não entra.
  * - **Limites**: até `MAX_AMBIENT_LOOPS` laços audíveis (os mais altos) e `MAX_EFFECT_COPIES` cópias do mesmo efeito.
  * - **Efeitos**: a porta no começo do véu da viagem, o pote quebrando, o respingo e a braçada na água funda, o passo
- *   na água rasa, a torneira abrindo e fechando, e os passos em seco (ainda sem id).
+ *   na água rasa, a torneira abrindo e fechando, os passos em seco e, na fazenda do mundo (2026-10-23), a enxada, o
+ *   plantar e o colher no meio do canteiro, quando o atributo `Fazenda` do dono muda (o servidor já aceitou; vale
+ *   para o próprio jogador e para os outros, mais baixo, `FarmController.onWork`).
  *
  * Som sem id não toca, e o Output avisa uma vez. A música é do `MusicController`.
  */
@@ -170,6 +178,7 @@ export class SoundController implements OnStart {
 		private map: MapController,
 		private characters: CharacterController,
 		private actions: ActionController,
+		private farm: FarmController,
 	) {}
 
 	onStart() {
@@ -257,6 +266,8 @@ export class SoundController implements OnStart {
 			}
 			this.play(fixtures.isOpen(id) ? "bauAbre" : "bauFecha", at);
 		});
+		// A fazenda: o canteiro que o servidor mudou, no meio dele.
+		this.farm.onWork((player, lot, plot, work) => this.farmWork(player, lot, plot, work));
 		Events.pieceThrown.connect((map, _id, holder, x, y, mode) => {
 			if (!here(map) || mode !== 3) return;
 			// Quebra ao cair, no fim do voo (`PieceView.fly`).
@@ -302,6 +313,15 @@ export class SoundController implements OnStart {
 		const variants = EFFECTS[name] as ReadonlyArray<SoundDef>;
 		const def = variants[this.random.NextInteger(0, variants.size() - 1)];
 		this.fire(`effect.${name}`, def, this.effectsGroup, at, scale);
+	}
+
+	private farmWork(player: Player, lot: string, plot: number, work: FarmWork) {
+		const cell = plotCell(lot, plot);
+		if (!cell) return;
+		const half = (PLOT_TILES * WORLD_TILE) / 2;
+		const at = worldCellCorner(cell[0], cell[1]).add(groundOffset(half, half));
+		const scale = player === Players.LocalPlayer ? 1 : OTHER_PLAYER_VOLUME;
+		this.play(work === "till" ? "enxada" : work === "plant" ? "plantar" : "colher", at, scale);
 	}
 
 	private ui(name: UiSoundName) {
@@ -420,6 +440,13 @@ export class SoundController implements OnStart {
 		this.water.clear();
 		this.closedTaps.clear();
 		this.stovesOn.clear();
+		// O mundo: o rio vai ao ponto de água mais perto (como o mar dos interiores); os pontos já vêm espaçados.
+		if (this.scene.worldMap) {
+			for (const [x, y] of worldWaterSample()) this.water.push(worldCellPoint(x, y));
+			if (this.water.size() > 0) this.sea = this.addPlaced("rio", this.water[0], undefined);
+			this.seaSearchAt = 0;
+			return;
+		}
 		const interior = this.scene.interior;
 		const data = mapData(this.scene.mapId);
 		if (!interior || !data) return;
@@ -557,7 +584,7 @@ export class SoundController implements OnStart {
 		for (const [, loop] of this.background) loop.heard = loop.def.volume * loop.target;
 		this.muffled = this.approach(this.muffled, profile.muffled ? 1 : 0, dt / AMBIENCE_ZONE_FADE);
 
-		// O mar vai à célula de água mais perto do ouvinte (na água, a do próprio jogador).
+		// O mar (ou o rio) vai à célula de água mais perto do ouvinte (na água, a do próprio jogador).
 		const now = os.clock();
 		if (this.sea && now >= this.seaSearchAt) {
 			this.seaSearchAt = now + SEA_SEARCH_SECONDS;

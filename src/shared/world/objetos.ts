@@ -49,6 +49,8 @@ export type WorldStrip = [sheet: number, x: number, y: number, w: number, h: num
 /** Sebes, muros e cercas: linha (um lado) ou contorno (os quatro, com o vão no meio de baixo), deitados. */
 export const WORLD_LINES: Record<string, { outline: boolean; gap: number; h?: WorldStrip; v?: WorldStrip }> = {
 	cerca: { outline: true, gap: 0, h: [0, 52, 263, 576, 16, 64, 64], v: [0, 0, 0, 32, 576, 44, 48] },
+	cerca_h: { outline: false, gap: 0, h: [0, 52, 263, 576, 16, 64, 64] },
+	cerca_v: { outline: false, gap: 0, v: [0, 0, 0, 32, 576, 44, 48] },
 	muro_h: { outline: false, gap: 0, h: [0, 388, 238, 576, 23, 32, 32] },
 	muro_v: { outline: false, gap: 0, v: [0, 34, 0, 16, 572, 30, 32] },
 	sebe_h: { outline: false, gap: 0, h: [0, 388, 238, 576, 23, 32, 32] },

@@ -11,6 +11,7 @@ import {
 	plotAt,
 	plotInReach,
 	plotOpen,
+	PlotState,
 } from "shared/farm";
 import { TextKey } from "shared/i18n/en";
 import { dirStep } from "shared/pieces";
@@ -26,26 +27,49 @@ const GROW_CHECK = 1;
 /** Quanto à frente do pé se procura o canteiro, em pixels de arte (logo depois do bloqueio do personagem). */
 const REACH_PROBE = 12;
 
+/** O trabalho feito num canteiro, visto pela mudança do atributo `Fazenda` (para o som). */
+export type FarmWork = "till" | "plant" | "harvest";
+
 /**
  * A fazenda dos lotes no cliente (fase 1 do `docs/mundo/MAPA_MUNDO.md`, 2026-10-23; regras em `shared/farm.ts`): no
  * mapa do mundo, uma camada (`FarmLayer`) por lote com dono, desenhada do atributo `Fazenda` do dono (todos veem a
  * fazenda de todos), e o trigo crescendo pela hora do servidor. A tecla de ação (`ActionController`) chama `prompt` e
  * `press` quando não há peça nem móvel: na própria fazenda, o canteiro à frente é arado, plantado (trigo) ou colhido; o
  * servidor confere e muda o atributo, e só aí o desenho muda.
+ *
+ * O som do trabalho (2026-10-23, `onWork`): quando o atributo de um jogador muda com o mundo montado, o que mudou em
+ * cada canteiro (nada → arada: arou; arada → plantada: plantou; plantada → arada: colheu) vai a quem ouve. O "antes" é
+ * o que este controller ouviu da última vez (`heard`), não o cache do desenho: a dica da tecla lê o atributo a cada
+ * quadro e podia já ter o texto novo quando o evento chega. Ao montar o mundo e ao trocar de lote, só se guarda o
+ * estado, sem som (a fazenda inteira chegando não é trabalho).
  */
 @Controller()
 export class FarmController implements OnStart {
 	private folder?: Folder;
 	private layers = new Map<Player, FarmLayer>();
 	private decoded = new Map<Player, { text: string; plots: Map<number, FarmPlot> }>();
+	private heard = new Map<Player, Map<number, FarmPlot>>();
+	private workListeners = new Array<(player: Player, lot: string, plot: number, work: FarmWork) => void>();
 
 	constructor(private scene: SceneController) {}
+
+	/** Chamado a cada canteiro trabalhado por qualquer jogador, depois de o servidor aceitar (o atributo mudou). */
+	onWork(listener: (player: Player, lot: string, plot: number, work: FarmWork) => void) {
+		this.workListeners.push(listener);
+	}
 
 	onStart() {
 		this.scene.onMapChanged(() => this.refresh());
 		const watch = (player: Player) => {
-			player.GetAttributeChangedSignal(FARM_ATTRIBUTE).Connect(() => this.refreshPlayer(player));
-			player.GetAttributeChangedSignal(WORLD_LOT_ATTRIBUTE).Connect(() => this.refreshPlayer(player));
+			player.GetAttributeChangedSignal(FARM_ATTRIBUTE).Connect(() => {
+				this.hear(player);
+				this.refreshPlayer(player);
+			});
+			player.GetAttributeChangedSignal(WORLD_LOT_ATTRIBUTE).Connect(() => {
+				this.heard.delete(player);
+				this.hear(player);
+				this.refreshPlayer(player);
+			});
 		};
 		Players.PlayerAdded.Connect(watch);
 		for (const player of Players.GetPlayers()) watch(player);
@@ -53,6 +77,7 @@ export class FarmController implements OnStart {
 			this.layers.get(player)?.destroy();
 			this.layers.delete(player);
 			this.decoded.delete(player);
+			this.heard.delete(player);
 		});
 		task.spawn(() => {
 			while (true) {
@@ -74,6 +99,7 @@ export class FarmController implements OnStart {
 	}
 
 	private refresh() {
+		this.heard.clear();
 		if (!this.scene.worldMap) {
 			for (const [, layer] of this.layers) layer.destroy();
 			this.layers.clear();
@@ -81,7 +107,28 @@ export class FarmController implements OnStart {
 			this.folder = undefined;
 			return;
 		}
-		for (const player of Players.GetPlayers()) this.refreshPlayer(player);
+		for (const player of Players.GetPlayers()) {
+			this.hear(player);
+			this.refreshPlayer(player);
+		}
+	}
+
+	/** Compara a fazenda do jogador com a última ouvida e avisa o trabalho de cada canteiro (só com o mundo montado). */
+	private hear(player: Player) {
+		if (!this.scene.worldMap) return;
+		const plots = this.plotsOf(player);
+		const before = this.heard.get(player);
+		this.heard.set(player, plots);
+		const lot = player.GetAttribute(WORLD_LOT_ATTRIBUTE);
+		if (!before || before === plots || !typeIs(lot, "string") || lot === "") return;
+		for (const [index, plot] of plots) {
+			const old = before.get(index);
+			let work: FarmWork | undefined;
+			if (!old) work = plot.state === PlotState.Tilled ? "till" : "plant";
+			else if (old.state === PlotState.Tilled && plot.state === PlotState.Planted) work = "plant";
+			else if (old.state === PlotState.Planted && plot.state === PlotState.Tilled) work = "harvest";
+			if (work) for (const listener of this.workListeners) listener(player, lot, index, work);
+		}
 	}
 
 	private plotsOf(player: Player) {

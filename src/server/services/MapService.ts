@@ -56,7 +56,10 @@ const SCALE_TIMEOUT = 10;
  *   lugar do mundo só dela (`MapaDono` e `MapaLugar` no jogador). O lugar fica reservado enquanto o dono está no
  *   servidor.
  * - O mapa do mundo (`WORLD_MAP_ID`, fase 0 do `docs/mundo/MAPA_MUNDO.md`) é um lugar compartilhado; a célula
- *   (`MapaCelula`) é a do mundo. Hoje só se chega a ele pelo teste `MundoTeste`; ele ainda não tem saídas.
+ *   (`MapaCelula`) é a do mundo. Chega-se a ele pelo teste `MundoTeste` ou por uma saída de interior com o mapa
+ *   `mundo` (2026-10-23); os dois passam por `enterWorld`, que dá o lote ao jogador (`MundoLote`, a vaga de fazenda) e
+ *   leva ao portão dele. O lote fica com o jogador enquanto ele está no servidor (como o lugar da casa: quem entra em
+ *   casa e volta encontra a fazenda no mesmo lote) e se solta quando ele sai do servidor. O mundo ainda não tem saídas.
  */
 /** Quanto esperar o cliente receber a volta do destino antes de levar o personagem, em segundos. */
 const STREAM_TIMEOUT = 2;
@@ -93,11 +96,8 @@ export class MapService implements OnStart {
 		const world = worldTest();
 		const start = chosenInterior();
 		if (world && player.GetAttribute(MAP_ATTRIBUTE) === undefined) {
-			// O lote dele; sem bloco pedido no teste, ele chega ao portão do lote.
-			const lot = this.lotFor(player);
-			const gate = lot !== "" ? lotGate(lot) : undefined;
-			player.SetAttribute(MAP_CELL_ATTRIBUTE, encodeCell(world.block ? world.cell : (gate ?? world.cell)));
-			this.setPlace(player, WORLD_MAP_ID);
+			// Sem bloco pedido no teste, ele chega ao portão do lote.
+			this.enterWorld(player, world.block ? world.cell : undefined);
 		} else if (start && player.GetAttribute(MAP_ATTRIBUTE) === undefined) {
 			player.SetAttribute(MAP_CELL_ATTRIBUTE, encodeCell(start.cell));
 			this.setPlace(player, start.data.id);
@@ -121,6 +121,20 @@ export class MapService implements OnStart {
 		}
 		player.SetAttribute(WORLD_LOT_ATTRIBUTE, lot);
 		return lot;
+	}
+
+	/**
+	 * Põe o jogador no mundo: dá o lote (`lotFor`; o mesmo, se ele já tinha) e grava a célula de chegada (`asked`, ou o
+	 * portão do lote, ou o começo do mundo quando os lotes acabaram) e o mapa. Devolve a célula, já livre: um objeto do
+	 * catálogo pode bloquear a pedida (`nearestFree`). Quem leva o personagem é quem chamou (`place` ou `takeExit`).
+	 */
+	private enterWorld(player: Player, asked?: [number, number]): [number, number] {
+		const lot = this.lotFor(player);
+		const start = asked ?? (lot !== "" ? lotGate(lot) : undefined) ?? worldSpawn();
+		const cell = !worldBlocked(start[0], start[1]) ? start : (nearestFree(start[0], start[1]) ?? worldSpawn());
+		player.SetAttribute(MAP_CELL_ATTRIBUTE, encodeCell(cell));
+		this.setPlace(player, WORLD_MAP_ID);
+		return cell;
 	}
 
 	private slotFor(owner: number) {
@@ -231,6 +245,22 @@ export class MapService implements OnStart {
 			return refuse(`longe de uma saída de "${data.id}" (célula ${cx},${cy})`);
 		}
 		if (player.GetAttribute(MAP_ATTRIBUTE) !== data.id) return refuse("o mapa mudou no caminho");
+		if (exit.map === WORLD_MAP_ID) {
+			// Para o mundo: a chegada é uma célula do mundo [x, y], ou "lote"/nada para o portão do lote do jogador.
+			const arrival = exit.arrival;
+			let asked: [number, number] | undefined;
+			if (arrival !== undefined && !typeIs(arrival, "string")) {
+				asked = [arrival[0], arrival[1]];
+			} else if (arrival !== undefined && arrival !== "lote") {
+				warn(`[Mapa] a chegada "${arrival}" no mundo não existe ("lote" ou uma célula); indo ao portão do lote`);
+			}
+			this.pieces.leaveMap(player);
+			const cell = this.enterWorld(player, asked);
+			this.move(character, worldCellPoint(cell[0], cell[1]), true);
+			const lot = player.GetAttribute(WORLD_LOT_ATTRIBUTE);
+			print(`[Mapa] ${player.Name}: ${data.id} → ${WORLD_MAP_ID} (${encodeCell(cell)}, lote ${lot === "" ? "nenhum" : lot})`);
+			return;
+		}
 		const target = mapData(exit.map);
 		if (!target) return refuse(`o destino "${exit.map}" não foi gerado para o jogo`);
 		this.pieces.leaveMap(player);

@@ -766,7 +766,9 @@ def fase1_layout():
     obj.append(("sebe_v", 254, 195, 1, 122, ""))
     obj.append(("muro_h", 0, 63, 60, 1, ""))
     obj.append(("muro_h", 68, 63, 60, 1, ""))
-    obj.append(("muro_v", 127, 64, 1, 125, ""))
+    # O trecho de cima para antes do Portão Leste (2026-10-23): o portal fica nas linhas 186 a 188, logo acima da
+    # avenida (189 a 194), e a sebe passava por baixo dele.
+    obj.append(("muro_v", 127, 64, 1, 122, ""))
     obj.append(("muro_v", 127, 195, 1, 60, ""))
     obj.append(("portal_madeira", 58, 58, 5, 3, "Portão Norte"))
     obj.append(("portal_madeira", 125, 186, 5, 3, "Portão Leste"))
@@ -1199,28 +1201,33 @@ CODIGOS_PLANO = {GRAMA: "grama", TERRA: "terra", CALCADA: "calcada", AGUA: "agua
                  SOLO: "solo", PLANALTO: "planalto"}
 # Os lugares marcados: o que cada tipo do esboço é. "construcao" e "vegetacao" já existem refeitos (sem id); "criar"
 # ainda não existe (CRIAR); "cerca", sebes, cercas e muros (contorno).
-CERCAS = {"sebe_lote", "sebe_h", "sebe_v", "muro_h", "muro_v", "cerca"}
+CERCAS = {"sebe_lote", "sebe_h", "sebe_v", "muro_h", "muro_v", "cerca", "cerca_h", "cerca_v"}
 VEGETACAO = {"arvore_grande", "arvore_pequena", "arvore_pequena_rosa", "moita_grande", "moita_cruz", "arbusto", "toco",
              "pedra_leve", "flores_brancas", "mata_bloco", "morro", "lago_anel", "canteiro_flores_rosa"}
 # O que bloqueia o passo na fase 0: as construções (existentes ou a criar) ocupam o retângulo da marca.
 BLOQUEIAM = {"casa_vermelha", "casa_azul", "casa_madeira", "casa_azul_media", "casa_azul_grande", "casa_vermelha_loja",
              "galpao_madeira", "casa_fazenda", "celeiro", "galinheiro", "mirante", "barraca", "caixa_venda",
              "quadro_pedidos", "carroca", "poco_madeira", "poco_pedra", "cata_vento_praca", "bebedouro"}
+# As zonas com nome e as propriedades de som delas (`ambiente` e `musica`, como as zonas do Diorama; os perfis e as
+# músicas estão em src/shared/sounds.ts). 2026-10-23: o campo (`campo`, com as camadas campoDia e campoNoite) em tudo o
+# que é roça e beira de rio; a cidade e o centro do distrito com o ambiente de fora de sempre e a música da vila.
+CAMPO = {"ambiente": "campo"}
+VILA = {"ambiente": "exterior", "musica": "vila"}
 ZONAS_F1 = [
-    ("Alto do Mirante", (0, 0, 63, 63)),
-    ("Ribeira", (0, 64, 127, 255)),
-    ("Ribeira (em obras: fase 2)", (0, 256, 127, 575)),
-    ("Ponte do Lume", (128, 0, 191, 63)),
-    ("Rio Lume", (128, 64, 191, 575)),
-    ("Parada da estrada", (192, 0, 255, 63)),
-    ("Centro do distrito D03", (192, 64, 255, 319)),
-    ("Margem do Lume", (192, 320, 255, 575)),
-    ("Estrada do Leste", (256, 0, 575, 63)),
-    ("Bosque do Lume", (576, 0, 767, 63)),
-    ("Lote A", (256, 64, 511, 319)),
-    ("Lote B", (512, 64, 767, 319)),
-    ("Lote C", (256, 320, 511, 575)),
-    ("Lote D", (512, 320, 767, 575)),
+    ("Alto do Mirante", (0, 0, 63, 63), CAMPO),
+    ("Ribeira", (0, 64, 127, 255), VILA),
+    ("Ribeira (em obras: fase 2)", (0, 256, 127, 575), {"ambiente": "exterior"}),
+    ("Ponte do Lume", (128, 0, 191, 63), CAMPO),
+    ("Rio Lume", (128, 64, 191, 575), CAMPO),
+    ("Parada da estrada", (192, 0, 255, 63), CAMPO),
+    ("Centro do distrito D03", (192, 64, 255, 319), VILA),
+    ("Margem do Lume", (192, 320, 255, 575), CAMPO),
+    ("Estrada do Leste", (256, 0, 575, 63), CAMPO),
+    ("Bosque do Lume", (576, 0, 767, 63), CAMPO),
+    ("Lote A", (256, 64, 511, 319), CAMPO),
+    ("Lote B", (512, 64, 767, 319), CAMPO),
+    ("Lote C", (256, 320, 511, 575), CAMPO),
+    ("Lote D", (512, 320, 767, 575), CAMPO),
 ]
 
 
@@ -1383,6 +1390,108 @@ def modulo_terreno(exterior: dict, mundo: dict) -> str:
     return "\n".join(linhas)
 
 
+CAMINHO = (TERRA, CALCADA)
+
+
+def vaos_porteira() -> list[tuple[int, int, int, int]]:
+    """As porteiras da cerca de cada fazenda (2026-10-23): um vão de 2 tiles no lado da cerca que dá para a trilha do
+    portão (à direita nos lotes A e C, à esquerda nos B e D), nas duas primeiras linhas da trilha. Células
+    inclusivas [x0, y0, x1, y1], desde o canto da fase."""
+    vaos = []
+    for _, (lx, ly) in LOTES_F1.items():
+        fx, fy = lx + 96, ly + 96
+        x0 = fx + 62 if lx == 256 else fx
+        vaos.append((x0, fy + 28, x0 + 1, fy + 29))
+    return vaos
+
+
+def linhas_fase1(g: np.ndarray, obj: list, objetos: dict) -> tuple[list[tuple], dict]:
+    """Sebes, muros e cercas em trechos retos (2026-10-23; antes não bloqueavam): o contorno vira os quatro lados (os
+    tipos de linha de `linhas` no catálogo; os lados com a largura da peça vertical, em tiles), e cada lado perde os
+    vãos: o do meio de baixo do contorno (`vao_baixo`), onde cruza um caminho (terra ou calçada dos dois lados da
+    linha) ou a água, e as porteiras das cercas das fazendas (`vaos_porteira`). Devolve os trechos (tipo, x, y, w, h,
+    rótulo; o rótulo no primeiro trecho do objeto) e quantas células de vão de cada tipo."""
+    cat = {o["tipo"]: o for o in _catalogo("mundo")["objetos"]["lista"]}
+    porteiras = vaos_porteira()
+    contagem = {"contorno": 0, "caminho": 0, "agua": 0, "porteira": 0}
+
+    def espessura(tipo: str) -> int:
+        t = objetos["tipos"][tipo]
+        return max(1, -(-objetos["recortes"][t["v"]]["recorte"][2] // 16)) if "v" in t else 1
+
+    def caminho(x: int, y: int) -> bool:
+        return 0 <= x < LW and 0 <= y < LH and g[y, x] in CAMINHO
+
+    def agua(x: int, y: int) -> bool:
+        return 0 <= x < LW and 0 <= y < LH and g[y, x] == AGUA
+
+    def porteira(x0: int, y0: int, x1: int, y1: int) -> bool:
+        return any(a <= x1 and x0 <= c and b <= y1 and y0 <= d for a, b, c, d in porteiras)
+
+    trechos = []
+    for tp, x, y, w, h, rot in obj:
+        if tp not in CERCAS:
+            continue
+        o = cat[tp]
+        lados = []  # (tipo, horizontal, x, y, comprimento, espessura, vão de baixo)
+        if o.get("forma") == "contorno":
+            th, tv = o["linhas"]["h"], o["linhas"]["v"]
+            k = espessura(tv)
+            vao = int(o.get("vao_baixo", 0))
+            lados += [(th, True, x, y, w, 1, 0), (th, True, x, y + h - 1, w, 1, vao),
+                      (tv, False, x, y, h, k, 0), (tv, False, x + w - k, y, h, k, 0)]
+        elif "h" in o:
+            lados.append((tp, True, x, y, max(w, 1), 1, 0))
+        else:
+            lados.append((tp, False, x, y, max(h, 1), espessura(tp), 0))
+        rotulo = rot
+        for tipo, horizontal, lx, ly, comp, k, vao in lados:
+            # O vão de baixo no meio, como o desenho do contorno fazia (worldMap.ts): à esquerda, (comp - vão) // 2.
+            esquerda = (comp - vao) // 2
+            abertos = []
+            for n in range(comp):
+                if horizontal:
+                    cx, cy = lx + n, ly
+                    celulas = (cx, cy, cx, cy)
+                    if vao > 0 and esquerda > 0 and esquerda <= n < esquerda + vao:
+                        motivo = "contorno"
+                    elif agua(cx, cy):
+                        motivo = "agua"
+                    elif caminho(cx, cy - 1) and caminho(cx, cy + 1):
+                        motivo = "caminho"
+                    else:
+                        motivo = None
+                else:
+                    cx, cy = lx, ly + n
+                    celulas = (cx, cy, cx + k - 1, cy)
+                    if any(agua(cx + i, cy) for i in range(k)):
+                        motivo = "agua"
+                    elif caminho(cx - 1, cy) and caminho(cx + k, cy):
+                        motivo = "caminho"
+                    else:
+                        motivo = None
+                if motivo is None and porteira(*celulas):
+                    motivo = "porteira"
+                if motivo:
+                    contagem[motivo] += 1
+                abertos.append(motivo is not None)
+            n = 0
+            while n < comp:
+                if abertos[n]:
+                    n += 1
+                    continue
+                m = n
+                while m < comp and not abertos[m]:
+                    m += 1
+                if horizontal:
+                    trechos.append((tipo, lx + n, ly, m - n, 1, rotulo))
+                else:
+                    trechos.append((tipo, lx, ly + n, k, m - n, rotulo))
+                rotulo = ""
+                n = m
+    return trechos, contagem
+
+
 def modulo_fase1(g, obj, mundo, exterior, objetos: dict) -> tuple[str, dict]:
     t, info = fase1_terreno_jogo(g, obj, mundo)
     ruins = conferir_pares(t, exterior)
@@ -1403,8 +1512,14 @@ def modulo_fase1(g, obj, mundo, exterior, objetos: dict) -> tuple[str, dict]:
     marcas = []
     bloqueios = []
     fechado = []
+    # Sebes, muros e cercas: partidos em trechos retos, sem os vãos; cada trecho é uma marca e um bloqueio.
+    trechos, vaos = linhas_fase1(g, obj, objetos)
+    tipos = sorted((set(tipos) - CERCAS) | {t[0] for t in trechos})
+    for tp, x, y, w, h, rot in trechos:
+        marcas.append([tipos.index(tp), int(x), int(y), int(w), int(h), rot])
+        bloqueios.append([int(x), int(y), int(x + w - 1), int(y + h - 1)])
     for tp, x, y, w, h, rot in obj:
-        if tp == "cerca_max":
+        if tp == "cerca_max" or tp in CERCAS:
             continue
         if tp == "hachura":
             fechado.append([x, y, x + w - 1, y + h - 1, rot])
@@ -1469,10 +1584,20 @@ def modulo_fase1(g, obj, mundo, exterior, objetos: dict) -> tuple[str, dict]:
     linhas += [
         "];",
         "",
-        "/** As zonas com nome (a plaquinha ao entrar): nome e [x0, y0, x1, y1] inclusivos. */",
-        "export const PHASE1_ZONES: [name: string, area: [x0: number, y0: number, x1: number, y1: number]][] = [",
+        "/**",
+        " * As zonas com nome (a plaquinha ao entrar): nome, [x0, y0, x1, y1] inclusivos e as propriedades de som (`ambiente`,",
+        " * `musica`, como as zonas do Diorama).",
+        " */",
+        "export const PHASE1_ZONES: [",
+        "\tname: string,",
+        "\tarea: [x0: number, y0: number, x1: number, y1: number],",
+        "\tprops: Record<string, string>,",
+        "][] = [",
     ]
-    linhas += [f"\t[{_ts(n)}, {_ts(list(a))}]," for n, a in ZONAS_F1]
+    def props_ts(p: dict) -> str:
+        return "{ " + ", ".join(f"{k}: {_ts(v)}" for k, v in p.items()) + " }"
+
+    linhas += [f"\t[{_ts(n)}, {_ts(list(a))}, {props_ts(p)}]," for n, a, p in ZONAS_F1]
     linhas += [
         "];",
         "",
@@ -1495,7 +1620,7 @@ def modulo_fase1(g, obj, mundo, exterior, objetos: dict) -> tuple[str, dict]:
     ]
     linhas += [f"\t{_ts(m)}," for m in marcas]
     linhas += ["];", ""]
-    stats = {"marcas": len(marcas), "bloqueios": len(bloqueios), **info,
+    stats = {"marcas": len(marcas), "bloqueios": len(bloqueios), "trechos": len(trechos), "vaos": vaos, **info,
              "corridas": sum(len(_rle(r)) for r in linhas_rle)}
     return "\n".join(linhas), stats
 

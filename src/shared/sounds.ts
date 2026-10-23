@@ -95,6 +95,18 @@ export const AMBIENCE_PROFILES: Record<string, AmbienceProfile> = {
 			noite: { grilos: 0.35, vento: 0.12, campoNoite: 0.25 },
 		},
 	},
+	// O campo do mapa do mundo (2026-10-23): a roça, os lotes, a estrada e a beira do rio (as zonas do plano, `ambiente`
+	// em `ZONAS_F1` de tools/mundo_mapa.py). As camadas do Ableton na frente: folhas e gafanhotos de dia, sapos, coruja e
+	// insetos à noite; os pássaros e os grilos da biblioteca por baixo. O rio é um som pelo lugar (`PLACED.rio`).
+	campo: {
+		muffled: false,
+		levels: {
+			manha: { campoDia: 0.3, passaros: 0.25, vento: 0.1 },
+			dia: { campoDia: 0.35, passaros: 0.15, vento: 0.15 },
+			tarde: { campoDia: 0.25, passaros: 0.08, vento: 0.15 },
+			noite: { campoNoite: 0.4, grilos: 0.2, vento: 0.08 },
+		},
+	},
 	mar: {
 		muffled: false,
 		levels: {
@@ -116,10 +128,12 @@ export const AMBIENCE_PERIOD_FADE = 8;
 /**
  * As propriedades de som de cada mapa (`ambiente`, `musica`), que valem onde nenhuma zona diz outra coisa: a zona
  * da ilha não cobre a praia, e a casa de teste não tem zona. Mapa fora da lista: `exterior` com terreno, `casa` sem.
+ * O mundo (`mundo`, 2026-10-23) é campo sem música; as zonas do plano dizem o resto (a vila tem a música dela).
  */
-export const MAP_SOUND_PROPS: Record<string, { ambiente: string; musica: string }> = {
+export const MAP_SOUND_PROPS: Record<string, { ambiente: string; musica?: string }> = {
 	exterior_ilha: { ambiente: "mar", musica: "ilha" },
 	casa_teste_v2_l: { ambiente: "casa", musica: "sala" },
+	mundo: { ambiente: "campo" },
 };
 
 // ------------------------------------------------------------------ pelo lugar (seção 4 do plano)
@@ -145,7 +159,8 @@ export const PLACED: Record<string, PlacedSound> = {
 		zoneBound: false,
 	},
 	fogao: { id: ASSETS["som.lareira"], volume: 0.3, min: 1, max: 6, zoneBound: true },
-	// Leva de 2026-10-23 (Ableton): o rio (laço de 16 s) e as máquinas de produção (laço de 4 s, enquanto produzem).
+	// Leva de 2026-10-23 (Ableton): o rio (laço de 16 s) e as máquinas de produção (laço de 4 s, enquanto produzem). O rio
+	// vai, no mapa do mundo, à célula de água mais perto do jogador (`worldWaterSample`), como o mar nos interiores.
 	rio: { id: ASSETS["som.rio"], volume: 0.6, min: 2, max: 14, zoneBound: false },
 	maquina: { id: ASSETS["som.maquina"], volume: 0.4, min: 1, max: 8, zoneBound: true },
 };
@@ -424,7 +439,8 @@ export const MUSIC_PLACES: Record<string, MusicPlace> = {
 		mode: "breathe",
 		tracks: { manha: "sala_dia", dia: "sala_dia", tarde: "sala_dia", noite: "sala_noite" },
 	},
-	// A vila e o mercado (2026-10-23): laço de dia; à noite o mercado fecha e fica só o ambiente.
+	// A vila e o mercado (2026-10-23): laço de dia; à noite o mercado fecha e fica só o ambiente. No mundo, a `musica` das
+	// zonas da Ribeira e do Centro do distrito D03 (`ZONAS_F1` em tools/mundo_mapa.py).
 	vila: {
 		mode: "loop",
 		tracks: { manha: "vila", dia: "vila", tarde: "vila" },
