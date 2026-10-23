@@ -12,6 +12,20 @@
 		"agua": "r"
 	},
 	"nota_do_plano": "Código do esboço da fase 1 (tools/mundo_mapa.py, fase1_layout) → terreno do jogo (exterior.json). Enquanto os conjuntos da equipe não têm id: a calçada sai como areia (a única base clara com junção para a grama e para a água), a mata, o capim e o planalto saem como grama e ficam como lugar marcado (sem copa nem penhasco). A água do rio é mar raso; o gerador põe o mar fundo no meio (2 células da margem), a margem de areia (1 célula em volta da água, para nenhum tile juntar água e grama ou terra, pares sem junção) e o vau (só mar raso) onde o plano tem ponte.",
+	"terrenos_lisos": [
+		{ "codigo": "p", "nome": "chão de taiga", "cor": "#3f5d48" },
+		{ "codigo": "n", "nome": "neve", "cor": "#e6ecf2" },
+		{ "codigo": "o", "nome": "rocha da montanha", "cor": "#8a7e72" },
+		{ "codigo": "q", "nome": "paredão", "cor": "#574e47", "bloqueia": true },
+		{ "codigo": "d", "nome": "areia do deserto", "cor": "#e2c88a" },
+		{ "codigo": "s", "nome": "terra vermelha", "cor": "#c58450" },
+		{ "codigo": "j", "nome": "chão de selva", "cor": "#2f6d3f" },
+		{ "codigo": "w", "nome": "lodo do pântano", "cor": "#5d6a45" },
+		{ "codigo": "v", "nome": "rocha vulcânica", "cor": "#4c3a36" },
+		{ "codigo": "l", "nome": "lava", "cor": "#c8501e", "bloqueia": true },
+		{ "codigo": "x", "nome": "grama mágica", "cor": "#9e8fe0" }
+	],
+	"nota_terrenos_lisos": "O chão dos biomas que ainda não têm arte de terreno (MAPA_MUNDO.md §12, 2026-10-23): lugar marcado, não arte nova. Cada um é o recorte de uma cor só mais claro da folha_juncao (achado pelo gerador, o de 4 × 4 px quase branco) esticado e pintado com ImageColor3 na cor do bioma (a cor de `cor` dividida pela do recorte), sem junção com nenhum outro terreno (a borda é seca, meio tile para um lado). Nível 6: na célula de dois terrenos aparece o de baixo. `bloqueia`: o paredão das montanhas e a lava não se atravessam. Quando houver conjunto da equipe para o bioma, ele entra como os outros.",
 	"texturas_grandes": {
 		"g": "mundo.base.grama",
 		"t": "mundo.base.terra"

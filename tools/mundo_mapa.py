@@ -16,9 +16,12 @@ Nenhuma imagem entra no repositório: este script só lê e grava na pasta `--ra
 plano) foram lidos do `mundo_inteiro_etapa1_v3.png` à mão; o reino de cada um sai do `mundo_13_biomas.png` pelas regras
 de `reinos_raster` (as áreas batem com a tabela do plano: Haywood 22,8 setores = campos 12,2 + floresta 10,6).
 
-Uso: python -I tools/mundo_mapa.py [mundo | reinos | fase1 | tabela | jogo [--conferir] | conjuntos | tudo] [--raiz <pasta>]
+Uso: python -I tools/mundo_mapa.py [mundo | reinos | fase1 | tabela | jogo [--conferir] | conjuntos | objetos | plano |
+    tudo] [--raiz <pasta>]
 
-`jogo` grava os módulos do jogo em src/shared/world/ (plano.ts, terreno.ts, fase1.ts; ver a seção "Para o jogo").
+`jogo` grava os módulos do jogo em src/shared/world/ (plano.ts, terreno.ts, fase1.ts, objetos.ts e mapa.ts, o mundo
+inteiro; ver as seções "Para o jogo" e "O mundo inteiro"). `plano` desenha o mapa.ts sobre os biomas em
+`esboco_mundo_jogo_v1.png` (na --raiz), para conferir estradas, rios, lagos, cidades e distritos.
 `conjuntos` monta a folha dos conjuntos da equipe (folha_conjuntos_v1.png na --raiz, para enviar com o OK do usuário).
 """
 from __future__ import annotations
@@ -1205,9 +1208,11 @@ CERCAS = {"sebe_lote", "sebe_h", "sebe_v", "muro_h", "muro_v", "cerca", "cerca_h
 VEGETACAO = {"arvore_grande", "arvore_pequena", "arvore_pequena_rosa", "moita_grande", "moita_cruz", "arbusto", "toco",
              "pedra_leve", "flores_brancas", "mata_bloco", "morro", "lago_anel", "canteiro_flores_rosa"}
 # O que bloqueia o passo na fase 0: as construções (existentes ou a criar) ocupam o retângulo da marca.
+# O espantalho bloqueia desde 2026-10-23 (achado do agente da fazenda): no lote ele fica dentro de um canteiro de terra,
+# e sem bloquear o canteiro dava para cultivar e o trigo saía por cima da marca; bloqueando, `plotOpen` o tira.
 BLOQUEIAM = {"casa_vermelha", "casa_azul", "casa_madeira", "casa_azul_media", "casa_azul_grande", "casa_vermelha_loja",
              "galpao_madeira", "casa_fazenda", "celeiro", "galinheiro", "mirante", "barraca", "caixa_venda",
-             "quadro_pedidos", "carroca", "poco_madeira", "poco_pedra", "cata_vento_praca", "bebedouro"}
+             "quadro_pedidos", "carroca", "poco_madeira", "poco_pedra", "cata_vento_praca", "bebedouro", "espantalho"}
 # As zonas com nome e as propriedades de som delas (`ambiente` e `musica`, como as zonas do Diorama; os perfis e as
 # músicas estão em src/shared/sounds.ts). 2026-10-23: o campo (`campo`, com as camadas campoDia e campoNoite) em tudo o
 # que é roça e beira de rio; a cidade e o centro do distrito com o ambiente de fora de sempre e a música da vila.
@@ -1320,7 +1325,23 @@ def modulo_terreno(exterior: dict, mundo: dict) -> str:
                     break
         terrenos.append({"codigo": cod, "nome": d["nome"], "nivel": d["nivel"], "base": d["base"], "acao": d["acao"],
                          "liso": liso, "cor": "#%02x%02x%02x" % tuple(int(c) for c in cor[:3]),
-                         "textura": mundo["texturas_grandes"].get(cod, "")})
+                         "textura": mundo["texturas_grandes"].get(cod, ""), "tom": "", "bloqueia": cod == "m"})
+    # Os terrenos lisos dos biomas sem arte (mundo.json, `terrenos_lisos`, 2026-10-23): o recorte de 4 × 4 px de uma
+    # cor só mais claro da folha_juncao, pintado com a cor do bioma (ImageColor3 = cor / cor do recorte).
+    lum = folha[..., :3].astype(int).sum(-1)
+    claro = None
+    for yy in range(folha.shape[0] - 4):
+        for xx in range(0, folha.shape[1] - 4):
+            b = folha[yy:yy + 4, xx:xx + 4]
+            if (b[..., 3] == 255).all() and (b == b[0, 0]).all() and (claro is None or lum[yy, xx] > claro[0]):
+                claro = (lum[yy, xx], xx, yy, b[0, 0, :3].astype(int))
+    _, cx, cy, branco = claro
+    for t in mundo.get("terrenos_lisos", []):
+        alvo = [int(t["cor"][i:i + 2], 16) for i in (1, 3, 5)]
+        tom = [min(255, round(c * 255 / max(1, b))) for c, b in zip(alvo, branco)]
+        terrenos.append({"codigo": t["codigo"], "nome": t["nome"], "nivel": 6, "base": -1, "acao": ".",
+                         "liso": [int(cx), int(cy), 4], "cor": t["cor"], "textura": "",
+                         "tom": "#%02x%02x%02x" % tuple(tom), "bloqueia": bool(t.get("bloqueia", False))})
     juncoes = [[j["sobre"], j["sob"], j["linha"], j.get("quadros", 1), j.get("dy", 0)] for j in exterior["juncoes"]]
     decalques = {}
     for grupo, lista in mundo["decalques"].items():
@@ -1336,7 +1357,8 @@ def modulo_terreno(exterior: dict, mundo: dict) -> str:
         _cabecalho("Fontes: diorama/catalogo/exterior.json (a folha_juncao) e diorama/catalogo/mundo.json."),
         "",
         "/** Um terreno do chão: código, nome, nível (quem fica por cima na junção), linha da base na folha_juncao, ação,",
-        " * o recorte liso [x, y, lado] (só a cor que mais aparece na base), a cor e a chave da textura grande no registro. */",
+        " * o recorte liso [x, y, lado] (só a cor que mais aparece na base), a cor e a chave da textura grande no registro;",
+        " * `tint`: a ImageColor3 do recorte liso (os terrenos dos biomas sem arte; \"\" nos outros); `blocks`: não se anda. */",
         "export interface WorldTerrain {",
         "\tcode: string;",
         "\tname: string;",
@@ -1346,6 +1368,8 @@ def modulo_terreno(exterior: dict, mundo: dict) -> str:
         "\tflat: [x: number, y: number, size: number];",
         "\tcolor: string;",
         "\ttexture: string;",
+        "\ttint: string;",
+        "\tblocks: boolean;",
         "}",
         "",
         "export const WORLD_TERRAINS: WorldTerrain[] = [",
@@ -1353,7 +1377,8 @@ def modulo_terreno(exterior: dict, mundo: dict) -> str:
     for t in terrenos:
         linhas.append(
             f"\t{{ code: {_ts(t['codigo'])}, name: {_ts(t['nome'])}, level: {t['nivel']}, base: {t['base']}, "
-            f"action: {_ts(t['acao'])}, flat: {_ts(t['liso'])}, color: {_ts(t['cor'])}, texture: {_ts(t['textura'])} }},")
+            f"action: {_ts(t['acao'])}, flat: {_ts(t['liso'])}, color: {_ts(t['cor'])}, texture: {_ts(t['textura'])}, "
+            f"tint: {_ts(t['tom'])}, blocks: {_ts(t['bloqueia'])} }},")
     linhas += [
         "];",
         "",
@@ -1873,6 +1898,20 @@ def modulo_objetos(obj: dict) -> str:
     linhas += [
         "};",
         "",
+        "/**",
+        " * O que bloqueia em cada cartão do catálogo: retângulos [x, y, w, h] em pixels da imagem (a célula cujo meio cai",
+        " * dentro bloqueia), para o gerador do mundo inteiro pôr os bloqueios dos objetos que ele mesmo espalha (2026-10-23;",
+        " * os da fase 1 já vêm prontos em fase1.ts).",
+        " */",
+        "export const WORLD_OBJECT_BLOCKS: Record<string, [x: number, y: number, w: number, h: number][]> = {",
+    ]
+    for nome in sorted(tipos):
+        t = tipos[nome]
+        if t["forma"] == "cartao" and t["bloqueio"]:
+            linhas.append(f"\t{nome}: {_ts([list(map(int, b)) for b in t['bloqueio']])},")
+    linhas += [
+        "};",
+        "",
         "/** Uma tira (a peça de sebe ou cerca repetida): folha, canto, largura e altura da tira, o passo e o lado da peça. */",
         "export type WorldStrip = [sheet: number, x: number, y: number, w: number, h: number, step: number, piece: number];",
         "",
@@ -1931,11 +1970,13 @@ def exportar_jogo(raiz: str, cls, k, lugares, conferir: bool) -> int:
     g, obj = fase1_layout()
     objetos = objetos_catalogo(raiz)
     fase1, stats = modulo_fase1(g, obj, mundo, exterior, objetos)
+    mapa = plano_mundo(raiz, cls, k, lugares)
     saidas = {
         "plano.ts": modulo_plano(cls, k, lugares),
         "terreno.ts": modulo_terreno(exterior, mundo),
         "fase1.ts": fase1,
         "objetos.ts": modulo_objetos(objetos),
+        "mapa.ts": modulo_mapa(mapa),
     }
     diferentes = []
     for nome, texto in saidas.items():
@@ -1950,10 +1991,547 @@ def exportar_jogo(raiz: str, cls, k, lugares, conferir: bool) -> int:
         print(f"{'confere' if antes == texto else ('difere' if conferir else 'gravado')}: src/shared/world/{nome} "
               f"({len(texto.encode('utf-8')) // 1024} kB)")
     print(f"fase 1: {stats}")
+    print(f"mundo: {len(mapa['estradas'])} estradas ({mapa['n_trilhas']} trilhas), {len(mapa['rios'])} rios, "
+          f"{len(mapa['lagos'])} lagos, {len(mapa['pontes'])} pontes, {len(mapa['cidades'])} cidades, "
+          f"{len(mapa['distritos'])} distritos, {len(mapa['lotes'])} lotes, {len(mapa['pois'])} lugares")
     if conferir and diferentes:
         print(f"diferentes do gerado: {', '.join(diferentes)} (rode npm run mundo:jogo)")
         return 1
     return 0
+
+
+# --- O mundo inteiro: fases 2 a 9 (MAPA_MUNDO.md §12, 2026-10-23) -----------------------------------------------
+# Pedido do usuário: "faça o mapa todo", "expanda para além do reino Haywood, faça tudo", e o que não tem arte fica
+# como lugar marcado ("não cria, deixe sem criar"). O mundo não vira dado por célula (518 mil blocos): este gerador grava
+# só o **plano compacto** em src/shared/world/mapa.ts (estradas, rios, lagos, pontes, cidades, distritos, lotes e
+# lugares, em tiles do mundo) e o jogo tira cada célula disso na hora (src/shared/world/blocks.ts), com o bioma e o
+# reino por bloco de plano.ts. A fase 1 continua vindo de fase1.ts, célula a célula.
+#
+# - **Estradas**: as ligações dos documentos dos reinos e do plano (ROTAS), de lugar em lugar, com uma curva leve por
+#   semente; as costuras com a fase 1 saem dos pontos onde as estradas dela chegam à borda (Portão Norte e estrada do
+#   Leste). Lugares longe da rede ganham uma trilha até ela (`ligacoes_mundo`).
+# - **Rios**: lidos à mão do plano (RIOS, em pixels do plano, 1 px = 32 tiles); o Lume passa pelos pontos do rio da
+#   fase 1 (RIO). Lagos: as manchas azuis do plano viram elipses (`lagos_mundo`).
+# - **Cidades**: a caixa do plano (capital 54 blocos, cidade 31, vila 13, cidade livre 34), alinhada aos blocos, como a
+#   Ribeira da fase 1 (442–472 × 763–793: o canto nordeste é a cidade da fase 1).
+# - **Distritos**: lotes de 4 × 4 blocos em pares de colunas (como A/B e C/D da fase 1), avenidas de 6 tiles entre
+#   eles, centro do distrito do lado da cidade. O D03 continua os 4 lotes da fase 1 (E a L ao leste e ao sul); os demais
+#   saem perto do ponto do plano, empurrados até caberem em terra, longe de água, cidades e estradas.
+
+P1_TX, P1_TY = BX0 * 64, BY0 * 64
+# Onde as estradas da fase 1 chegam à borda dela (em tiles do mundo): a estrada de Moinhos (Portão Norte, colunas 60–67)
+# e a estrada do Leste (linhas 28–35).
+COSTURA_NORTE = [("t", P1_TX + 64, P1_TY - 200), ("t", P1_TX + 64, P1_TY + 8)]
+COSTURA_LESTE = [("t", P1_TX + LW - 8, P1_TY + 32), ("t", P1_TX + LW + 200, P1_TY + 32)]
+
+# (largura em tiles, lugares ou pontos ("t", x, y) em tiles do mundo). Das tabelas "Estradas e linhas" de cada reino
+# e do desenho do plano (as tracejadas cor de terra).
+ROTAS: list[tuple[int, list]] = [
+    # Haywood
+    (8, ["Haywood", "Four Winds Inn", "Clover Inn", "Moinhos"]),
+    (8, ["Moinhos", *COSTURA_NORTE]),
+    (6, ["Moinhos", "Cais do Anzol", "Beech Plateau"]),
+    (8, ["Haywood", "Arraial do Mirante", "Porto Rubro"]),
+    (8, ["Haywood", "Sítio dos Pomares", "Carvalhal", "Povoado da Lamparina", "Fog Inn", "Brumário"]),
+    (6, ["Carvalhal", "Capão das Colmeias", "Deer Glade"]),
+    (8, ["Moinhos", "Porteira", "Pouso do Baobá", "Mesa Alta"]),
+    (6, ["Four Winds Inn", "Pouso do Feno", "Porteira"]),
+    (6, [*COSTURA_LESTE, "Capão das Colmeias"]),
+    (8, ["Haywood", "Roça do Cacau", "Ferradura"]),
+    # Verdália
+    (8, ["Ferradura", "Pé de Sumaúma", "Remanso", "Porto Mangue"]),
+    (8, ["Ferradura", "Clareira da Onça", "Comporta"]),
+    (6, ["Porto Mangue", "Dossel", "Lodaçal", "Brumário"]),
+    # Marésia
+    (8, ["Gaivotas", "Arraial das Redes", "Anil", "Coqueiral", "Porto Mangue"]),
+    (8, ["Gaivotas", "Comporta"]),
+    (8, ["Comporta", "Salinas", "Anil"]),
+    (8, ["Porto Gelo", "Polar Lighthouse", "Gaivotas"]),
+    # Invernia
+    (8, ["Arraial da Resina", "Pinhal", "Log Bridge", "Ice Pass", "Termal", "Retiro das Renas", "Candeia"]),
+    (8, ["Pinhal", "Passagem da Serraria", "Frozen Passage", "Cais da Ponte de Gelo", "Candeia"]),
+    (6, ["Termal", "Posto Polar", "Ice Cave", "Porto Gelo"]),
+    (8, ["Candeia", "Comporta"]),
+    (6, ["Candeia", "Pesqueiro dos Lagos"]),
+    (6, ["Passagem da Serraria", "Sawmill Pass", "Galena"]),
+    # Galena e Brasalta
+    (6, ["Galena", "Cais de Galena"]),
+    (6, ["Galena", "Garimpo", "Porto Basalto"]),
+    (8, ["Galena", "Ponte de Ferro", "Bocafunda"]),
+    (8, ["Bocafunda", "Fire Temple", "Brasalta"]),
+    (6, ["Brasalta", "Vinha da Cinza"]),
+    (8, ["Brasalta", "Crimson Fort", "Crimson Pass", "Garganta Rubra"]),
+    (6, ["Porto Basalto", "Boca do Carvão", "Bocafunda"]),
+    # Terracota e Miragem
+    (8, ["Mesa Alta", "Haras do Sol", "Garganta Rubra"]),
+    (8, ["Mesa Alta", "Cupinzal", "Cacimba"]),
+    (8, ["Porto Rubro", "Crimson Crossroads Inn", "Crimson Pass"]),
+    (6, ["Cacimba", "Paragem das Caravanas", "Miragem"]),
+    (6, ["Miragem", "Duna Alta"]),
+    (6, ["Crimson Fort", "Raiders' Camp", "Miragem"]),
+    (6, ["Garganta Rubra", "Poço Seco"]),
+    # Brumário, Twilight Isle, Porto Franco
+    (6, ["Brumário", "Lodaçal"]),
+    (6, ["North Pier", "Auréola", "Cais da Cachoeira", "Veil Gate"]),
+    (6, ["Auréola", "Lapidário", "Crystal Grottoes"]),
+    (6, ["Auréola", "Chapéu-de-Sapo"]),
+    (6, ["Porto Franco", "Isle of Sails"]),
+]
+
+
+def _rio_f1(*idx):
+    return [("t", P1_TX + RIO[i][0], P1_TY + RIO[i][1]) for i in idx]
+
+
+# (nome, meia largura em tiles, seco, pontos em pixels do plano ou ("t", x, y) em tiles). Lidos do plano à mão
+# (as linhas azuis): o Lume desce da capital por Moinhos e pelo Mirror Lake e entra na Ribeira pelo canto nordeste,
+# onde vira o rio da fase 1 (os pontos de RIO); o Clear Creek e o Black River fecham o pântano; o White River separa a
+# tundra da costa; o Tide Canal liga Comporta a Anil; o rio de Verdália sobe da Ferradura à costa leste; o Log River e o
+# Cold River descem do Ice Pass; o Dry Riverbed (seco) chega ao Great Oasis.
+RIOS: list[tuple[str, int, bool, list]] = [
+    ("Rio Lume", 4, False, [(835, 1162), (842, 1243), (849, 1300), (856, 1338), (889, 1368), (953, 1400),
+                            (986, 1410), (996, 1418), (975, 1465), (955, 1505), *_rio_f1(0, 1, 2),
+                            *_rio_f1(7, 8, 9), (925, 1570), (915, 1600)]),
+    ("Clear Creek", 3, False, [(1325, 1042), (1327, 1180), (1327, 1310), (1340, 1400), (1352, 1494), (1356, 1530)]),
+    ("Black River", 4, False, [(1325, 1042), (1400, 1044), (1475, 1046), (1550, 1048), (1625, 1050)]),
+    ("White River", 3, False, [(1163, 74), (1166, 150), (1160, 300), (1155, 458), (1152, 510)]),
+    ("Tide Canal", 3, False, [(1240, 495), (1300, 470), (1380, 420), (1468, 365)]),
+    ("Rio da Ferradura", 4, False, [(1265, 830), (1310, 780), (1360, 740), (1423, 676), (1491, 619), (1560, 575),
+                                    (1625, 545)]),
+    ("Log River", 4, False, [(400, 245), (360, 280), (320, 306), (265, 318), (200, 315), (110, 312), (25, 318)]),
+    ("Cold River", 3, False, [(425, 250), (470, 290), (540, 300), (627, 330), (640, 390), (625, 428)]),
+    ("Dry Riverbed", 3, True, [(205, 1170), (195, 1215), (180, 1260), (165, 1285)]),
+]
+
+LADO_CIDADE = {"capital": 54, "cidade": 31, "vila": 13, "livre": 34}
+# A cidade de cada distrito (o "Cidade e distância" da §5): o centro do distrito fica do lado dela.
+CIDADE_DISTRITO = {
+    "D01": "Haywood", "D02": "Moinhos", "D03": "Ribeira", "D04": "Carvalhal", "D05": "Capão das Colmeias",
+    "D06": "Pinhal", "D07": "Passagem da Serraria", "D08": "Termal", "D09": "Pesqueiro dos Lagos", "D10": "Bocafunda",
+    "D11": "Galena", "D12": "Miragem", "D13": "Cacimba", "D14": "Mesa Alta", "D15": "Pouso do Baobá",
+    "D16": "Ferradura", "D17": "Dossel", "D18": "Brumário", "D19": "Vinha da Cinza", "D20": "Anil", "D21": "Gaivotas",
+    "D22": "Porto Franco", "D23": "Laranjal", "D24": "Auréola",
+}
+# Colunas de lotes por quantidade (sempre pares, como A/B da fase 1: cada par tem uma avenida N-S no meio).
+COLUNAS_LOTES = {16: 4, 12: 4, 10: 2, 8: 4, 6: 2}
+# O D03 continua os 4 lotes da fase 1 (A a D, colunas 0–1 e linhas 0–1): 4 × 3, com E–H ao leste e I–L ao sul.
+D03_ORIGEM = (P1_TX + 256, P1_TY + 64)
+D03_NOMES = {(0, 0): "A", (1, 0): "B", (0, 1): "C", (1, 1): "D", (2, 0): "E", (3, 0): "F", (2, 1): "G", (3, 1): "H",
+             (0, 2): "I", (1, 2): "J", (2, 2): "K", (3, 2): "L"}
+CENTRO_DISTRITO = (48, 32)  # o terreiro do centro do distrito, em tiles
+
+# O que cada tipo de lugar do plano vira no jogo: (tipo da marca, largura, altura, categoria, bloqueia). Sem arte, tudo
+# é lugar marcado (categoria "criar": não existe; "construcao": refeito, sem id). Nada: só a zona com o nome.
+POI_FORMA = {
+    "pousada": ("casa_azul_grande", 6, 9, "construcao", True), "ruina": ("ruina", 12, 10, "criar", True),
+    "toca": ("toca", 6, 4, "criar", True), "chefe": ("covil", 16, 12, "criar", True),
+    "mirante": ("mirante", 4, 5, "criar", True), "forte": ("forte", 24, 16, "criar", True),
+    "pesca": ("pier", 6, 3, "criar", False), "cachoeira": ("cachoeira", 10, 6, "criar", True),
+    "templo": ("templo", 20, 16, "criar", True), "masmorra": ("masmorra", 10, 8, "criar", True),
+    "mina": ("mina", 8, 6, "criar", True), "termas": ("termas", 12, 8, "criar", True),
+    "farol": ("farol", 4, 6, "criar", True), "arvore": ("arvore_gigante", 10, 10, "vegetacao", True),
+    "passo": ("placa", 1, 1, "construcao", True), "acampamento": ("acampamento", 12, 8, "criar", True),
+    "tesouro": ("tesouro", 2, 2, "criar", False), "feira": ("feira", 20, 12, "criar", True),
+    "cemiterio": ("cemiterio", 16, 12, "criar", True), "ponte": ("ponte", 9, 5, "criar", False),
+    "portal": ("portal", 8, 8, "criar", True), "vulcao": ("vulcao", 24, 24, "criar", True),
+    "porto": ("pier", 6, 3, "criar", False),
+}
+CIDADES = ("capital", "cidade", "vila", "livre")
+
+
+def _lugar_tiles(lugares: dict, p) -> tuple[float, float]:
+    if isinstance(p, tuple) and p and p[0] == "t":
+        return float(p[1]), float(p[2])
+    if isinstance(p, tuple):
+        return p[0] * TILES_PX, p[1] * TILES_PX
+    l = lugares[p]
+    return l["mx"] * TILES_PX, l["my"] * TILES_PX
+
+
+def _onda(pts: list, nomes: list) -> list:
+    """Uma curva leve entre dois lugares (determinística): trechos longos ganham pontos no meio, deslocados para o
+    lado até 8% do trecho (no máximo 120 tiles)."""
+    out = [pts[0]]
+    for i, (a, b) in enumerate(zip(pts, pts[1:])):
+        livre = isinstance(nomes[i], str) and isinstance(nomes[i + 1], str)
+        L = float(np.hypot(b[0] - a[0], b[1] - a[1]))
+        n = int(np.ceil(L / 800)) if livre and L > 600 else 1
+        nx, ny = (-(b[1] - a[1]) / L, (b[0] - a[0]) / L) if L > 0 else (0, 0)
+        for k in range(1, n):
+            t = k / n
+            amp = min(120.0, 0.08 * L / n)
+            off = ((_semente("onda", nomes[i], nomes[i + 1], k) % 1000) / 1000 - 0.5) * 2 * amp
+            out.append((a[0] + (b[0] - a[0]) * t + nx * off, a[1] + (b[1] - a[1]) * t + ny * off))
+        out.append(b)
+    return out
+
+
+def _dist_seg(px, py, ax, ay, bx, by):
+    dx, dy = bx - ax, by - ay
+    L2 = dx * dx + dy * dy
+    t = 0.0 if L2 == 0 else max(0.0, min(1.0, ((px - ax) * dx + (py - ay) * dy) / L2))
+    qx, qy = ax + t * dx, ay + t * dy
+    return float(np.hypot(px - qx, py - qy)), (qx, qy)
+
+
+def _terra_frac(cls, a, b) -> float:
+    """A fração do segmento (em tiles) que passa por terra no plano."""
+    n = max(2, int(np.hypot(b[0] - a[0], b[1] - a[1]) / 16))
+    ok = 0
+    for k in range(n + 1):
+        x = (a[0] + (b[0] - a[0]) * k / n) / TILES_PX
+        y = (a[1] + (b[1] - a[1]) * k / n) / TILES_PX
+        ix, iy = int(min(LADO - 1, max(0, x))), int(min(LADO - 1, max(0, y)))
+        ok += cls[iy, ix] not in (13, 14)
+    return ok / (n + 1)
+
+
+def lagos_mundo(raiz: str, cls, lugares: dict) -> list:
+    """As manchas azuis de lago do plano em terra (a cor do Mirror Lake e dos lagos claros), cheias o bastante para
+    não serem linha nem letra, viram elipses pelos momentos: [nome, cx, cy, rx, ry, ângulo] em tiles. O nome é o do
+    lugar de pesca ou oásis mais perto (até 40 px); os oásis sem mancha ganham um lago pequeno."""
+    im = np.array(plano_etapa(raiz)).astype(np.int32)
+    terra = (cls != 13) & (cls != 14)
+    m = ((np.abs(im - np.array([77, 144, 204])).sum(-1) <= 30) |
+         (np.abs(im - np.array([110, 170, 230])).sum(-1) <= 12)) & terra
+    m = ndimage.binary_closing(m, iterations=1)
+    lab, n = ndimage.label(m, structure=np.ones((3, 3)))
+    lagos = []
+    for i, sl in enumerate(ndimage.find_objects(lab), 1):
+        sub = lab[sl] == i
+        a = int(sub.sum())
+        h, w = sub.shape
+        if a < 20 or a / (w * h) < 0.3:
+            continue
+        ys, xs = np.nonzero(sub)
+        xs = xs + sl[1].start + 0.5
+        ys = ys + sl[0].start + 0.5
+        cx, cy = xs.mean(), ys.mean()
+        cov = np.cov(np.vstack([xs - cx, ys - cy]))
+        val, vec = np.linalg.eigh(cov)
+        rx, ry = 2 * np.sqrt(max(val[1], 0.25)), 2 * np.sqrt(max(val[0], 0.25))
+        ang = float(np.arctan2(vec[1, 1], vec[0, 1]))
+        lagos.append([cx, cy, rx, ry, ang])
+    perto = [l for l in lugares.values() if l["tipo"] in ("pesca", "oasis")]
+    saida = []
+    usados = set()
+    for cx, cy, rx, ry, ang in lagos:
+        nome = ""
+        melhor = 40.0
+        for l in perto:
+            d = float(np.hypot(l["mx"] - cx, l["my"] - cy))
+            if d < melhor:
+                melhor, nome = d, l["nome"]
+        usados.add(nome)
+        saida.append([nome, round(cx * TILES_PX), round(cy * TILES_PX), round(rx * TILES_PX), round(ry * TILES_PX),
+                      round(ang, 3)])
+    for l in perto:
+        if l["tipo"] == "oasis" and l["nome"] not in usados:
+            saida.append([l["nome"], round(l["mx"] * TILES_PX), round(l["my"] * TILES_PX), 40, 30, 0.0])
+    saida.sort(key=lambda t: (t[2], t[1]))
+    return saida
+
+
+def cidades_mundo(lugares: dict, k) -> list:
+    """As caixas das cidades em células do mundo, alinhadas aos blocos: [nome, tipo, x0, y0, x1, y1, reino]."""
+    saida = []
+    for l in lugares.values():
+        if l["tipo"] not in CIDADES:
+            continue
+        lado = LADO_CIDADE[l["tipo"]]
+        bx0 = l["bloco_x"] - lado // 2
+        by0 = l["bloco_y"] - lado // 2
+        saida.append([l["nome"], l["tipo"], bx0 * 64, by0 * 64, (bx0 + lado) * 64 - 1, (by0 + lado) * 64 - 1,
+                      l["reino_id"]])
+    return saida
+
+
+def _rasterizar_linhas(linhas: list, raio_px: float) -> np.ndarray:
+    """Pixels do plano a até `raio_px` de alguma das polilinhas (em tiles)."""
+    img = Image.new("L", (LADO, LADO), 0)
+    d = ImageDraw.Draw(img)
+    for pts in linhas:
+        p = [(x / TILES_PX, y / TILES_PX) for x, y in pts]
+        d.line(p, fill=255, width=max(1, int(raio_px * 2)))
+        for x, y in p:
+            d.ellipse((x - raio_px, y - raio_px, x + raio_px, y + raio_px), fill=255)
+    return np.array(img) > 0
+
+
+def distritos_mundo(lugares: dict, cls, cidades: list, rios: list, lagos: list, estradas: list) -> tuple[list, list]:
+    """Os distritos e os lotes. Cada distrito: cols × linhas lotes de 256 × 256 (pares de colunas), alinhado aos
+    blocos, o mais perto possível do ponto do plano onde cabe: em terra (com folga), longe dos rios, lagos, cidades,
+    estradas, da fase 1 e dos outros distritos. Devolve os distritos [nome, código, x0, y0, cols, linhas, centro (4),
+    cidade] e os lotes [nome, distrito, x0, y0, lado] (lado 0: coluna da esquerda do par, a trilha vai à direita)."""
+    proibido = (cls == 13) | (cls == 14)
+    proibido = ndimage.binary_dilation(proibido, iterations=3)
+    proibido |= _rasterizar_linhas([r["pts"] for r in rios], 2.5)
+    proibido |= _rasterizar_linhas([e[1] for e in estradas], 1.2)
+    for _, cx, cy, rx, ry, _ in lagos:
+        x0, y0 = int((cx - rx) / TILES_PX) - 2, int((cy - ry) / TILES_PX) - 2
+        x1, y1 = int((cx + rx) / TILES_PX) + 3, int((cy + ry) / TILES_PX) + 3
+        proibido[max(0, y0):y1, max(0, x0):x1] = True
+    for _, _, x0, y0, x1, y1, _ in cidades:
+        proibido[max(0, y0 // 32 - 2):y1 // 32 + 3, max(0, x0 // 32 - 2):x1 // 32 + 3] = True
+    proibido[BY0 * 2 - 2:(BY0 * 64 + LH) // 32 + 2, BX0 * 2 - 2:(BX0 * 64 + LW) // 32 + 2] = True
+    distritos, lotes = [], []
+    ordem = sorted((l for l in lugares.values() if l["tipo"] == "distrito"), key=lambda l: l["nome"])
+    for l in ordem:
+        codigo = l["nome"][:3]
+        n = int(l["lotes"])
+        cols = COLUNAS_LOTES[n]
+        linhas = n // cols
+        cidade = lugares[CIDADE_DISTRITO[codigo]]
+        if codigo == "D03":
+            ox, oy = D03_ORIGEM
+            px0, py0 = ox // TILES_PX, oy // TILES_PX
+            proibido[py0 - 4:py0 + linhas * 8 + 4, px0 - 4:px0 + cols * 8 + 4] = True
+        else:
+            wpx, hpx = cols * 8, linhas * 8
+            cx, cy = l["mx"], l["my"]
+            achou = None
+            for r in range(0, 140, 2):
+                cand = []
+                for dx in range(-r, r + 1, 2):
+                    for dy in range(-r, r + 1, 2):
+                        if max(abs(dx), abs(dy)) == r:
+                            cand.append((dx * dx + dy * dy, dx, dy))
+                for _, dx, dy in sorted(cand):
+                    x0 = int(round((cx + dx - wpx / 2) / 2)) * 2
+                    y0 = int(round((cy + dy - hpx / 2) / 2)) * 2
+                    if x0 < 4 or y0 < 4 or x0 + wpx > LADO - 4 or y0 + hpx > LADO - 4:
+                        continue
+                    if not proibido[y0 - 3:y0 + hpx + 3, x0 - 3:x0 + wpx + 3].any():
+                        achou = (x0, y0)
+                        break
+                if achou:
+                    break
+            if not achou:
+                raise SystemExit(f"distrito {l['nome']}: sem lugar em terra perto do ponto do plano")
+            ox, oy = achou[0] * TILES_PX, achou[1] * TILES_PX
+            proibido[achou[1] - 4:achou[1] + hpx + 4, achou[0] - 4:achou[0] + wpx + 4] = True
+        W, H = cols * 256, linhas * 256
+        # O centro do distrito do lado da cidade (o D03 tem o da fase 1).
+        if codigo == "D03":
+            centro = [P1_TX + 204, P1_TY + 156, P1_TX + 239, P1_TY + 179]
+        else:
+            ccx, ccy = cidade["mx"] * TILES_PX, cidade["my"] * TILES_PX
+            dx, dy = ccx - (ox + W / 2), ccy - (oy + H / 2)
+            cw, ch = CENTRO_DISTRITO
+            if abs(dx) * H >= abs(dy) * W:
+                x = ox - cw - 2 if dx < 0 else ox + W + 2
+                y = oy + H // 2 - ch // 2
+                centro = [x, y, x + cw - 1, y + ch - 1]
+            else:
+                y = oy - ch - 2 if dy < 0 else oy + H + 2
+                x = ox + W // 2 - cw // 2
+                centro = [x, y, x + cw - 1, y + ch - 1]
+        di = len(distritos)
+        distritos.append([l["nome"], codigo, ox, oy, cols, linhas, *centro, cidade["nome"]])
+        for r in range(linhas):
+            for c in range(cols):
+                nome = D03_NOMES[(c, r)] if codigo == "D03" else f"{codigo}-{chr(65 + r * cols + c)}"
+                lotes.append([nome, di, ox + c * 256, oy + r * 256, c % 2])
+    # A ordem em que o servidor dá os lotes: o D03 (A a L), depois os distritos do mais perto ao mais longe dele.
+    d03 = next(d for d in distritos if d[1] == "D03")
+    cx3, cy3 = d03[2] + d03[4] * 128, d03[3] + d03[5] * 128
+
+    def chave(lote):
+        d = distritos[lote[1]]
+        if d[1] == "D03":
+            return (0, "ABCDEFGHIJKL".index(lote[0]))
+        return (float(np.hypot(d[2] + d[4] * 128 - cx3, d[3] + d[5] * 128 - cy3)), lote[3], lote[2])
+    lotes.sort(key=chave)
+    return distritos, lotes
+
+
+def pois_mundo(lugares: dict, cls) -> list:
+    """Os lugares do plano que não são cidade nem distrito: [nome, tipo, marca, x0, y0, w, h, categoria, bloqueia]
+    (em células; marca "" quando o lugar é só a zona com o nome, ou quando o ponto cai no mar)."""
+    saida = []
+    for l in lugares.values():
+        if l["tipo"] in CIDADES or l["tipo"] == "distrito":
+            continue
+        forma = POI_FORMA.get(l["tipo"])
+        x, y = l["tile_x"], l["tile_y"]
+        mar = cls[int(min(LADO - 1, l["my"])), int(min(LADO - 1, l["mx"]))] in (13, 14)
+        if forma is None or mar:
+            saida.append([l["nome"], l["tipo"], "", x, y, 0, 0, "", 0])
+            continue
+        tipo, w, h, cat, bl = forma
+        saida.append([l["nome"], l["tipo"], tipo, x - w // 2, y - h // 2, w, h, cat, int(bl)])
+    return saida
+
+
+def ligacoes_mundo(lugares: dict, cls, estradas: list, distritos: list, pois: list, cidades: list) -> list:
+    """Trilhas até a rede: cada centro de distrito (6 tiles), cada cidade e vila fora das rotas (6) e cada lugar com
+    construção (4) a mais de 100 tiles de uma estrada ganha um trecho reto até o ponto mais perto dela, se o trecho
+    passa por terra (90%) e mede até 4.800 tiles."""
+    novas = []
+
+    def mais_perto(x, y):
+        melhor = (1e18, None)
+        for _, pts in estradas + novas:
+            for a, b in zip(pts, pts[1:]):
+                d, q = _dist_seg(x, y, *a, *b)
+                if d < melhor[0]:
+                    melhor = (d, q)
+        return melhor
+
+    alvos = []
+    for d in distritos:
+        if d[1] == "D03":
+            continue
+        alvos.append((6, (d[6] + d[8]) / 2, (d[7] + d[9]) / 2))
+    for c in cidades:
+        alvos.append((6, (c[2] + c[4]) / 2, (c[3] + c[5]) / 2))
+    for p in pois:
+        if p[2]:
+            alvos.append((4, p[3] + p[5] / 2, p[4] + p[6] + 2))
+    for w, x, y in alvos:
+        d, q = mais_perto(x, y)
+        if q is None or d < 100 or d > 4800:
+            continue
+        if _terra_frac(cls, (x, y), q) < 0.9:
+            continue
+        novas.append((w, [(x, y), q]))
+    return novas
+
+
+def pontes_mundo(estradas: list, rios: list) -> list:
+    """Onde uma estrada cruza um rio com água (fora da fase 1): a ponte como lugar marcado, [tipo, x0, y0, w, h]. A
+    ponte de madeira refeita é deitada e de leste a oeste; numa estrada de norte a sul a ponte fica "a criar"."""
+    saida = []
+    for w, pts in estradas:
+        for a, b in zip(pts, pts[1:]):
+            for r in rios:
+                if r["seco"]:
+                    continue
+                for c, d in zip(r["pts"], r["pts"][1:]):
+                    den = (b[0] - a[0]) * (d[1] - c[1]) - (b[1] - a[1]) * (d[0] - c[0])
+                    if den == 0:
+                        continue
+                    t = ((c[0] - a[0]) * (d[1] - c[1]) - (c[1] - a[1]) * (d[0] - c[0])) / den
+                    u = ((c[0] - a[0]) * (b[1] - a[1]) - (c[1] - a[1]) * (b[0] - a[0])) / den
+                    if not (0 <= t <= 1 and 0 <= u <= 1):
+                        continue
+                    x, y = a[0] + t * (b[0] - a[0]), a[1] + t * (b[1] - a[1])
+                    if P1_TX - 16 <= x < P1_TX + LW + 16 and P1_TY - 16 <= y < P1_TY + LH + 16:
+                        continue
+                    hw = r["meia"]
+                    if abs(b[0] - a[0]) >= abs(b[1] - a[1]):
+                        tw, th, tipo = 2 * hw + 3, 5, "ponte_madeira"
+                    else:
+                        tw, th, tipo = 5, 2 * hw + 3, "ponte"
+                    saida.append([tipo, int(round(x - tw / 2)), int(round(y - th / 2)), tw, th])
+    return saida
+
+
+def plano_mundo(raiz: str, cls, k, lista: list) -> dict:
+    """O plano compacto do mundo inteiro (tudo em tiles do mundo), para mapa.ts e para o esboço."""
+    lugares = {l["nome"]: l for l in lista}
+    estradas = []
+    for w, rota in ROTAS:
+        pts = [_lugar_tiles(lugares, p) for p in rota]
+        estradas.append((w, _onda(pts, rota)))
+    rios = []
+    for nome, meia, seco, pts in RIOS:
+        rios.append({"nome": nome, "meia": meia, "seco": seco, "pts": [_lugar_tiles(lugares, p) for p in pts]})
+    lagos = lagos_mundo(raiz, cls, lugares)
+    cidades = cidades_mundo(lugares, k)
+    distritos, lotes = distritos_mundo(lugares, cls, cidades, rios, lagos, estradas)
+    pois = pois_mundo(lugares, cls)
+    trilhas = ligacoes_mundo(lugares, cls, estradas, distritos, pois, cidades)
+    pontes = pontes_mundo(estradas + trilhas, rios)
+    return {"estradas": estradas + trilhas, "rios": rios, "lagos": lagos, "cidades": cidades,
+            "distritos": distritos, "lotes": lotes, "pois": pois, "pontes": pontes, "n_trilhas": len(trilhas)}
+
+
+def modulo_mapa(p: dict) -> str:
+    def plano(pts):
+        return ", ".join(f"{int(round(x))}, {int(round(y))}" for x, y in pts)
+
+    L = [
+        _cabecalho("O mundo inteiro em dados compactos (docs/mundo/MAPA_MUNDO.md §12): estradas, rios, lagos, pontes,"),
+        "// cidades, distritos, lotes e lugares, em células do mundo (tiles de 16 px desde o canto noroeste). O chão de cada",
+        "// célula sai disso no jogo (src/shared/world/blocks.ts); a fase 1 continua em fase1.ts.",
+        "",
+        "/** As estradas e trilhas: [largura em tiles, x0, y0, x1, y1, ...] (uma polilinha). */",
+        "export const WORLD_ROADS: number[][] = [",
+    ]
+    L += [f"\t[{w}, {plano(pts)}]," for w, pts in p["estradas"]]
+    L += ["];", "", "/** Os rios: [nome, meia largura, seco, [x0, y0, x1, y1, ...]]. */",
+          "export const WORLD_RIVERS: [name: string, halfWidth: number, dry: boolean, points: number[]][] = ["]
+    L += [f"\t[{_ts(r['nome'])}, {r['meia']}, {_ts(r['seco'])}, [{plano(r['pts'])}]]," for r in p["rios"]]
+    L += ["];", "", "/** Os lagos (elipses): [nome, centro x, centro y, raio x, raio y, ângulo em radianos]. */",
+          "export const WORLD_LAKES: [name: string, cx: number, cy: number, rx: number, ry: number, angle: number][] = ["]
+    L += [f"\t{_ts(l)}," for l in p["lagos"]]
+    L += ["];", "", "/** As pontes onde uma estrada cruza um rio: [tipo da marca, x0, y0, largura, altura]. */",
+          "export const WORLD_BRIDGES: [kind: string, x: number, y: number, w: number, h: number][] = ["]
+    L += [f"\t{_ts(b)}," for b in p["pontes"]]
+    L += ["];", "",
+          "/** As cidades (a caixa do plano, alinhada aos blocos): [nome, tipo, x0, y0, x1, y1 (inclusivos), reino]. */",
+          "export const WORLD_TOWNS: [name: string, kind: string, x0: number, y0: number, x1: number, y1: number, realm: number][] = ["]
+    L += [f"\t{_ts(c)}," for c in p["cidades"]]
+    L += ["];", "",
+          "/**",
+          " * Os distritos de fazenda: [nome, código, x0, y0, colunas, linhas de lotes (256 × 256 cada), o centro do distrito",
+          " * (x0, y0, x1, y1), a cidade].",
+          " */",
+          "export const WORLD_DISTRICTS: [name: string, code: string, x: number, y: number, cols: number, rows: number, cx0: number, cy0: number, cx1: number, cy1: number, city: string][] = ["]
+    L += [f"\t{_ts(d)}," for d in p["distritos"]]
+    L += ["];", "",
+          "/**",
+          " * Os lotes (as vagas de fazenda), na ordem em que o servidor os dá (o D03 primeiro, depois os distritos do mais",
+          " * perto ao mais longe dele): [nome, distrito, x0, y0, lado] (lado 0: coluna da esquerda do par, a trilha vai à",
+          " * direita; 1: a da direita).",
+          " */",
+          "export const WORLD_PLOTS: [name: string, district: number, x: number, y: number, side: number][] = ["]
+    L += [f"\t{_ts(l)}," for l in p["lotes"]]
+    L += ["];", "",
+          "/**",
+          " * Os lugares do plano que não são cidade nem distrito: [nome, tipo, marca, x0, y0, w, h, categoria, bloqueia]",
+          " * (marca \"\": só a zona com o nome).",
+          " */",
+          "export const WORLD_POIS: [name: string, kind: string, mark: string, x: number, y: number, w: number, h: number, category: string, blocks: number][] = ["]
+    L += [f"\t{_ts(q)}," for q in p["pois"]]
+    L += ["];", ""]
+    return "\n".join(L)
+
+
+def esboco_mundo_jogo(raiz: str, cls, p: dict) -> str:
+    """O plano compacto desenhado sobre os biomas (para conferir o que o jogo gera): 1 px = 16 tiles."""
+    E = 2
+    cores = np.array([(150, 196, 100), (60, 124, 70), (62, 94, 74), (233, 238, 243), (138, 126, 114),
+                      (227, 201, 138), (200, 135, 74), (46, 110, 62), (95, 107, 69), (78, 58, 54), (220, 200, 150),
+                      (120, 180, 110), (159, 143, 224), (40, 60, 110), (44, 92, 130)], np.uint8)
+    img = Image.fromarray(cores[cls]).resize((LADO * E, LADO * E), Image.NEAREST)
+    d = ImageDraw.Draw(img)
+    s = E / TILES_PX
+    for _, cx, cy, rx, ry, _ in p["lagos"]:
+        d.ellipse(((cx - rx) * s, (cy - ry) * s, (cx + rx) * s, (cy + ry) * s), fill=(70, 130, 210))
+    for r in p["rios"]:
+        d.line([(x * s, y * s) for x, y in r["pts"]], fill=(160, 140, 90) if r["seco"] else (40, 100, 220), width=3)
+    for w, pts in p["estradas"]:
+        d.line([(x * s, y * s) for x, y in pts], fill=(120, 70, 30), width=3 if w >= 8 else 2 if w >= 6 else 1)
+    for c in p["cidades"]:
+        d.rectangle((c[2] * s, c[3] * s, c[4] * s, c[5] * s), outline=(30, 30, 30), width=2)
+        d.text((c[2] * s + 3, c[3] * s + 2), c[0], fill=(0, 0, 0))
+    for di in p["distritos"]:
+        x0, y0 = di[2] * s, di[3] * s
+        d.rectangle((x0, y0, x0 + di[4] * 256 * s, y0 + di[5] * 256 * s), outline=(200, 40, 40), width=2)
+        d.rectangle((di[6] * s, di[7] * s, di[8] * s, di[9] * s), fill=(200, 40, 40))
+        d.text((x0 + 2, y0 + 2), di[1], fill=(120, 0, 0))
+    for q in p["pois"]:
+        if q[2]:
+            d.rectangle((q[3] * s - 2, q[4] * s - 2, q[3] * s + 2, q[4] * s + 2), fill=(230, 60, 160))
+    for b in p["pontes"]:
+        d.rectangle((b[1] * s - 2, b[2] * s - 2, b[1] * s + 3, b[2] * s + 3), fill=(255, 255, 0))
+    x0, y0 = P1_TX * s, P1_TY * s
+    d.rectangle((x0, y0, x0 + LW * s, y0 + LH * s), outline=(255, 0, 0), width=2)
+    out = os.path.join(raiz, "esboco_mundo_jogo_v1.png")
+    img.save(out, optimize=True)
+    return out
 
 
 # --- Saída ------------------------------------------------------------------------------------------------------
@@ -1968,7 +2546,7 @@ def tabela(lugares, cls, k):
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("acao", nargs="?", default="tudo", choices=["mundo", "reinos", "fase1", "tabela", "jogo", "conjuntos", "objetos", "tudo"])
+    ap.add_argument("acao", nargs="?", default="tudo", choices=["mundo", "reinos", "fase1", "tabela", "jogo", "conjuntos", "objetos", "plano", "tudo"])
     ap.add_argument("--raiz", default=RAIZ_PADRAO)
     ap.add_argument("--conferir", action="store_true", help="com `jogo`: só compara com src/shared/world")
     a = ap.parse_args()
@@ -1984,6 +2562,9 @@ def main():
     lugares = lugares_resolvidos(k)
     if a.acao == "jogo":
         return exportar_jogo(a.raiz, cls, k, lugares, a.conferir)
+    if a.acao == "plano":
+        print(esboco_mundo_jogo(a.raiz, cls, plano_mundo(a.raiz, cls, k, lugares)))
+        return 0
     if a.acao == "tabela":
         tabela(lugares, cls, k)
         g, obj = fase1_layout()

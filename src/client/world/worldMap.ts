@@ -411,7 +411,7 @@ export class WorldMap {
 		let images = 0;
 		let liveImages = 0;
 		let frozen = 0;
-		data.runs.forEach(([image, i, j, w, h, sx, sy, sw, sh, z, frames, dx, dy], index) => {
+		data.runs.forEach(([image, i, j, w, h, sx, sy, sw, sh, z, frames, dx, dy, tint], index) => {
 			if (!inPiece(i, j)) return;
 			const label = new Instance("ImageLabel");
 			label.BackgroundTransparency = 1;
@@ -422,6 +422,8 @@ export class WorldMap {
 			label.ImageRectSize = new Vector2(sw, sh);
 			label.ResampleMode = Enum.ResamplerMode.Pixelated;
 			label.ZIndex = GroundLayer.Soil + z;
+			// Os terrenos lisos dos biomas sem arte: o recorte claro pintado na cor do bioma (o tom do dia multiplica por cima).
+			if (tint >= 0) label.ImageColor3 = Color3.fromHex(string.format("%06x", tint));
 			let parent: SurfaceGui = ground.gui;
 			if (frames > 1) {
 				if (canGoLive(i, j, w, h, z, index)) {
@@ -466,7 +468,17 @@ export class WorldMap {
 		let cards = 0;
 		const cleanup = new Array<() => void>();
 		const blockCorner = worldCellCorner(data.bx * BLOCK_TILES, data.by * BLOCK_TILES);
-		const piece: PieceContext = { folder, gui: ground.gui, i0, j0, blockCorner, cleanup };
+		// As marcas e os objetos deitados num quadro que corta o que passa da borda do pedaço (2026-10-23): o canvas do
+		// pedaço não corta, e a marca que cruzava a borda saía nos dois pedaços, por cima de si mesma (mais escura).
+		const clip = new Instance("Frame");
+		clip.Name = "Recorte";
+		clip.BackgroundTransparency = 1;
+		clip.BorderSizePixel = 0;
+		clip.Size = UDim2.fromScale(1, 1);
+		clip.ClipsDescendants = true;
+		clip.ZIndex = OBJECT_Z;
+		clip.Parent = ground.gui;
+		const piece: PieceContext = { folder, gui: clip, i0, j0, blockCorner, cleanup };
 		for (const mark of data.marks) {
 			const drawn = this.drawObject(mark, piece);
 			if (drawn === "card") {
@@ -485,6 +497,7 @@ export class WorldMap {
 				if (x + w <= 0 || y + h <= 0 || x >= PIECE_TILES || y >= PIECE_TILES) continue;
 				const frame = new Instance("Frame");
 				frame.Name = mark.kind;
+				const top = y >= 0 && x >= 0;
 				frame.BorderSizePixel = 0;
 				frame.BackgroundColor3 = MARK_COLORS[mark.category] ?? MARK_COLORS.construcao;
 				// Cercas e lugares grandes (o lote, a mata) só com o contorno: o chão continua à mostra.
@@ -510,11 +523,11 @@ export class WorldMap {
 						: mark.category === "criar" || (mark.category === "construcao" && w * h >= 4)
 							? mark.kind
 							: "";
-				if (name !== "" && x >= 0 && y >= 0) {
+				if (name !== "" && top) {
 					const text = new Instance("TextLabel");
 					text.BackgroundTransparency = 1;
 					text.Size = UDim2.fromOffset(math.max(w * WORLD_TILE, 96), 12);
-					text.Position = UDim2.fromOffset(0, -12);
+					text.Position = UDim2.fromOffset(0, 0);
 					text.Font = Enum.Font.Code;
 					text.TextSize = 10;
 					text.TextColor3 = Color3.fromRGB(255, 255, 255);
@@ -524,7 +537,7 @@ export class WorldMap {
 					text.ZIndex = MARK_Z + 1;
 					text.Parent = frame;
 				}
-				frame.Parent = ground.gui;
+				frame.Parent = clip;
 				marks++;
 			}
 		}
@@ -686,7 +699,7 @@ export class WorldMap {
 /** O pedaço sendo montado, para quem desenha os objetos nele. */
 interface PieceContext {
 	folder: Folder;
-	gui: SurfaceGui;
+	gui: GuiObject;
 	/** A primeira célula do pedaço dentro do bloco. */
 	i0: number;
 	j0: number;

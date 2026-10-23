@@ -43,6 +43,39 @@ export const WORLD_OBJECTS: Record<
 	toco: [0, 478, 174, 32, 32, 16, 32, 0, 0],
 };
 
+/**
+ * O que bloqueia em cada cartão do catálogo: retângulos [x, y, w, h] em pixels da imagem (a célula cujo meio cai
+ * dentro bloqueia), para o gerador do mundo inteiro pôr os bloqueios dos objetos que ele mesmo espalha (2026-10-23;
+ * os da fase 1 já vêm prontos em fase1.ts).
+ */
+export const WORLD_OBJECT_BLOCKS: Record<string, [x: number, y: number, w: number, h: number][]> = {
+	arbusto: [[2, 8, 12, 8]],
+	arvore_grande: [[20, 64, 24, 16]],
+	arvore_pequena: [[8, 20, 15, 12]],
+	arvore_pequena_rosa: [[8, 20, 15, 12]],
+	banco_madeira: [[0, 4, 32, 12]],
+	banco_pedra: [[0, 4, 48, 12]],
+	bebedouro: [[0, 4, 37, 14]],
+	canteiro_potes: [[0, 16, 88, 32]],
+	casa_azul: [[0, 0, 96, 80]],
+	casa_azul_grande: [[0, 0, 96, 128]],
+	casa_azul_media: [[0, 0, 96, 80]],
+	casa_madeira: [[0, 0, 96, 80]],
+	casa_vermelha: [[0, 0, 96, 80]],
+	casa_vermelha_loja: [[0, 0, 96, 64]],
+	cata_vento_praca: [[4, 37, 17, 16]],
+	galpao_madeira: [[0, 0, 61, 56]],
+	mata_bloco: [[8, 16, 286, 140]],
+	moita_cruz: [[8, 30, 42, 30]],
+	moita_grande: [[8, 32, 48, 32]],
+	pedra_leve: [[0, 3, 16, 12]],
+	placa: [[2, 8, 12, 8]],
+	poco_madeira: [[0, 6, 28, 24]],
+	poco_pedra: [[0, 6, 30, 26]],
+	portal_madeira: [[0, 24, 12, 16], [68, 24, 12, 16]],
+	toco: [[4, 12, 24, 20]],
+};
+
 /** Uma tira (a peça de sebe ou cerca repetida): folha, canto, largura e altura da tira, o passo e o lado da peça. */
 export type WorldStrip = [sheet: number, x: number, y: number, w: number, h: number, step: number, piece: number];
 

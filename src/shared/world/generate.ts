@@ -16,11 +16,16 @@
 // - **Água do rio** no canvas de baixo (`mundo.agua_rio`, 4 quadros): com os ids, a base da água fica de fora do
 //   canvas fixo (transparente) e o cliente põe a água animada por baixo; sem eles, a água é a base lisa.
 // - **Decalques** (flores, pedrinhas) por semente da célula, só em grama pura de 2 × 2 tiles.
+// - **Terrenos lisos dos biomas sem arte** (2026-10-23, §12): o recorte claro de uma cor só da folha_juncao, esticado e
+//   pintado com a cor do bioma (`tint`, o último campo de `WorldRun`); sem junção com nada.
+//
+// O terreno de cada célula, o que bloqueia e as marcas vêm prontos de `blocks.ts` (`blockContent`); aqui só se monta o
+// que se desenha.
 
 import { ASSET_LISTS, ASSETS } from "shared/assets";
 import { EXTERIOR_SHEETS } from "shared/interiors";
-import { BLOCK_TILES, PHASE1_CELL_X, PHASE1_CELL_Y, phaseBlockersIn, PIECE_TILES, terrainAt, WORLD_TILE } from "./index";
-import { PHASE1_CLOSED, PHASE1_MARK_KINDS, PHASE1_MARKS, PHASE1 } from "./fase1";
+import { BLOCK_TILES, PIECE_TILES, WORLD_TILE } from "./index";
+import { blockContent, cellHash, codeSide, WorldMark } from "./blocks";
 import {
 	WORLD_DECALS,
 	WORLD_JUNCTIONS,
@@ -50,18 +55,11 @@ export type WorldRun = [
 	frames: number,
 	dx: number,
 	dy: number,
+	tint: number,
 ];
 
-/** Um lugar marcado do bloco (o que ainda não tem arte com id): tipo, categoria, retângulo em células do bloco, nome. */
-export interface WorldMark {
-	kind: string;
-	category: string;
-	x: number;
-	y: number;
-	w: number;
-	h: number;
-	label: string;
-}
+export { cellHash } from "./blocks";
+export type { WorldMark } from "./blocks";
 
 export interface WorldBlock {
 	bx: number;
@@ -73,6 +71,8 @@ export interface WorldBlock {
 	water: boolean;
 	marks: WorldMark[];
 	stats: { tiles: number; layers: number; decals: number; runs: number; animated: number; ms: number };
+	/** Células de água do bloco, de 4 em 4 (o som do rio e do mar). */
+	waterPoints: ReadonlyArray<[number, number]>;
 }
 
 /** Um recorte de 16 × 16 de uma célula, antes de juntar. */
@@ -85,10 +85,9 @@ interface Piece {
 	/** Recorte de uma cor só (a chave da cor) e o lado do recorte que se estica. */
 	flat?: string;
 	size?: number;
+	/** A ImageColor3 do recorte liso (0xRRGGBB), ou −1. */
+	tint: number;
 }
-
-/** Folga, em células, com que um lugar marcado ainda entra no bloco vizinho (`composeBlock`). */
-const MARK_MARGIN = 2;
 
 const TERRAINS = new Map<string, WorldTerrain>();
 for (const terrain of WORLD_TERRAINS) TERRAINS.set(terrain.code, terrain);
@@ -120,13 +119,9 @@ export function missingTextures() {
 	return missing;
 }
 
-/** Um número de 0 a 1 que só depende da célula e da semente (o mesmo bloco sai sempre igual). */
-export function cellHash(x: number, y: number, seed: number) {
-	let h = (x * 374761393 + y * 668265263 + seed * 2147483647) % 4294967296;
-	h = bit32.bxor(h, bit32.rshift(h, 13));
-	h = (h * 1274126177) % 4294967296;
-	h = bit32.bxor(h, bit32.rshift(h, 16));
-	return h / 4294967296;
+const TINTS = new Map<string, number>();
+for (const terrain of WORLD_TERRAINS) {
+	if (terrain.tint !== "") TINTS.set(terrain.code, tonumber(terrain.tint.sub(2), 16) ?? -1);
 }
 
 function plainCode(code: string) {
@@ -138,9 +133,9 @@ function basePiece(code: string, x: number, y: number): Piece | undefined {
 	if (!terrain) return undefined;
 	if (RIVER_UNDER && (code === "m" || code === "r")) return undefined;
 	const texture = terrain.texture !== "" ? (ASSETS[terrain.texture] ?? "") : "";
-	if (texture !== "") return { image: texture, sx: x * WORLD_TILE, sy: y * WORLD_TILE, frames: 1, dy: 0 };
+	if (texture !== "") return { image: texture, sx: x * WORLD_TILE, sy: y * WORLD_TILE, frames: 1, dy: 0, tint: -1 };
 	const [sx, sy, size] = terrain.flat;
-	return { image: JUNCTION_SHEET, sx, sy, frames: 1, dy: 0, flat: code, size };
+	return { image: JUNCTION_SHEET, sx, sy, frames: 1, dy: 0, flat: code, size, tint: TINTS.get(code) ?? -1 };
 }
 
 /**
@@ -152,13 +147,13 @@ export function composeBlock(bx: number, by: number, step?: () => void): WorldBl
 	const size = BLOCK_TILES;
 	const x0 = bx * size;
 	const y0 = by * size;
-	// As células do bloco e mais uma linha e uma coluna (os quadrantes de baixo e da direita do último tile).
-	const span = size + 1;
-	const codes = new Array<string>(span * span);
-	for (let j = 0; j < span; j++) {
-		for (let i = 0; i < span; i++) codes[j * span + i] = terrainAt(x0 + i, y0 + j);
-	}
-	const at = (i: number, j: number) => plainCode(codes[j * span + i]);
+	const content = blockContent(bx, by);
+	// As células do bloco e mais uma linha e uma coluna (os quadrantes de baixo e da direita do último tile): o terreno
+	// pronto de `blocks.ts` começa uma célula antes do bloco.
+	const side = codeSide();
+	const codes = content.codes;
+	const code0 = (i: number, j: number) => codes[(j + 1) * side + i + 1];
+	const at = (i: number, j: number) => plainCode(code0(i, j));
 
 	// As pilhas de recortes por camada: layers[z][célula].
 	const layers = new Array<Array<Piece | undefined>>();
@@ -203,7 +198,14 @@ export function composeBlock(bx: number, by: number, step?: () => void): WorldBl
 					});
 					const row = math.floor(mask / 4);
 					const col = mask % 4;
-					put(0, cell, { image: SETS_SHEET, sx: set.x + col * WORLD_TILE, sy: set.y + row * WORLD_TILE, frames: 1, dy: 0 });
+					put(0, cell, {
+						image: SETS_SHEET,
+						sx: set.x + col * WORLD_TILE,
+						sy: set.y + row * WORLD_TILE,
+						frames: 1,
+						dy: 0,
+						tint: -1,
+					});
 					pieces++;
 					continue;
 				}
@@ -231,6 +233,7 @@ export function composeBlock(bx: number, by: number, step?: () => void): WorldBl
 					sy: (junction[2] + variant) * WORLD_TILE,
 					frames: junction[3],
 					dy: junction[4],
+					tint: -1,
 				});
 				pieces++;
 			}
@@ -244,7 +247,7 @@ export function composeBlock(bx: number, by: number, step?: () => void): WorldBl
 		for (let x = 0; x < size - 1; x += 2) {
 			const cell = y * size + x;
 			if (!pure[cell] || !pure[cell + 1] || !pure[cell + size] || !pure[cell + size + 1]) continue;
-			const group = codes[y * span + x] === "G" ? WORLD_DECALS.capim : WORLD_DECALS.grama;
+			const group = code0(x, y) === "G" ? WORLD_DECALS.capim : WORLD_DECALS.grama;
 			if (!group) continue;
 			let roll = cellHash(x0 + x, y0 + y, 7) * 250;
 			for (const [, sx, sy, w, h, perMille] of group) {
@@ -259,6 +262,7 @@ export function composeBlock(bx: number, by: number, step?: () => void): WorldBl
 							sy: sy + j * WORLD_TILE,
 							frames: 1,
 							dy: 0,
+							tint: -1,
 						});
 						pieces++;
 					}
@@ -323,54 +327,19 @@ export function composeBlock(bx: number, by: number, step?: () => void): WorldBl
 					for (let i = 0; i < w; i++) used[(y + j) * size + x + i] = true;
 				}
 				if (flat !== undefined) {
-					const side = piece.size ?? 8;
-					runs.push([piece.image, x, y, w, h, piece.sx, piece.sy, side, side, z, 1, 0, 0]);
+					const edge = piece.size ?? 8;
+					runs.push([piece.image, x, y, w, h, piece.sx, piece.sy, edge, edge, z, 1, 0, 0, piece.tint]);
 				} else {
-					runs.push([piece.image, x, y, w, h, piece.sx, piece.sy, w * WORLD_TILE, h * WORLD_TILE, z, piece.frames, 0, piece.dy]);
+					runs.push([piece.image, x, y, w, h, piece.sx, piece.sy, w * WORLD_TILE, h * WORLD_TILE, z, piece.frames, 0, piece.dy, -1]);
 					if (piece.frames > 1) animated++;
 				}
 			}
 		}
 	});
 
-	// O que bloqueia: fora da fase, a água funda, as construções e as áreas fechadas que tocam o bloco.
-	const li = x0 - PHASE1_CELL_X;
-	const lj = y0 - PHASE1_CELL_Y;
-	const blocked = new Array<boolean>(size * size);
-	for (let y = 0; y < size; y++) {
-		for (let x = 0; x < size; x++) {
-			const i = li + x;
-			const j = lj + y;
-			blocked[y * size + x] = i < 0 || j < 0 || i >= PHASE1.width || j >= PHASE1.height || codes[y * span + x] === "m";
-		}
-	}
-	// Os retângulos que tocam o bloco (`phaseBlockersIn`, os baldes por bloco), pintados direto.
-	for (const [a0, b0, a1, b1] of phaseBlockersIn(math.floor(li / size), math.floor(lj / size))) {
-		for (let y = math.max(b0 - lj, 0); y <= math.min(b1 - lj, size - 1); y++) {
-			for (let x = math.max(a0 - li, 0); x <= math.min(a1 - li, size - 1); x++) blocked[y * size + x] = true;
-		}
-	}
-
-	// Os lugares marcados que tocam o bloco (o canvas corta o que passa da borda; o nome fica no bloco do canto), com
-	// `MARK_MARGIN` células de folga: a arte deitada de um objeto (a sebe, a lagoa) passa um pouco do retângulo da marca.
-	const marks = new Array<WorldMark>();
-	for (const [kind, mx, my, w, h, label] of PHASE1_MARKS) {
-		const x = mx - li;
-		const y = my - lj;
-		const m = MARK_MARGIN;
-		if (x + math.max(w, 1) + m <= 0 || y + math.max(h, 1) + m <= 0 || x - m >= size || y - m >= size) continue;
-		const [name, category] = PHASE1_MARK_KINDS[kind];
-		marks.push({ kind: name, category, x, y, w, h, label });
-	}
-	// As áreas fechadas (tapumes): marcadas como lugar sem passagem.
-	for (const [a0, b0, a1, b1, why] of PHASE1_CLOSED) {
-		const x = a0 - li;
-		const y = b0 - lj;
-		const w = a1 - a0 + 1;
-		const h = b1 - b0 + 1;
-		if (x + w <= 0 || y + h <= 0 || x >= size || y >= size) continue;
-		marks.push({ kind: "fechado", category: "fechado", x, y, w, h, label: why });
-	}
+	// O que bloqueia e as marcas: prontos em `blocks.ts`.
+	const blocked = content.blocked;
+	const marks: WorldMark[] = content.marks;
 
 	return {
 		bx,
@@ -379,6 +348,7 @@ export function composeBlock(bx: number, by: number, step?: () => void): WorldBl
 		blocked,
 		water,
 		marks,
+		waterPoints: content.waterPoints,
 		stats: { tiles, layers: pieces, decals, runs: runs.size(), animated, ms: (os.clock() - started) * 1000 },
 	};
 }
