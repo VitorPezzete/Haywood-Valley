@@ -117,6 +117,24 @@ Já existem no jogo: o mar animado e a areia da ilha (`agua.*`, `mar.infinito.*`
 | Círculo de pedras (portal) | topo da montanha | P3 |
 | Potes, barris, caixotes | (temos do Aeko) | P1, já existe |
 
+## Já existe no estilo da equipe
+
+Folha da equipe `Haywood-Valley-recuperado\equipe\folha_equipe_mundo_e_mais.png` (ampliada 2×), recortada em tamanho real e com fundo transparente em `equipe\mundo_recortes\`:
+
+| Peça | Arquivo | Serve para |
+|---|---|---|
+| Conjunto grama sobre areia (cantos internos e externos, 8×10 tiles) | `terreno_grama_sobre_areia.png` | P1 terreno, praias |
+| Conjunto grama sobre terra (cantos internos e externos) | `terreno_grama_sobre_terra.png` | P1 terreno, estradas e fazendas |
+| Ilha de areia com borda de água rasa | `ilha_areia_agua_rasa.png` | costa, a 2ª ilha |
+| Mar fundo com borda | `mar_fundo.png` | mar e arquipélagos |
+| Manchas: grama escura, areia na terra, terra laranja, lagoa | `manchas_terreno_lagoa.png` | variação de chão, savana, oásis |
+| Mancha de areia, placa "NOME" | `mancha_areia_placa.png` | placas de lote / lugar |
+| Árvores: verde, rosa (cerejeira), laranja (outono) | `arvore_verde/rosa/outono.png` | P1 vegetação e estações |
+| Palmeira | `palmeira.png` | costa, oásis |
+| Tufo de grama | `tufo_grama.png` | decoração |
+
+Também há a nossa ilha do jogo (`exterior_ilha`, `nossa_ilha_exterior.gif`) e as árvores da MADX (`equipe\arvores_antes_depois_madx.png`).
+
 ## O que o mapa base não tem (e o mundo do Haywood precisa)
 
 O Mundo da Luz do ALttP cobre campos, floresta, montanha, deserto, lago e pântano. Do plano dos 13 biomas e do núcleo de fazenda (Hay Day + Stardew) faltam:
