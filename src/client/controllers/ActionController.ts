@@ -11,6 +11,7 @@ import {
 	SIT_TURN_HOLD,
 } from "shared/actions";
 import { TAP_CLOSED } from "shared/interiorMap";
+import { TextArgs } from "shared/i18n/locales";
 import { decorItem, decorParts, parseColors } from "shared/decor";
 import { chestOfPiece, CHEST_TAP_SECONDS } from "shared/fixtures";
 import {
@@ -144,6 +145,9 @@ function opposite(dir: Facing) {
 @Controller()
 export class ActionController implements OnStart {
 	private readonly prompt = source<TextKey | undefined>(undefined);
+	/** Os valores do texto da dica (as sementes que sobram, na de plantar) e a chave deles, para só mudar quando mudam. */
+	private readonly promptArgs = source<TextArgs | undefined>(undefined);
+	private promptArgsKey = "";
 	private board?: PieceBoard;
 	private view?: PieceView;
 	private fixtures?: FixtureView;
@@ -232,6 +236,7 @@ export class ActionController implements OnStart {
 			() =>
 				ActionHud({
 					prompt: this.prompt,
+					args: this.promptArgs,
 					visible: playing,
 					onDown: () => this.press(),
 					onUp: () => this.unpress(),
@@ -869,6 +874,13 @@ export class ActionController implements OnStart {
 		}
 
 		const prompt = this.promptFor(root);
+		// Os valores antes da chave: o texto nunca aparece com a chave nova e os valores de antes.
+		const args = this.board ? undefined : this.farm.promptArgs(prompt);
+		const argsKey = args ? `${args.count}` : "";
+		if (argsKey !== this.promptArgsKey) {
+			this.promptArgsKey = argsKey;
+			this.promptArgs(args);
+		}
 		if (prompt !== this.prompt()) this.prompt(prompt);
 	}
 

@@ -51,4 +51,6 @@ export const RATE = {
 	ready: 2,
 	/** Arar, plantar e colher (`FarmService`), juntos. */
 	farm: 8,
+	/** Vender e comprar (`InventoryService`), juntos. */
+	shop: 4,
 };

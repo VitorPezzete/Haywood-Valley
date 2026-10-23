@@ -32,6 +32,13 @@ interface ClientToServerEvents {
 	farmTill(plot: number): void;
 	farmPlant(plot: number, crop: string): void;
 	farmHarvest(plot: number): void;
+	/**
+	 * O inventário (`shared/items.ts`, `InventoryService`, 2026-10-23): pedir o estado (ao ligar o cliente), vender
+	 * `count` do item e comprar `count` (múltiplo de `BUY_STACK`).
+	 */
+	inventoryReady(): void;
+	sellItem(item: string, count: number): void;
+	buyItem(item: string, count: number): void;
 }
 
 interface ServerToClientEvents {
@@ -65,6 +72,8 @@ interface ServerToClientEvents {
 	): void;
 	decorRefused(reason: string, piece: string, wanted: string, found: string): void;
 	decorStock(text: string): void;
+	/** O inventário do próprio jogador (só a ele): os itens no texto de `encodeItems` e as moedas. */
+	inventoryChanged(items: string, coins: number): void;
 }
 
 export const GlobalEvents = Networking.createEvent<ClientToServerEvents, ServerToClientEvents>();

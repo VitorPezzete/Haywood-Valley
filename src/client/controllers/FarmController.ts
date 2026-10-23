@@ -4,6 +4,7 @@ import {
 	decodeFarm,
 	DEFAULT_CROP,
 	FARM_ATTRIBUTE,
+	FARM_CROPS,
 	farmCorner,
 	farmNow,
 	FarmPlot,
@@ -14,11 +15,14 @@ import {
 	PlotState,
 } from "shared/farm";
 import { TextKey } from "shared/i18n/en";
+import { TextArgs } from "shared/i18n/locales";
+import { ITEM_MAX } from "shared/items";
 import { dirStep } from "shared/pieces";
 import { worldToArtPx } from "shared/view";
 import { WORLD_LOT_ATTRIBUTE, WORLD_ORIGIN, WORLD_TILE } from "shared/world";
 import { Events } from "client/network";
 import { perfBegin, perfEnd } from "client/perf";
+import { inventory, itemCount } from "client/state/inventory";
 import { FarmLayer } from "client/world/farm";
 import { SceneController } from "./SceneController";
 
@@ -42,6 +46,10 @@ export type FarmWork = "till" | "plant" | "harvest";
  * o que este controller ouviu da última vez (`heard`), não o cache do desenho: a dica da tecla lê o atributo a cada
  * quadro e podia já ter o texto novo quando o evento chega. Ao montar o mundo e ao trocar de lote, só se guarda o
  * estado, sem som (a fazenda inteira chegando não é trabalho).
+ *
+ * O inventário (terceiro passo, 2026-10-23, `client/state/inventory.ts`): a dica de plantar diz quantas sementes
+ * sobram (`promptArgs`); sem semente, ela vira "Sem sementes" e a tecla não pede nada; com o item da colheita no
+ * máximo, "Inventário cheio". O servidor confere de novo (`FarmService`, `InventoryService`).
  */
 @Controller()
 export class FarmController implements OnStart {
@@ -95,6 +103,13 @@ export class FarmController implements OnStart {
 	images() {
 		let count = 0;
 		for (const [, layer] of this.layers) count += layer.images();
+		return count;
+	}
+
+	/** Quantos cartões de fileira de trigo as fazendas têm. */
+	cards() {
+		let count = 0;
+		for (const [, layer] of this.layers) count += layer.cards();
 		return count;
 	}
 
@@ -158,7 +173,7 @@ export class FarmController implements OnStart {
 			this.folder.Parent = this.scene.world;
 		}
 		if (!layer) {
-			layer = new FarmLayer(this.folder, lot, corner);
+			layer = new FarmLayer(this.folder, lot, corner, this.scene.occlusion);
 			this.layers.set(player, layer);
 		}
 		layer.set(this.plotsOf(player), farmNow());
@@ -184,18 +199,43 @@ export class FarmController implements OnStart {
 	prompt(root: BasePart, facing: number): TextKey | undefined {
 		const plot = this.target(root, facing);
 		if (plot === undefined) return undefined;
-		const action = plotAction(this.plotsOf(Players.LocalPlayer).get(plot), farmNow());
-		return action === "till" ? "action.till" : action === "plant" ? "action.plant" : action === "harvest" ? "action.harvest" : undefined;
+		const current = this.plotsOf(Players.LocalPlayer).get(plot);
+		const action = plotAction(current, farmNow());
+		if (action === "till") return "action.till";
+		if (action === "plant") return this.hasSeed() ? "action.plant" : "action.noSeeds";
+		if (action === "harvest") return this.roomFor(current) ? "action.harvest" : "action.storageFull";
+		return undefined;
+	}
+
+	/** Os valores do texto da dica: quantas sementes sobram, na de plantar. */
+	promptArgs(prompt: TextKey | undefined): TextArgs | undefined {
+		if (prompt !== "action.plant") return undefined;
+		const def = FARM_CROPS[DEFAULT_CROP];
+		return { count: def ? itemCount(def.seed) : 0 };
+	}
+
+	/** Se há semente da planta de agora (antes de o inventário chegar, deixa o servidor decidir). */
+	private hasSeed() {
+		const def = FARM_CROPS[DEFAULT_CROP];
+		return !inventory().ready || (def !== undefined && itemCount(def.seed) > 0);
+	}
+
+	/** Se a colheita do canteiro cabe no inventário. */
+	private roomFor(plot: FarmPlot | undefined) {
+		const def = plot ? FARM_CROPS[plot.crop] : undefined;
+		return !inventory().ready || def === undefined || itemCount(def.harvest) + def.yield <= ITEM_MAX;
 	}
 
 	/** A tecla de ação na fazenda: pede ao servidor; devolve se havia o que fazer. */
 	press(root: BasePart, facing: number) {
 		const plot = this.target(root, facing);
 		if (plot === undefined) return false;
-		const action = plotAction(this.plotsOf(Players.LocalPlayer).get(plot), farmNow());
+		const current = this.plotsOf(Players.LocalPlayer).get(plot);
+		const action = plotAction(current, farmNow());
 		if (action === "till") Events.farmTill.fire(plot);
-		else if (action === "plant") Events.farmPlant.fire(plot, DEFAULT_CROP);
-		else if (action === "harvest") Events.farmHarvest.fire(plot);
-		return action !== undefined;
+		else if (action === "plant" && this.hasSeed()) Events.farmPlant.fire(plot, DEFAULT_CROP);
+		else if (action === "harvest" && this.roomFor(current)) Events.farmHarvest.fire(plot);
+		else return false;
+		return true;
 	}
 }

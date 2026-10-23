@@ -42,7 +42,9 @@
 		"haywood-valley:out/client/world/worldMap@WorldMap": "client/world/worldMap@WorldMap",
 		"haywood-valley:out/client/world/farm@FarmLayer": "client/world/farm@FarmLayer",
 		"haywood-valley:out/client/controllers/FarmController@FarmController": "client/controllers/FarmController@FarmController",
-		"haywood-valley:out/server/services/FarmService@FarmService": "server/services/FarmService@FarmService"
+		"haywood-valley:out/server/services/FarmService@FarmService": "server/services/FarmService@FarmService",
+		"haywood-valley:out/client/controllers/InventoryController@InventoryController": "client/controllers/InventoryController@InventoryController",
+		"haywood-valley:out/server/services/InventoryService@InventoryService": "server/services/InventoryService@InventoryService"
 	},
 	"metadata": {}
 }

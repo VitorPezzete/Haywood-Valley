@@ -1,5 +1,6 @@
-// A fazenda do jogador no lote do mundo (fase 1 do `docs/mundo/MAPA_MUNDO.md`, §3.5 e §11, 2026-10-23): o esqueleto
-// de arar, plantar e colher, sem economia. Vale no cliente (que desenha e pede) e no servidor (que confere e grava).
+// A fazenda do jogador no lote do mundo (fase 1 do `docs/mundo/MAPA_MUNDO.md`, §3.5 e §11, 2026-10-23): arar,
+// plantar e colher. Vale no cliente (que desenha e pede) e no servidor (que confere e grava). Desde o terceiro passo
+// (o mesmo dia), plantar gasta a semente e colher enche o inventário (`shared/items.ts`, `InventoryService`).
 //
 // - **Onde**: a fazenda inicial de 64 × 64 tiles no meio do lote (`PHASE1_LOTS[n].farm`), dividida em **canteiros** de
 //   2 × 2 tiles (32 × 32 px, a célula do protótipo: a terra arada e o trigo de `sprites.ts` têm esse tamanho). Um
@@ -34,9 +35,13 @@ export const FARM_REACH = 3;
 /** Tamanho máximo do texto salvo (cada canteiro guardado tem até uns 22 letras; 1.024 canteiros). */
 export const FARM_MAX_TEXT = 24000;
 
-/** O que se planta: o tempo para ficar pronto, em segundos. Sem economia ainda (nem semente nem venda). */
-export const FARM_CROPS: Record<string, { grow: number }> = {
-	trigo: { grow: 120 },
+/**
+ * O que se planta: o tempo para ficar pronto, em segundos; a semente que plantar gasta (uma) e o que colher dá
+ * (`harvest`, `yield` de cada vez), itens de `shared/items.ts` (terceiro passo, 2026-10-23). Números provisórios:
+ * o trigo do Hay Day dá 2 por colheita.
+ */
+export const FARM_CROPS: Record<string, { grow: number; seed: string; harvest: string; yield: number }> = {
+	trigo: { grow: 120, seed: "semente_trigo", harvest: "trigo", yield: 2 },
 };
 export const DEFAULT_CROP = "trigo";
 

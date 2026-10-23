@@ -3,6 +3,7 @@ import { DataStoreService, Players, RunService } from "@rbxts/services";
 import { LOOK_ATTRIBUTE, parseLook } from "shared/appearance";
 import { PlayerDecor, sanitizeDecor } from "shared/decor";
 import { PlayerFarm, sanitizeFarm } from "shared/farm";
+import { PlayerInventory, sanitizeInventory } from "shared/items";
 import { NAME_ATTRIBUTE } from "shared/names";
 import {
 	decodeSavedLook,
@@ -83,6 +84,9 @@ function lockedByOther(stored: Stored | undefined) {
  * Desde 2026-10-23 (formato 2, `PLAYER_DATA_VERSION`): a fazenda do lote do mundo (`farm`, `FarmService`); a
  * gravação guarda os campos do salvo que este servidor não conhece (de uma versão mais nova), e o salvo de uma versão
  * mais nova fica com o número dela.
+ *
+ * Formato 3 (o terceiro passo da fase 1, 2026-10-23): o inventário (`inventory`: itens e moedas, `InventoryService`).
+ * O salvo sem ele (jogador novo, formatos 1 e 2) recebe o de começo (`sanitizeInventory`).
  */
 @Service()
 export class PlayerDataService implements OnStart {
@@ -185,6 +189,17 @@ export class PlayerDataService implements OnStart {
 		this.dirty.add(player);
 	}
 
+	inventoryOf(player: Player) {
+		return this.data.get(player)?.inventory;
+	}
+
+	setInventory(player: Player, inventory: PlayerInventory) {
+		const data = this.data.get(player);
+		if (!data) return;
+		data.inventory = inventory;
+		this.dirty.add(player);
+	}
+
 	setDecor(player: Player, decor: PlayerDecor) {
 		const data = this.data.get(player);
 		if (!data) return;
@@ -283,6 +298,7 @@ export class PlayerDataService implements OnStart {
 					if (typeIs(saved.characterName, "string")) data.characterName = saved.characterName.sub(1, 64);
 					data.decor = sanitizeDecor(saved.decor);
 					data.farm = sanitizeFarm(saved.farm);
+					data.inventory = sanitizeInventory(saved.inventory);
 					if (typeIs(saved.v, "number") && saved.v > PLAYER_DATA_VERSION) data.v = saved.v;
 					if (typeIs(saved.savedLooks, "table")) {
 						for (let slot = 0; slot < SAVED_LOOKS; slot++) {

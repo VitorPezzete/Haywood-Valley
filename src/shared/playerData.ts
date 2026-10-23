@@ -1,6 +1,7 @@
 // O que fica salvo de cada jogador entre uma partida e outra (DataStore, PlayerDataService): o
 // personagem (visual e nome, para o Continuar do menu), as cabeças e os corpos favoritos e os visuais
-// salvos da tela de personalizar, a decoração da casa e a fazenda do lote do mundo. Peças são guardadas pelo
+// salvos da tela de personalizar, a decoração da casa, a fazenda do lote do mundo e o inventário (itens e moedas).
+// Peças são guardadas pelo
 // id, não pela posição na lista, para continuarem certas quando chegarem peças novas.
 
 import { CLOTH_KEYS, DEFAULT_LOOK, DETAIL_KEYS, Look, ORIGINAL, ColorKey } from "./appearance";
@@ -8,14 +9,20 @@ import { Graal } from "./graal";
 import { LEGACY_PIECE_STYLE, PieceStyle } from "./pieceStyle";
 import { emptyDecor, PlayerDecor } from "./decor";
 import { emptyFarm, PlayerFarm } from "./farm";
+import { PlayerInventory, startingInventory } from "./items";
 
 /**
  * Versão do formato salvo (o campo `v`). A 1 (sem o campo) é a de antes de 2026-10-23; a 2 acrescentou a fazenda
  * (`farm`), e o salvo da 1 se lê igual, com a fazenda vazia. Quem grava guarda os campos que não conhece (o salvo de
  * uma versão mais nova passa por um servidor velho sem perder nada); os servidores de antes da 2 ainda não fazem isso:
  * ao publicar a 2, fechar os servidores antigos, que gravariam o salvo sem a fazenda.
+ *
+ * A 3 (também de 2026-10-23, o terceiro passo da fase 1) acrescentou o inventário (`inventory`: itens e moedas,
+ * `shared/items.ts`). O salvo da 1 e da 2 se lê igual, com o inventário de começo (as sementes de `STARTING_ITEMS`).
+ * Os servidores da 2 já guardam os campos que não conhecem, mas nada no jogo deles gasta nem dá itens: ao publicar a 3,
+ * fechar os servidores antigos mesmo assim, senão um jogador que caia num deles planta sem gastar semente.
  */
-export const PLAYER_DATA_VERSION = 2;
+export const PLAYER_DATA_VERSION = 3;
 
 export interface PlayerData {
 	v: number;
@@ -26,6 +33,7 @@ export interface PlayerData {
 	characterName: string;
 	decor: PlayerDecor;
 	farm: PlayerFarm;
+	inventory: PlayerInventory;
 }
 
 /** Quantos visuais salvos cada jogador tem. */
@@ -48,6 +56,7 @@ export function emptyPlayerData(): PlayerData {
 		characterName: "",
 		decor: emptyDecor(),
 		farm: emptyFarm(),
+		inventory: startingInventory(),
 	};
 }
 

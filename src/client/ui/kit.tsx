@@ -2,6 +2,7 @@ import Vide, { cleanup, source } from "@rbxts/vide";
 import { Workspace } from "@rbxts/services";
 import { subscribe } from "@rbxts/charm";
 import { TextKey } from "shared/i18n/en";
+import { TextArgs } from "shared/i18n/locales";
 import { screenDensity } from "shared/view";
 import { phonePreview, phoneScale } from "client/state/phone";
 import { uiSound } from "client/uiSound";
@@ -140,6 +141,8 @@ export function PillButton({
 export interface Hint {
 	keys: Enum.KeyCode[];
 	label: TextKey | (() => TextKey);
+	/** Os valores do texto (as sementes que sobram na dica de plantar, 2026-10-23). */
+	args?: () => TextArgs | undefined;
 }
 
 /** Dicas de tecla no canto de baixo à direita, no kit do tema: as teclas e o que elas fazem. */
@@ -214,7 +217,7 @@ export function Hints({
 						AutomaticSize="X"
 						Size={new UDim2(0, 0, 1, 0)}
 						FontFace={BODY}
-						Text={() => t(typeIs(hint.label, "function") ? hint.label() : hint.label)}
+						Text={() => t(typeIs(hint.label, "function") ? hint.label() : hint.label, hint.args?.())}
 						TextColor3={() => themeColor("text")}
 						TextSize={() => 8 * k()}
 						TextTransparency={transparency}

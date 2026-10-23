@@ -1,6 +1,7 @@
 import Vide, { cleanup } from "@rbxts/vide";
 import { UserInputService } from "@rbxts/services";
 import { TextKey } from "shared/i18n/en";
+import { TextArgs } from "shared/i18n/locales";
 import { t } from "./i18n";
 import { Hints, px, screenScale, ThemeButton } from "./kit";
 
@@ -15,12 +16,15 @@ const BUTTON_MARGIN = new Vector2(10, 58);
  */
 export function ActionHud({
 	prompt,
+	args,
 	visible,
 	onDown,
 	onUp,
 }: {
 	/** A chave do texto da ação de agora, ou nada quando não há o que fazer. */
 	prompt: () => TextKey | undefined;
+	/** Os valores do texto da ação (as sementes que sobram, na de plantar). */
+	args: () => TextArgs | undefined;
 	visible: () => boolean;
 	onDown: () => void;
 	onUp: () => void;
@@ -37,7 +41,7 @@ export function ActionHud({
 				Size={UDim2.fromScale(1, 1)}
 				Visible={() => shown() && UserInputService.KeyboardEnabled}
 			>
-				<Hints k={k} hints={[{ keys: [Enum.KeyCode.F], label }]} />
+				<Hints k={k} hints={[{ keys: [Enum.KeyCode.F], label, args }]} />
 			</frame>
 			<frame
 				Name="Touch"
@@ -52,7 +56,7 @@ export function ActionHud({
 						new UDim2(1, -(BUTTON.X + BUTTON_MARGIN.X) * k(), 1, -(BUTTON.Y + BUTTON_MARGIN.Y) * k())
 					}
 					size={px(k, BUTTON.X, BUTTON.Y)}
-					text={() => t(label())}
+					text={() => t(label(), args())}
 					onPress={() => {}}
 					onDown={onDown}
 					onUp={onUp}
