@@ -173,9 +173,25 @@ export const EFFECTS: Record<EffectId, SoundSpec[]> = {
 	],
 	torneiraAbre: [{ id: ASSETS["som.torneira"], volume: 0.5, region: [0, 1.6] }],
 	torneiraFecha: [{ id: ASSETS["som.torneira"], volume: 0.5, region: [14, 17.4] }],
-	passoTabua: [{ id: ASSETS["som.passo_tabua"], volume: 0.4, pitch: 0.06 }],
-	passoGrama: [{ id: ASSETS["som.passo_grama"], volume: 0.3, pitch: 0.06 }],
-	passoPedra: [{ id: ASSETS["som.passo_pedra"], volume: 0.4, pitch: 0.06 }],
+	// Os passos feitos no Ableton (2026-10-20) vêm 4 num arquivo, um por segundo (tools/som/cortar.py, trechos).
+	passoTabua: [
+		{ id: ASSETS["som.passo_tabua"], volume: 0.4, region: [0, 0.175], pitch: 0.06 },
+		{ id: ASSETS["som.passo_tabua"], volume: 0.4, region: [1, 1.175], pitch: 0.06 },
+		{ id: ASSETS["som.passo_tabua"], volume: 0.4, region: [2, 2.175], pitch: 0.06 },
+		{ id: ASSETS["som.passo_tabua"], volume: 0.4, region: [3, 3.205], pitch: 0.06 },
+	],
+	passoGrama: [
+		{ id: ASSETS["som.passo_grama"], volume: 0.3, region: [0, 0.17], pitch: 0.06 },
+		{ id: ASSETS["som.passo_grama"], volume: 0.3, region: [1, 1.175], pitch: 0.06 },
+		{ id: ASSETS["som.passo_grama"], volume: 0.3, region: [2, 2.17], pitch: 0.06 },
+		{ id: ASSETS["som.passo_grama"], volume: 0.3, region: [3, 3.18], pitch: 0.06 },
+	],
+	passoPedra: [
+		{ id: ASSETS["som.passo_pedra"], volume: 0.4, region: [0, 0.145], pitch: 0.06 },
+		{ id: ASSETS["som.passo_pedra"], volume: 0.4, region: [1, 1.145], pitch: 0.06 },
+		{ id: ASSETS["som.passo_pedra"], volume: 0.4, region: [2, 2.145], pitch: 0.06 },
+		{ id: ASSETS["som.passo_pedra"], volume: 0.4, region: [3, 3.145], pitch: 0.06 },
+	],
 	bauAbre: [{ id: ASSETS["som.bau_abre"], volume: 0.5, pitch: 0.05 }],
 	bauFecha: [{ id: ASSETS["som.bau_fecha"], volume: 0.5, pitch: 0.05 }],
 	fogaoAcende: [{ id: ASSETS["som.fogao_acende"], volume: 0.4 }],
@@ -190,28 +206,29 @@ export type UiSound = "click" | "focus" | "open" | "close" | "change" | "confirm
 
 /**
  * Os sons da interface de cada kit do tema (Celeiro: madeira e papel; Clássico: sinos e cristal), feitos no
- * Ableton, num arquivo só por kit, cada som um trecho (`region`). Ainda sem id.
+ * Ableton, num arquivo só por kit, cada som um trecho (`region`) que começa num segundo inteiro (os trechos
+ * medidos por tools/som/cortar.py em 2026-10-20).
  */
 export const UI_SOUNDS: Record<"celeiro" | "graal", Record<UiSound, SoundSpec>> = {
 	celeiro: {
-		click: { id: ASSETS["som.interface.celeiro"], volume: 0.5 },
-		focus: { id: ASSETS["som.interface.celeiro"], volume: 0.3 },
-		open: { id: ASSETS["som.interface.celeiro"], volume: 0.5 },
-		close: { id: ASSETS["som.interface.celeiro"], volume: 0.5 },
-		change: { id: ASSETS["som.interface.celeiro"], volume: 0.4 },
-		confirm: { id: ASSETS["som.interface.celeiro"], volume: 0.5 },
-		back: { id: ASSETS["som.interface.celeiro"], volume: 0.5 },
-		refused: { id: ASSETS["som.interface.celeiro"], volume: 0.5 },
+		click: { id: ASSETS["som.interface.celeiro"], volume: 0.5, region: [0, 0.15] },
+		focus: { id: ASSETS["som.interface.celeiro"], volume: 0.3, region: [1, 1.13] },
+		open: { id: ASSETS["som.interface.celeiro"], volume: 0.5, region: [2, 2.34] },
+		close: { id: ASSETS["som.interface.celeiro"], volume: 0.5, region: [3, 3.32] },
+		change: { id: ASSETS["som.interface.celeiro"], volume: 0.4, region: [4, 4.18] },
+		confirm: { id: ASSETS["som.interface.celeiro"], volume: 0.5, region: [5, 5.4] },
+		back: { id: ASSETS["som.interface.celeiro"], volume: 0.5, region: [6, 6.28] },
+		refused: { id: ASSETS["som.interface.celeiro"], volume: 0.5, region: [7, 7.36] },
 	},
 	graal: {
-		click: { id: ASSETS["som.interface.graal"], volume: 0.5 },
-		focus: { id: ASSETS["som.interface.graal"], volume: 0.3 },
-		open: { id: ASSETS["som.interface.graal"], volume: 0.5 },
-		close: { id: ASSETS["som.interface.graal"], volume: 0.5 },
-		change: { id: ASSETS["som.interface.graal"], volume: 0.4 },
-		confirm: { id: ASSETS["som.interface.graal"], volume: 0.5 },
-		back: { id: ASSETS["som.interface.graal"], volume: 0.5 },
-		refused: { id: ASSETS["som.interface.graal"], volume: 0.5 },
+		click: { id: ASSETS["som.interface.graal"], volume: 0.5, region: [0, 0.13] },
+		focus: { id: ASSETS["som.interface.graal"], volume: 0.3, region: [1, 1.13] },
+		open: { id: ASSETS["som.interface.graal"], volume: 0.5, region: [2, 2.38] },
+		close: { id: ASSETS["som.interface.graal"], volume: 0.5, region: [3, 3.36] },
+		change: { id: ASSETS["som.interface.graal"], volume: 0.4, region: [4, 4.22] },
+		confirm: { id: ASSETS["som.interface.graal"], volume: 0.5, region: [5, 5.33] },
+		back: { id: ASSETS["som.interface.graal"], volume: 0.5, region: [6, 6.24] },
+		refused: { id: ASSETS["som.interface.graal"], volume: 0.5, region: [7, 7.32] },
 	},
 };
 
