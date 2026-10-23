@@ -1,0 +1,52 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "zar270",
+  "autor": "zar",
+  "genero": "f",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": true
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    },
+    {
+      "tipo": "d0",
+      "arquivo": "d0.png",
+      "piscada": false
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFE1BF",
+      "cabelo": "BEF7F2",
+      "olhos": "E5D3C0",
+      "detalhes": [
+        "E3527D"
+      ]
+    },
+    "original": {
+      "pele": "FFE2C0",
+      "cabelo": "C1FAFB",
+      "olhos": "E6D2C0",
+      "detalhes": [
+        "E54C75"
+      ]
+    }
+  }
+}

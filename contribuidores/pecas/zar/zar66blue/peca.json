@@ -1,0 +1,43 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "zar66blue",
+  "autor": "zar",
+  "genero": "f",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": false
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFB17E",
+      "cabelo": "2F323E",
+      "olhos": "DBA868",
+      "detalhes": []
+    },
+    "original": {
+      "pele": "FFAD7B",
+      "cabelo": "2F313B",
+      "olhos": "D9A160",
+      "detalhes": []
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "zar124white",
+  "autor": "zar",
+  "genero": "m",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": true
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFA588",
+      "cabelo": "F3F3F3",
+      "olhos": "EED292",
+      "detalhes": []
+    },
+    "original": {
+      "pele": "FFA789",
+      "cabelo": "F6F6F6",
+      "olhos": "FADB95",
+      "detalhes": []
+    }
+  }
+}

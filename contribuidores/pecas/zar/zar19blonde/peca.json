@@ -1,0 +1,52 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "zar19blonde",
+  "autor": "zar",
+  "genero": "m",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": true
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    },
+    {
+      "tipo": "d0",
+      "arquivo": "d0.png",
+      "piscada": false
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFA45E",
+      "cabelo": "DDC093",
+      "olhos": "6FB968",
+      "detalhes": [
+        "9A9A9A"
+      ]
+    },
+    "original": {
+      "pele": "FFA662",
+      "cabelo": "F4D5A5",
+      "olhos": "5CAE5C",
+      "detalhes": [
+        "999999"
+      ]
+    }
+  }
+}

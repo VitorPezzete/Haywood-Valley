@@ -1,0 +1,63 @@
+{
+  "formato": 1,
+  "tipo": "corpo",
+  "id": "daisy-body1",
+  "autor": "daisy",
+  "genero": "f",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png"
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png"
+    },
+    {
+      "tipo": "c0",
+      "arquivo": "c0.png"
+    },
+    {
+      "tipo": "c1",
+      "arquivo": "c1.png"
+    },
+    {
+      "tipo": "c2",
+      "arquivo": "c2.png"
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png"
+    },
+    {
+      "tipo": "c3",
+      "arquivo": "c3.png"
+    }
+  ],
+  "tipos_roupa": [
+    "k",
+    "t",
+    "s",
+    "d"
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FEAD6B",
+      "roupa": [
+        "F99393",
+        "0808D0",
+        "FF0096",
+        "8E759F"
+      ]
+    },
+    "original": {
+      "pele": "FEAD6B",
+      "roupa": [
+        "F99393",
+        "0808D0",
+        "FF0096",
+        "8A7797"
+      ]
+    }
+  }
+}

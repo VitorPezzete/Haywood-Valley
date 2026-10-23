@@ -1,0 +1,38 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "bea-masc96p",
+  "autor": "bea",
+  "genero": "m",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": false
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": false
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": false
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "4BB3FF",
+      "cabelo": "D10C32",
+      "olhos": "",
+      "detalhes": []
+    },
+    "original": {
+      "pele": "4AB2FF",
+      "cabelo": "C90F31",
+      "olhos": "",
+      "detalhes": []
+    }
+  }
+}

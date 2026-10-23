@@ -1,0 +1,59 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "zar170sasuke",
+  "autor": "zar",
+  "genero": "m",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": true
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    },
+    {
+      "tipo": "d0",
+      "arquivo": "d0.png",
+      "piscada": false
+    },
+    {
+      "tipo": "d1",
+      "arquivo": "d1.png",
+      "piscada": false
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFB489",
+      "cabelo": "404961",
+      "olhos": "7F7F7F",
+      "detalhes": [
+        "737A87",
+        "063C7E"
+      ]
+    },
+    "original": {
+      "pele": "FFB88E",
+      "cabelo": "3F4A64",
+      "olhos": "7D7D7D",
+      "detalhes": [
+        "717782",
+        "073C7A"
+      ]
+    }
+  }
+}

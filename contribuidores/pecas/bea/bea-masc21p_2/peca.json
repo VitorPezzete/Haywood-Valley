@@ -1,0 +1,48 @@
+{
+  "formato": 1,
+  "tipo": "corpo",
+  "id": "bea-masc21p_2",
+  "autor": "bea",
+  "genero": "u",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png"
+    },
+    {
+      "tipo": "c0",
+      "arquivo": "c0.png"
+    },
+    {
+      "tipo": "c1",
+      "arquivo": "c1.png"
+    },
+    {
+      "tipo": "c2",
+      "arquivo": "c2.png"
+    }
+  ],
+  "tipos_roupa": [
+    "t",
+    "t",
+    "s"
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "",
+      "roupa": [
+        "C88911",
+        "7D172A",
+        "D5D5D5"
+      ]
+    },
+    "original": {
+      "pele": "",
+      "roupa": [
+        "C88911",
+        "700E28",
+        "D5D5D5"
+      ]
+    }
+  }
+}

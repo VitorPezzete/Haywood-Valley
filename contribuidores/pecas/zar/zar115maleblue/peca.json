@@ -1,0 +1,42 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "zar115maleblue",
+  "autor": "zar",
+  "genero": "m",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": false
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": false
+    },
+    {
+      "tipo": "d0",
+      "arquivo": "d0.png",
+      "piscada": false
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "",
+      "cabelo": "151515",
+      "olhos": "",
+      "detalhes": [
+        "262626"
+      ]
+    },
+    "original": {
+      "pele": "",
+      "cabelo": "0C0C0C",
+      "olhos": "",
+      "detalhes": [
+        "262626"
+      ]
+    }
+  }
+}

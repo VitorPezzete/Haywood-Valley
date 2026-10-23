@@ -1,0 +1,52 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "arne-masc94g",
+  "autor": "arne",
+  "genero": "m",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": false
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": false
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    },
+    {
+      "tipo": "d0",
+      "arquivo": "d0.png",
+      "piscada": true
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "CF9A71",
+      "cabelo": "6B1708",
+      "olhos": "D27C74",
+      "detalhes": [
+        "1F1F1F"
+      ]
+    },
+    "original": {
+      "pele": "DC9B74",
+      "cabelo": "601609",
+      "olhos": "CB6763",
+      "detalhes": [
+        "171717"
+      ]
+    }
+  }
+}

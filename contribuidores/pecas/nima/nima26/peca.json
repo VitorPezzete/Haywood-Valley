@@ -1,0 +1,43 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "nima26",
+  "autor": "nima",
+  "genero": "f",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": false
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFC395",
+      "cabelo": "FC3A23",
+      "olhos": "FF9E7B",
+      "detalhes": []
+    },
+    "original": {
+      "pele": "FFC294",
+      "cabelo": "FB3F26",
+      "olhos": "FF9A79",
+      "detalhes": []
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "zar238ginger",
+  "autor": "zar",
+  "genero": "m",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": false
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FB9254",
+      "cabelo": "D79059",
+      "olhos": "A2948C",
+      "detalhes": []
+    },
+    "original": {
+      "pele": "FF985B",
+      "cabelo": "DA844F",
+      "olhos": "A69A92",
+      "detalhes": []
+    }
+  }
+}

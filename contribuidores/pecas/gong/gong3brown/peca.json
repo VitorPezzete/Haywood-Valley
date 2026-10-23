@@ -1,0 +1,52 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "gong3brown",
+  "autor": "gong",
+  "genero": "m",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": true
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    },
+    {
+      "tipo": "d0",
+      "arquivo": "d0.png",
+      "piscada": false
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FF9E59",
+      "cabelo": "784B2F",
+      "olhos": "B08B75",
+      "detalhes": [
+        "581B0B"
+      ]
+    },
+    "original": {
+      "pele": "FFA15D",
+      "cabelo": "6F3A24",
+      "olhos": "AF8A75",
+      "detalhes": [
+        "581B0B"
+      ]
+    }
+  }
+}

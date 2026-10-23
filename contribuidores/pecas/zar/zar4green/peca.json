@@ -1,0 +1,43 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "zar4green",
+  "autor": "zar",
+  "genero": "f",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": true
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFC295",
+      "cabelo": "0C573C",
+      "olhos": "D6A0E8",
+      "detalhes": []
+    },
+    "original": {
+      "pele": "FFC599",
+      "cabelo": "095C42",
+      "olhos": "E3A8F6",
+      "detalhes": []
+    }
+  }
+}

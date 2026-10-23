@@ -1,0 +1,43 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "zar53blue",
+  "autor": "zar",
+  "genero": "f",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": false
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "F89765",
+      "cabelo": "2B2F3C",
+      "olhos": "8AAD98",
+      "detalhes": []
+    },
+    "original": {
+      "pele": "FA9B69",
+      "cabelo": "2C303C",
+      "olhos": "94B5A2",
+      "detalhes": []
+    }
+  }
+}

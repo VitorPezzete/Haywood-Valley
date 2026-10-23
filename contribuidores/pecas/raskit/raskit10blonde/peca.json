@@ -1,0 +1,43 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "raskit10blonde",
+  "autor": "raskit",
+  "genero": "f",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": false
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFA175",
+      "cabelo": "FFDEC3",
+      "olhos": "9A9A9A",
+      "detalhes": []
+    },
+    "original": {
+      "pele": "FFA376",
+      "cabelo": "FFDAC4",
+      "olhos": "A0A0A0",
+      "detalhes": []
+    }
+  }
+}

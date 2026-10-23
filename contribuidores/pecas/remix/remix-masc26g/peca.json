@@ -1,0 +1,59 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "remix-masc26g",
+  "autor": "remix",
+  "genero": "m",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": true
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    },
+    {
+      "tipo": "d0",
+      "arquivo": "d0.png",
+      "piscada": false
+    },
+    {
+      "tipo": "d1",
+      "arquivo": "d1.png",
+      "piscada": false
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFA25C",
+      "cabelo": "1F1F1F",
+      "olhos": "17178F",
+      "detalhes": [
+        "4665C6",
+        "4F4BCD"
+      ]
+    },
+    "original": {
+      "pele": "FFA05C",
+      "cabelo": "141414",
+      "olhos": "1818A6",
+      "detalhes": [
+        "3F5DB5",
+        "4C4CBF"
+      ]
+    }
+  }
+}

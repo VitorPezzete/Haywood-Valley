@@ -1,0 +1,59 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "bea2",
+  "autor": "bea",
+  "genero": "f",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": true
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    },
+    {
+      "tipo": "d0",
+      "arquivo": "d0.png",
+      "piscada": false
+    },
+    {
+      "tipo": "d1",
+      "arquivo": "d1.png",
+      "piscada": false
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFBB94",
+      "cabelo": "7D594F",
+      "olhos": "967B73",
+      "detalhes": [
+        "A4A184",
+        "947768"
+      ]
+    },
+    "original": {
+      "pele": "FFBB94",
+      "cabelo": "9B6E63",
+      "olhos": "998079",
+      "detalhes": [
+        "A1A188",
+        "92796B"
+      ]
+    }
+  }
+}

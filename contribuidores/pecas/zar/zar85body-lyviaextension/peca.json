@@ -1,0 +1,53 @@
+{
+  "formato": 1,
+  "tipo": "corpo",
+  "id": "zar85body-lyviaextension",
+  "autor": "zar",
+  "genero": "f",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png"
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png"
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png"
+    },
+    {
+      "tipo": "c0",
+      "arquivo": "c0.png"
+    },
+    {
+      "tipo": "c1",
+      "arquivo": "c1.png"
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.2.png"
+    }
+  ],
+  "tipos_roupa": [
+    "t",
+    "s"
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "F3C495",
+      "roupa": [
+        "E1E1E1",
+        "52CBD7"
+      ]
+    },
+    "original": {
+      "pele": "F3C495",
+      "roupa": [
+        "E1E1E1",
+        "52CBD7"
+      ]
+    }
+  }
+}

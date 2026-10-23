@@ -1,0 +1,52 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "raskit4auburn",
+  "autor": "raskit",
+  "genero": "f",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": false
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    },
+    {
+      "tipo": "d0",
+      "arquivo": "d0.png",
+      "piscada": false
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFBA8F",
+      "cabelo": "B04542",
+      "olhos": "6DD6CF",
+      "detalhes": [
+        "FF7B77"
+      ]
+    },
+    "original": {
+      "pele": "FFBF94",
+      "cabelo": "B44241",
+      "olhos": "6DDED9",
+      "detalhes": [
+        "FD6F6F"
+      ]
+    }
+  }
+}

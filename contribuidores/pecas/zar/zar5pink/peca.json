@@ -1,0 +1,43 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "zar5pink",
+  "autor": "zar",
+  "genero": "f",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": false
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFC5A4",
+      "cabelo": "FFDEEF",
+      "olhos": "FAA776",
+      "detalhes": []
+    },
+    "original": {
+      "pele": "FFCAA9",
+      "cabelo": "FFDDED",
+      "olhos": "FFAD79",
+      "detalhes": []
+    }
+  }
+}

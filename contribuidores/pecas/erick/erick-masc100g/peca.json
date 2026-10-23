@@ -1,0 +1,66 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "erick-masc100g",
+  "autor": "erick",
+  "genero": "m",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": false
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    },
+    {
+      "tipo": "d0",
+      "arquivo": "d0.png",
+      "piscada": false
+    },
+    {
+      "tipo": "d1",
+      "arquivo": "d1.png",
+      "piscada": false
+    },
+    {
+      "tipo": "d2",
+      "arquivo": "d2.png",
+      "piscada": false
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFAA64",
+      "cabelo": "2E2E2D",
+      "olhos": "D7C460",
+      "detalhes": [
+        "FECB10",
+        "1BFF6F",
+        "4CDEFF"
+      ]
+    },
+    "original": {
+      "pele": "FFAA66",
+      "cabelo": "2F2E2E",
+      "olhos": "D5C059",
+      "detalhes": [
+        "FFCE08",
+        "02FE79",
+        "47E5FF"
+      ]
+    }
+  }
+}

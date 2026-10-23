@@ -1,0 +1,59 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "zar132femalezombie",
+  "autor": "zar",
+  "genero": "f",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": false
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    },
+    {
+      "tipo": "d0",
+      "arquivo": "d0.png",
+      "piscada": true
+    },
+    {
+      "tipo": "d1",
+      "arquivo": "d1.png",
+      "piscada": false
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "597D57",
+      "cabelo": "4B3B60",
+      "olhos": "B6C4B6",
+      "detalhes": [
+        "79B079",
+        "565D56"
+      ]
+    },
+    "original": {
+      "pele": "6F8E6B",
+      "cabelo": "413355",
+      "olhos": "B8C6B8",
+      "detalhes": [
+        "79B079",
+        "565D56"
+      ]
+    }
+  }
+}

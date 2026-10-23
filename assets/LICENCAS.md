@@ -26,10 +26,10 @@ qwertzilla, raskit, remix, roy, seraphim, sully, tal, trisha, wally, zael, zar, 
 libera por escrito para qualquer projeto e que é desenho do próprio autor; não entra o que é edição dos sprites-base do
 Graal nem o que só diz "grátis". Os links e os textos de cada pacote se perderam com o PC.
 
-**Palpite:** as peças foram aceitas uma a uma antes da formatação, então o critério foi aplicado; mas sem os textos não
-dá para provar. Enquanto o usuário não confirma, `contribuidores/` (as peças desempacotadas e as folhas montadas) está
-no `.gitignore`; o registro guarda os ids (as folhas já estão no Roblox) e `tools/graal_unpack.py` refaz as peças a
-partir das imagens recuperadas quando precisar.
+As peças foram aceitas uma a uma antes da formatação, então o critério foi aplicado; sem os textos não dá para provar.
+**Decisão do usuário em 2026-10-23:** `contribuidores/` (as peças desempacotadas e as 144 folhas montadas) entra no
+repositório público, que foi ao `main` no mesmo dia. Se algum texto de licença for recuperado, guardá-lo em
+`contribuidores/pecas/<autor>/`.
 
 ## Tiles do Aeko (`aeko.*`, `exterior.folha_juncao`, `mar.infinito.*`, `acoes.*`)
 

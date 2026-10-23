@@ -1,0 +1,38 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "zar115femalegreen",
+  "autor": "zar",
+  "genero": "f",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": false
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "",
+      "cabelo": "212121",
+      "olhos": "35C23E",
+      "detalhes": []
+    },
+    "original": {
+      "pele": "",
+      "cabelo": "242424",
+      "olhos": "30BD39",
+      "detalhes": []
+    }
+  }
+}

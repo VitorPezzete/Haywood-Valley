@@ -1,0 +1,59 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "zar99brownred",
+  "autor": "zar",
+  "genero": "m",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": true
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    },
+    {
+      "tipo": "d0",
+      "arquivo": "d0.png",
+      "piscada": false
+    },
+    {
+      "tipo": "d1",
+      "arquivo": "d1.png",
+      "piscada": false
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "944824",
+      "cabelo": "301B12",
+      "olhos": "CFA390",
+      "detalhes": [
+        "A82620",
+        "6F6F6F"
+      ]
+    },
+    "original": {
+      "pele": "904926",
+      "cabelo": "331C12",
+      "olhos": "C2A092",
+      "detalhes": [
+        "AC1717",
+        "6F6F6F"
+      ]
+    }
+  }
+}

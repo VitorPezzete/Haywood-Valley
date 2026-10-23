@@ -1,0 +1,33 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "pooka1",
+  "autor": "pooka",
+  "genero": "f",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": false
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": false
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "",
+      "cabelo": "1F1F1F",
+      "olhos": "",
+      "detalhes": []
+    },
+    "original": {
+      "pele": "",
+      "cabelo": "1A1A1A",
+      "olhos": "",
+      "detalhes": []
+    }
+  }
+}

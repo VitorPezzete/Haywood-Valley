@@ -1,0 +1,62 @@
+{
+  "formato": 1,
+  "tipo": "corpo",
+  "id": "pooka4body",
+  "autor": "pooka",
+  "genero": "f",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png"
+    },
+    {
+      "tipo": "c0",
+      "arquivo": "c0.png"
+    },
+    {
+      "tipo": "c1",
+      "arquivo": "c1.png"
+    },
+    {
+      "tipo": "c2",
+      "arquivo": "c2.png"
+    },
+    {
+      "tipo": "c3",
+      "arquivo": "c3.png"
+    },
+    {
+      "tipo": "c4",
+      "arquivo": "c4.png"
+    }
+  ],
+  "tipos_roupa": [
+    "t",
+    "p",
+    "m",
+    "m",
+    "b"
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "",
+      "roupa": [
+        "ADCBA5",
+        "3A5858",
+        "405639",
+        "A1CF4A",
+        "260F0F"
+      ]
+    },
+    "original": {
+      "pele": "",
+      "roupa": [
+        "B1CAAB",
+        "3A5858",
+        "405639",
+        "A1CF4A",
+        "260F0F"
+      ]
+    }
+  }
+}

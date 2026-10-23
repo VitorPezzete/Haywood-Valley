@@ -1,0 +1,59 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "zara1braidwhite",
+  "autor": "zara",
+  "genero": "f",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": true
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    },
+    {
+      "tipo": "d0",
+      "arquivo": "d0.png",
+      "piscada": true
+    },
+    {
+      "tipo": "d1",
+      "arquivo": "d1.png",
+      "piscada": false
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFC69D",
+      "cabelo": "EDEDED",
+      "olhos": "D4AA8C",
+      "detalhes": [
+        "785A3E",
+        "513522"
+      ]
+    },
+    "original": {
+      "pele": "FFC89F",
+      "cabelo": "FAFAFA",
+      "olhos": "DDAE8F",
+      "detalhes": [
+        "6E4D33",
+        "513522"
+      ]
+    }
+  }
+}

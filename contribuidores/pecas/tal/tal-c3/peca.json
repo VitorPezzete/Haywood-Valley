@@ -1,0 +1,52 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "tal-c3",
+  "autor": "tal",
+  "genero": "f",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": false
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    },
+    {
+      "tipo": "d0",
+      "arquivo": "d0.png",
+      "piscada": false
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFB385",
+      "cabelo": "D58425",
+      "olhos": "C97D55",
+      "detalhes": [
+        "FF7362"
+      ]
+    },
+    "original": {
+      "pele": "FFB486",
+      "cabelo": "DB7515",
+      "olhos": "D87D55",
+      "detalhes": [
+        "FF6A5D"
+      ]
+    }
+  }
+}

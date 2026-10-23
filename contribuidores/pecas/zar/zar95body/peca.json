@@ -1,0 +1,59 @@
+{
+  "formato": 1,
+  "tipo": "corpo",
+  "id": "zar95body",
+  "autor": "zar",
+  "genero": "f",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png"
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png"
+    },
+    {
+      "tipo": "c0",
+      "arquivo": "c0.png"
+    },
+    {
+      "tipo": "c1",
+      "arquivo": "c1.png"
+    },
+    {
+      "tipo": "c2",
+      "arquivo": "c2.png"
+    },
+    {
+      "tipo": "c3",
+      "arquivo": "c3.png"
+    }
+  ],
+  "tipos_roupa": [
+    "t",
+    "t",
+    "d",
+    "s"
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FDAC6A",
+      "roupa": [
+        "FAFAFA",
+        "E32525",
+        "659070",
+        "3C3C3C"
+      ]
+    },
+    "original": {
+      "pele": "FDAC6A",
+      "roupa": [
+        "FAFAFA",
+        "E32525",
+        "6A8F73",
+        "3C3C3C"
+      ]
+    }
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "dubz-masc86g",
+  "autor": "dubz",
+  "genero": "m",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": false
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    },
+    {
+      "tipo": "d0",
+      "arquivo": "d0.png",
+      "piscada": false
+    },
+    {
+      "tipo": "d1",
+      "arquivo": "d1.png",
+      "piscada": false
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFA159",
+      "cabelo": "191919",
+      "olhos": "B21F12",
+      "detalhes": [
+        "00BFAF",
+        "7D7D7D"
+      ]
+    },
+    "original": {
+      "pele": "FFA560",
+      "cabelo": "191919",
+      "olhos": "A60000",
+      "detalhes": [
+        "00BFAF",
+        "7D7D7D"
+      ]
+    }
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "formato": 1,
+  "tipo": "corpo",
+  "id": "zar67body",
+  "autor": "zar",
+  "genero": "u",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png"
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png"
+    },
+    {
+      "tipo": "c0",
+      "arquivo": "c0.png"
+    },
+    {
+      "tipo": "c1",
+      "arquivo": "c1.png"
+    },
+    {
+      "tipo": "c2",
+      "arquivo": "c2.png"
+    }
+  ],
+  "tipos_roupa": [
+    "t",
+    "t",
+    "s"
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFA662",
+      "roupa": [
+        "4C4E3C",
+        "2F2D2F",
+        "F7F2F0"
+      ]
+    },
+    "original": {
+      "pele": "FFA662",
+      "roupa": [
+        "4C4E40",
+        "2F2D2F",
+        "FBF6F4"
+      ]
+    }
+  }
+}

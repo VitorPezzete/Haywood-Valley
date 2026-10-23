@@ -1,0 +1,38 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "bea-masc55g",
+  "autor": "bea",
+  "genero": "m",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": false
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "",
+      "cabelo": "E0E0E0",
+      "olhos": "B63F1E",
+      "detalhes": []
+    },
+    "original": {
+      "pele": "",
+      "cabelo": "E2E2E2",
+      "olhos": "C7260D",
+      "detalhes": []
+    }
+  }
+}

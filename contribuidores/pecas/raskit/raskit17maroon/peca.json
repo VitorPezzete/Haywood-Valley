@@ -1,0 +1,52 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "raskit17maroon",
+  "autor": "raskit",
+  "genero": "f",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": true
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    },
+    {
+      "tipo": "d0",
+      "arquivo": "d0.png",
+      "piscada": false
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFBF90",
+      "cabelo": "5E1819",
+      "olhos": "E56F7E",
+      "detalhes": [
+        "DD6D66"
+      ]
+    },
+    "original": {
+      "pele": "FFC192",
+      "cabelo": "5B1A1A",
+      "olhos": "EA6A81",
+      "detalhes": [
+        "E15F5F"
+      ]
+    }
+  }
+}

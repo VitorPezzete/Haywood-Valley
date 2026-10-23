@@ -1,0 +1,47 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "chan7boy",
+  "autor": "chan",
+  "genero": "m",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": false
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": false
+    },
+    {
+      "tipo": "d0",
+      "arquivo": "d0.png",
+      "piscada": false
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFBF8E",
+      "cabelo": "6B287A",
+      "olhos": "",
+      "detalhes": [
+        "676666"
+      ]
+    },
+    "original": {
+      "pele": "FFBC8B",
+      "cabelo": "6D217B",
+      "olhos": "",
+      "detalhes": [
+        "676666"
+      ]
+    }
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "raskit5red",
+  "autor": "raskit",
+  "genero": "f",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": false
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    },
+    {
+      "tipo": "d0",
+      "arquivo": "d0.png",
+      "piscada": false
+    },
+    {
+      "tipo": "d1",
+      "arquivo": "d1.png",
+      "piscada": false
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFBF92",
+      "cabelo": "490001",
+      "olhos": "356383",
+      "detalhes": [
+        "6D9ACE",
+        "F46B70"
+      ]
+    },
+    "original": {
+      "pele": "FFBC90",
+      "cabelo": "380101",
+      "olhos": "396F97",
+      "detalhes": [
+        "6F9AC8",
+        "E86C6E"
+      ]
+    }
+  }
+}

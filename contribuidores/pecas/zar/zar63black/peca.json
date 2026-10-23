@@ -1,0 +1,43 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "zar63black",
+  "autor": "zar",
+  "genero": "f",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": true
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFAF79",
+      "cabelo": "303030",
+      "olhos": "C09E70",
+      "detalhes": []
+    },
+    "original": {
+      "pele": "FFB57F",
+      "cabelo": "2C2C2C",
+      "olhos": "C2A16F",
+      "detalhes": []
+    }
+  }
+}

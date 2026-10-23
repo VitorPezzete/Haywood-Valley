@@ -1,0 +1,43 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "zar15blonde",
+  "autor": "zar",
+  "genero": "f",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": false
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFC192",
+      "cabelo": "FFC6A3",
+      "olhos": "FB97B1",
+      "detalhes": []
+    },
+    "original": {
+      "pele": "FFC395",
+      "cabelo": "FFC3A0",
+      "olhos": "FF98B2",
+      "detalhes": []
+    }
+  }
+}

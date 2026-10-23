@@ -1,0 +1,63 @@
+{
+  "formato": 1,
+  "tipo": "corpo",
+  "id": "zar17bodybrown",
+  "autor": "zar",
+  "genero": "f",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png"
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png"
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png"
+    },
+    {
+      "tipo": "c0",
+      "arquivo": "c0.png"
+    },
+    {
+      "tipo": "c1",
+      "arquivo": "c1.png"
+    },
+    {
+      "tipo": "c2",
+      "arquivo": "c2.png"
+    },
+    {
+      "tipo": "c3",
+      "arquivo": "c3.png"
+    }
+  ],
+  "tipos_roupa": [
+    "v",
+    "s",
+    "t",
+    "t"
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFAD6B",
+      "roupa": [
+        "0808D0",
+        "F7F7F7",
+        "FFA8E4",
+        "AC52FF"
+      ]
+    },
+    "original": {
+      "pele": "FFAD6B",
+      "roupa": [
+        "0808D0",
+        "F7F7F7",
+        "FFA8E4",
+        "AC52FF"
+      ]
+    }
+  }
+}

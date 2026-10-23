@@ -1,0 +1,52 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "bea-masc108p",
+  "autor": "bea",
+  "genero": "m",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": false
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": false
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": false
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": false
+    },
+    {
+      "tipo": "d0",
+      "arquivo": "d0.png",
+      "piscada": false
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FB9053",
+      "cabelo": "1F1F1F",
+      "olhos": "9D9D9D",
+      "detalhes": [
+        "313131"
+      ]
+    },
+    "original": {
+      "pele": "FF985A",
+      "cabelo": "141414",
+      "olhos": "9D9D9D",
+      "detalhes": [
+        "303030"
+      ]
+    }
+  }
+}

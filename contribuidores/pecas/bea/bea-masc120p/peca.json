@@ -1,0 +1,54 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "bea-masc120p",
+  "autor": "bea",
+  "genero": "m",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": false
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": false
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": false
+    },
+    {
+      "tipo": "d0",
+      "arquivo": "d0.png",
+      "piscada": false
+    },
+    {
+      "tipo": "d1",
+      "arquivo": "d1.png",
+      "piscada": false
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FB9A53",
+      "cabelo": "EBBB00",
+      "olhos": "",
+      "detalhes": [
+        "D5AB02",
+        "42A0B4"
+      ]
+    },
+    "original": {
+      "pele": "FFA059",
+      "cabelo": "F0C102",
+      "olhos": "",
+      "detalhes": [
+        "DAB003",
+        "3D9BBA"
+      ]
+    }
+  }
+}

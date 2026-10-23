@@ -1,0 +1,52 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "zar140ombreblack",
+  "autor": "zar",
+  "genero": "f",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": false
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    },
+    {
+      "tipo": "d0",
+      "arquivo": "d0.png",
+      "piscada": false
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFAE85",
+      "cabelo": "7E543E",
+      "olhos": "CA9289",
+      "detalhes": [
+        "986D4F"
+      ]
+    },
+    "original": {
+      "pele": "FFB28A",
+      "cabelo": "7E533D",
+      "olhos": "CB9991",
+      "detalhes": [
+        "916247"
+      ]
+    }
+  }
+}

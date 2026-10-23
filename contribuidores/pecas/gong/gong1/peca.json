@@ -1,0 +1,59 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "gong1",
+  "autor": "gong",
+  "genero": "u",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": true
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    },
+    {
+      "tipo": "d0",
+      "arquivo": "d0.png",
+      "piscada": false
+    },
+    {
+      "tipo": "d1",
+      "arquivo": "d1.png",
+      "piscada": false
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFC495",
+      "cabelo": "FDD98F",
+      "olhos": "848687",
+      "detalhes": [
+        "880015",
+        "B2B2B2"
+      ]
+    },
+    "original": {
+      "pele": "FFC192",
+      "cabelo": "FCDC93",
+      "olhos": "838384",
+      "detalhes": [
+        "880015",
+        "B2B2B2"
+      ]
+    }
+  }
+}

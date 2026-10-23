@@ -1,0 +1,59 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "kuroi-masc102g",
+  "autor": "kuroi",
+  "genero": "m",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": false
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": false
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": false
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": false
+    },
+    {
+      "tipo": "d0",
+      "arquivo": "d0.png",
+      "piscada": false
+    },
+    {
+      "tipo": "d1",
+      "arquivo": "d1.png",
+      "piscada": false
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FF9D56",
+      "cabelo": "2B2A2A",
+      "olhos": "4E30BE",
+      "detalhes": [
+        "4903FF",
+        "6F6F6F"
+      ]
+    },
+    "original": {
+      "pele": "FF9A52",
+      "cabelo": "1F1F1F",
+      "olhos": "4D30BC",
+      "detalhes": [
+        "4401FF",
+        "6D6D6D"
+      ]
+    }
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "dj-masc91g",
+  "autor": "dj",
+  "genero": "m",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": true
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "d0",
+      "arquivo": "d0.png",
+      "piscada": false
+    },
+    {
+      "tipo": "d1",
+      "arquivo": "d1.png",
+      "piscada": false
+    },
+    {
+      "tipo": "d2",
+      "arquivo": "d2.png",
+      "piscada": false
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "834100",
+      "cabelo": "34312C",
+      "olhos": "",
+      "detalhes": [
+        "663300",
+        "EDBF47",
+        "80FFFF"
+      ]
+    },
+    "original": {
+      "pele": "804000",
+      "cabelo": "37342F",
+      "olhos": "",
+      "detalhes": [
+        "663300",
+        "EDBF47",
+        "80FFFF"
+      ]
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "alexxx1red",
+  "autor": "alexxx",
+  "genero": "m",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": false
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFB37F",
+      "cabelo": "656565",
+      "olhos": "D8726F",
+      "detalhes": []
+    },
+    "original": {
+      "pele": "FFAD79",
+      "cabelo": "6A6A6A",
+      "olhos": "D96B6B",
+      "detalhes": []
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "jen24",
+  "autor": "jen",
+  "genero": "f",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": true
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFBE91",
+      "cabelo": "4B4B4B",
+      "olhos": "876A4D",
+      "detalhes": []
+    },
+    "original": {
+      "pele": "FFC195",
+      "cabelo": "424242",
+      "olhos": "7C6A57",
+      "detalhes": []
+    }
+  }
+}

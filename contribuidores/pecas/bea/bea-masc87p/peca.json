@@ -1,0 +1,47 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "bea-masc87p",
+  "autor": "bea",
+  "genero": "m",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": false
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": false
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": false
+    },
+    {
+      "tipo": "d0",
+      "arquivo": "d0.png",
+      "piscada": false
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "BABABA",
+      "cabelo": "D00001",
+      "olhos": "",
+      "detalhes": [
+        "333333"
+      ]
+    },
+    "original": {
+      "pele": "C5C5C5",
+      "cabelo": "D50000",
+      "olhos": "",
+      "detalhes": [
+        "333333"
+      ]
+    }
+  }
+}

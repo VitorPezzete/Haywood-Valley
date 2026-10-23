@@ -1,0 +1,43 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "raskit10brown",
+  "autor": "raskit",
+  "genero": "f",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": false
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FF9F71",
+      "cabelo": "976C57",
+      "olhos": "747FD8",
+      "detalhes": []
+    },
+    "original": {
+      "pele": "FFA274",
+      "cabelo": "9D715B",
+      "olhos": "747FDC",
+      "detalhes": []
+    }
+  }
+}

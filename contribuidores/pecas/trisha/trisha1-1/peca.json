@@ -1,0 +1,52 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "trisha1-1",
+  "autor": "trisha",
+  "genero": "f",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": true
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    },
+    {
+      "tipo": "d0",
+      "arquivo": "d0.png",
+      "piscada": false
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFB99B",
+      "cabelo": "FFEBF2",
+      "olhos": "F3B4A5",
+      "detalhes": [
+        "421914"
+      ]
+    },
+    "original": {
+      "pele": "FFC0A8",
+      "cabelo": "FFEAF2",
+      "olhos": "FFB5A8",
+      "detalhes": [
+        "421914"
+      ]
+    }
+  }
+}

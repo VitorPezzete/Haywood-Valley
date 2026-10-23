@@ -1,0 +1,59 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "jen34purple",
+  "autor": "jen",
+  "genero": "f",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": false
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    },
+    {
+      "tipo": "d0",
+      "arquivo": "d0.png",
+      "piscada": false
+    },
+    {
+      "tipo": "d1",
+      "arquivo": "d1.png",
+      "piscada": false
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFA984",
+      "cabelo": "E3C1FF",
+      "olhos": "C6A4D8",
+      "detalhes": [
+        "E5BEF7",
+        "BE68F1"
+      ]
+    },
+    "original": {
+      "pele": "FFAE87",
+      "cabelo": "E2BFFF",
+      "olhos": "BDA3D6",
+      "detalhes": [
+        "DFC2ED",
+        "C461F6"
+      ]
+    }
+  }
+}

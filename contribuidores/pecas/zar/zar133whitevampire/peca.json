@@ -1,0 +1,59 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "zar133whitevampire",
+  "autor": "zar",
+  "genero": "f",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": false
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    },
+    {
+      "tipo": "d0",
+      "arquivo": "d0.png",
+      "piscada": false
+    },
+    {
+      "tipo": "d1",
+      "arquivo": "d1.png",
+      "piscada": false
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFCCA6",
+      "cabelo": "F3F3F3",
+      "olhos": "E47471",
+      "detalhes": [
+        "503B2A",
+        "DF2121"
+      ]
+    },
+    "original": {
+      "pele": "FFCDA9",
+      "cabelo": "F5F5F5",
+      "olhos": "DD6666",
+      "detalhes": [
+        "503B2A",
+        "DF2121"
+      ]
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "jen33brown",
+  "autor": "jen",
+  "genero": "f",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": true
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFB584",
+      "cabelo": "725245",
+      "olhos": "FEA7AB",
+      "detalhes": []
+    },
+    "original": {
+      "pele": "FFB888",
+      "cabelo": "6E4D41",
+      "olhos": "F0A4A6",
+      "detalhes": []
+    }
+  }
+}

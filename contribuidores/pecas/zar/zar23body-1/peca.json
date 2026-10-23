@@ -1,0 +1,48 @@
+{
+  "formato": 1,
+  "tipo": "corpo",
+  "id": "zar23body-1",
+  "autor": "zar",
+  "genero": "f",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png"
+    },
+    {
+      "tipo": "c0",
+      "arquivo": "c0.png"
+    },
+    {
+      "tipo": "c1",
+      "arquivo": "c1.png"
+    },
+    {
+      "tipo": "c2",
+      "arquivo": "c2.png"
+    }
+  ],
+  "tipos_roupa": [
+    "v",
+    "d",
+    "d"
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "",
+      "roupa": [
+        "EDEEEE",
+        "691414",
+        "B15DB0"
+      ]
+    },
+    "original": {
+      "pele": "",
+      "roupa": [
+        "EBECEC",
+        "661515",
+        "B15DB0"
+      ]
+    }
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "zar223auburn",
+  "autor": "zar",
+  "genero": "f",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": false
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "d0",
+      "arquivo": "d0.png",
+      "piscada": false
+    },
+    {
+      "tipo": "d1",
+      "arquivo": "d1.png",
+      "piscada": false
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFC89C",
+      "cabelo": "D87122",
+      "olhos": "",
+      "detalhes": [
+        "A6A6A6",
+        "EF6E6E"
+      ]
+    },
+    "original": {
+      "pele": "FFC99D",
+      "cabelo": "C0621E",
+      "olhos": "",
+      "detalhes": [
+        "A6A6A6",
+        "E36E6D"
+      ]
+    }
+  }
+}

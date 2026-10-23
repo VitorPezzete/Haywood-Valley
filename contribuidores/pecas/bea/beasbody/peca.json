@@ -1,0 +1,55 @@
+{
+  "formato": 1,
+  "tipo": "corpo",
+  "id": "beasbody",
+  "autor": "bea",
+  "genero": "f",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png"
+    },
+    {
+      "tipo": "c0",
+      "arquivo": "c0.png"
+    },
+    {
+      "tipo": "c1",
+      "arquivo": "c1.png"
+    },
+    {
+      "tipo": "c2",
+      "arquivo": "c2.png"
+    },
+    {
+      "tipo": "c3",
+      "arquivo": "c3.png"
+    }
+  ],
+  "tipos_roupa": [
+    "t",
+    "s",
+    "p",
+    "d"
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "",
+      "roupa": [
+        "818181",
+        "D2E0FF",
+        "816657",
+        "305274"
+      ]
+    },
+    "original": {
+      "pele": "",
+      "roupa": [
+        "818181",
+        "D5E0F8",
+        "7B675C",
+        "305274"
+      ]
+    }
+  }
+}

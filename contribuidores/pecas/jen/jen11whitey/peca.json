@@ -1,0 +1,43 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "jen11whitey",
+  "autor": "jen",
+  "genero": "f",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": true
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFB583",
+      "cabelo": "F7F2F2",
+      "olhos": "DF9F8C",
+      "detalhes": []
+    },
+    "original": {
+      "pele": "FFBE95",
+      "cabelo": "FFFAFA",
+      "olhos": "FCAB9E",
+      "detalhes": []
+    }
+  }
+}

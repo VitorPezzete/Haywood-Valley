@@ -1,0 +1,52 @@
+{
+  "formato": 1,
+  "tipo": "corpo",
+  "id": "bear2body",
+  "autor": "bear",
+  "genero": "f",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png"
+    },
+    {
+      "tipo": "c0",
+      "arquivo": "c0.png"
+    },
+    {
+      "tipo": "c1",
+      "arquivo": "c1.png"
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png"
+    },
+    {
+      "tipo": "c2",
+      "arquivo": "c2.png"
+    }
+  ],
+  "tipos_roupa": [
+    "t",
+    "t",
+    "s"
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "",
+      "roupa": [
+        "8A929A",
+        "4C545A",
+        "F5F5F5"
+      ]
+    },
+    "original": {
+      "pele": "",
+      "roupa": [
+        "8A929A",
+        "4E5459",
+        "F5F5F5"
+      ]
+    }
+  }
+}

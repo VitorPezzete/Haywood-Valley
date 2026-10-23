@@ -1,0 +1,43 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "ena53",
+  "autor": "ena",
+  "genero": "f",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": true
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFC08F",
+      "cabelo": "F45C73",
+      "olhos": "FF9174",
+      "detalhes": []
+    },
+    "original": {
+      "pele": "FFC493",
+      "cabelo": "FA5C75",
+      "olhos": "FF9076",
+      "detalhes": []
+    }
+  }
+}

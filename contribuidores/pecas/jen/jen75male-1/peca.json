@@ -1,0 +1,52 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "jen75male-1",
+  "autor": "jen",
+  "genero": "m",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": true
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    },
+    {
+      "tipo": "d0",
+      "arquivo": "d0.png",
+      "piscada": false
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFA570",
+      "cabelo": "F3F3F3",
+      "olhos": "AD5E4E",
+      "detalhes": [
+        "52261D"
+      ]
+    },
+    "original": {
+      "pele": "FFA874",
+      "cabelo": "FDFDFD",
+      "olhos": "AD5B4C",
+      "detalhes": [
+        "52261D"
+      ]
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "zar189purple",
+  "autor": "zar",
+  "genero": "m",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": false
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFBE84",
+      "cabelo": "8A2FB9",
+      "olhos": "CBB191",
+      "detalhes": []
+    },
+    "original": {
+      "pele": "FFB880",
+      "cabelo": "75289D",
+      "olhos": "CCB596",
+      "detalhes": []
+    }
+  }
+}

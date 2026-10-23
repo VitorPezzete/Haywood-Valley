@@ -1,0 +1,66 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "seraphim1",
+  "autor": "seraphim",
+  "genero": "f",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": false
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    },
+    {
+      "tipo": "d0",
+      "arquivo": "d0.png",
+      "piscada": false
+    },
+    {
+      "tipo": "d1",
+      "arquivo": "d1.png",
+      "piscada": false
+    },
+    {
+      "tipo": "d2",
+      "arquivo": "d2.png",
+      "piscada": false
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFAC7E",
+      "cabelo": "FFEFC6",
+      "olhos": "BDD579",
+      "detalhes": [
+        "D8CDB3",
+        "D1C299",
+        "5F8785"
+      ]
+    },
+    "original": {
+      "pele": "FFB081",
+      "cabelo": "FFF2D0",
+      "olhos": "C2D479",
+      "detalhes": [
+        "E5DBC5",
+        "D5C7A5",
+        "638684"
+      ]
+    }
+  }
+}

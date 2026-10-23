@@ -1,0 +1,69 @@
+{
+  "formato": 1,
+  "tipo": "corpo",
+  "id": "buichi-masc19p",
+  "autor": "buichi",
+  "genero": "m",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png"
+    },
+    {
+      "tipo": "c0",
+      "arquivo": "c0.png"
+    },
+    {
+      "tipo": "c1",
+      "arquivo": "c1.png"
+    },
+    {
+      "tipo": "c2",
+      "arquivo": "c2.png"
+    },
+    {
+      "tipo": "c3",
+      "arquivo": "c3.png"
+    },
+    {
+      "tipo": "c4",
+      "arquivo": "c4.png"
+    },
+    {
+      "tipo": "c5",
+      "arquivo": "c5.png"
+    }
+  ],
+  "tipos_roupa": [
+    "t",
+    "s",
+    "d",
+    "d",
+    "d",
+    "d"
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "",
+      "roupa": [
+        "424242",
+        "D02A0F",
+        "201E1E",
+        "EFAC28",
+        "39571C",
+        "276468"
+      ]
+    },
+    "original": {
+      "pele": "",
+      "roupa": [
+        "404040",
+        "D02A0F",
+        "201E1E",
+        "EFAC28",
+        "39571C",
+        "276468"
+      ]
+    }
+  }
+}

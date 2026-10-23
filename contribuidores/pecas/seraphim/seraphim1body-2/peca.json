@@ -1,0 +1,67 @@
+{
+  "formato": 1,
+  "tipo": "corpo",
+  "id": "seraphim1body-2",
+  "autor": "seraphim",
+  "genero": "f",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png"
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png"
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png"
+    },
+    {
+      "tipo": "c0",
+      "arquivo": "c0.png"
+    },
+    {
+      "tipo": "c1",
+      "arquivo": "c1.png"
+    },
+    {
+      "tipo": "c2",
+      "arquivo": "c2.png"
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.2.png"
+    },
+    {
+      "tipo": "c3",
+      "arquivo": "c3.png"
+    }
+  ],
+  "tipos_roupa": [
+    "k",
+    "s",
+    "t",
+    "p"
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFAD6B",
+      "roupa": [
+        "4A4E69",
+        "A7B2CA",
+        "E9F1C7",
+        "7B8494"
+      ]
+    },
+    "original": {
+      "pele": "FFAD6B",
+      "roupa": [
+        "4A4E69",
+        "A9B2C4",
+        "EAF0CE",
+        "7D8491"
+      ]
+    }
+  }
+}

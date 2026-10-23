@@ -1,0 +1,52 @@
+{
+  "formato": 1,
+  "tipo": "corpo",
+  "id": "beas-starbody-givecredit",
+  "autor": "bea",
+  "genero": "f",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png"
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png"
+    },
+    {
+      "tipo": "c0",
+      "arquivo": "c0.png"
+    },
+    {
+      "tipo": "c1",
+      "arquivo": "c1.png"
+    },
+    {
+      "tipo": "c2",
+      "arquivo": "c2.png"
+    }
+  ],
+  "tipos_roupa": [
+    "t",
+    "s",
+    "p"
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "E4A672",
+      "roupa": [
+        "677066",
+        "E2E2E3",
+        "689EA7"
+      ]
+    },
+    "original": {
+      "pele": "E4A672",
+      "roupa": [
+        "677066",
+        "E2E2E3",
+        "689EA7"
+      ]
+    }
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "jen35-1",
+  "autor": "jen",
+  "genero": "m",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": false
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    },
+    {
+      "tipo": "d0",
+      "arquivo": "d0.png",
+      "piscada": false
+    },
+    {
+      "tipo": "d1",
+      "arquivo": "d1.png",
+      "piscada": false
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FF9A51",
+      "cabelo": "1F1F1F",
+      "olhos": "89AFD0",
+      "detalhes": [
+        "6DB6B2",
+        "FF936F"
+      ]
+    },
+    "original": {
+      "pele": "FF9C55",
+      "cabelo": "1C1C1C",
+      "olhos": "89AFCD",
+      "detalhes": [
+        "68B5B8",
+        "FF8E6C"
+      ]
+    }
+  }
+}

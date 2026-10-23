@@ -1,0 +1,52 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "zar25blonde",
+  "autor": "zar",
+  "genero": "f",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": false
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    },
+    {
+      "tipo": "d0",
+      "arquivo": "d0.png",
+      "piscada": false
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFB88B",
+      "cabelo": "FFD8C0",
+      "olhos": "F89AC0",
+      "detalhes": [
+        "FFECCC"
+      ]
+    },
+    "original": {
+      "pele": "FFB98E",
+      "cabelo": "FFD1B9",
+      "olhos": "EB87AC",
+      "detalhes": [
+        "FFEDD4"
+      ]
+    }
+  }
+}

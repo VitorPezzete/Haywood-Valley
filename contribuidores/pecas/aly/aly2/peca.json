@@ -1,0 +1,43 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "aly2",
+  "autor": "aly",
+  "genero": "f",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": true
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFB989",
+      "cabelo": "3A3F5B",
+      "olhos": "B7786E",
+      "detalhes": []
+    },
+    "original": {
+      "pele": "FFBB8C",
+      "cabelo": "3C4161",
+      "olhos": "B47970",
+      "detalhes": []
+    }
+  }
+}

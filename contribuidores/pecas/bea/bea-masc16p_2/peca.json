@@ -1,0 +1,62 @@
+{
+  "formato": 1,
+  "tipo": "corpo",
+  "id": "bea-masc16p_2",
+  "autor": "bea",
+  "genero": "u",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png"
+    },
+    {
+      "tipo": "c0",
+      "arquivo": "c0.png"
+    },
+    {
+      "tipo": "c1",
+      "arquivo": "c1.png"
+    },
+    {
+      "tipo": "c2",
+      "arquivo": "c2.png"
+    },
+    {
+      "tipo": "c3",
+      "arquivo": "c3.png"
+    },
+    {
+      "tipo": "c4",
+      "arquivo": "c4.png"
+    }
+  ],
+  "tipos_roupa": [
+    "t",
+    "d",
+    "s",
+    "b",
+    "p"
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "",
+      "roupa": [
+        "A3A5A0",
+        "B765D7",
+        "383B4E",
+        "495265",
+        "46474D"
+      ]
+    },
+    "original": {
+      "pele": "",
+      "roupa": [
+        "BABCB7",
+        "D16DF6",
+        "393A4D",
+        "4D566A",
+        "45464C"
+      ]
+    }
+  }
+}

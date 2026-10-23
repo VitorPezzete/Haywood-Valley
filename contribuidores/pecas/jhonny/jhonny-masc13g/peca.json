@@ -1,0 +1,59 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "jhonny-masc13g",
+  "autor": "jhonny",
+  "genero": "m",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": false
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    },
+    {
+      "tipo": "d0",
+      "arquivo": "d0.png",
+      "piscada": false
+    },
+    {
+      "tipo": "d1",
+      "arquivo": "d1.png",
+      "piscada": false
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFBC87",
+      "cabelo": "464646",
+      "olhos": "FF2320",
+      "detalhes": [
+        "5D995E",
+        "818181"
+      ]
+    },
+    "original": {
+      "pele": "FEBA87",
+      "cabelo": "404140",
+      "olhos": "F31B1D",
+      "detalhes": [
+        "5B935B",
+        "818181"
+      ]
+    }
+  }
+}

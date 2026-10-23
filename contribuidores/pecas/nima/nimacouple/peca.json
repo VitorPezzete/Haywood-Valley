@@ -1,0 +1,52 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "nimacouple",
+  "autor": "nima",
+  "genero": "m",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": false
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    },
+    {
+      "tipo": "d0",
+      "arquivo": "d0.png",
+      "piscada": false
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFA16B",
+      "cabelo": "161515",
+      "olhos": "CDA88B",
+      "detalhes": [
+        "672A1A"
+      ]
+    },
+    "original": {
+      "pele": "FFA670",
+      "cabelo": "080706",
+      "olhos": "CBA78D",
+      "detalhes": [
+        "532014"
+      ]
+    }
+  }
+}

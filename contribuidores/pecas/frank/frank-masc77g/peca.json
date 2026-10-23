@@ -1,0 +1,52 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "frank-masc77g",
+  "autor": "frank",
+  "genero": "m",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": false
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    },
+    {
+      "tipo": "d0",
+      "arquivo": "d0.png",
+      "piscada": false
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "070BEB",
+      "cabelo": "1F1F21",
+      "olhos": "060A7B",
+      "detalhes": [
+        "060A7B"
+      ]
+    },
+    "original": {
+      "pele": "060DD2",
+      "cabelo": "101115",
+      "olhos": "060A7B",
+      "detalhes": [
+        "060A7B"
+      ]
+    }
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "daisy4",
+  "autor": "daisy",
+  "genero": "f",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": false
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    },
+    {
+      "tipo": "d0",
+      "arquivo": "d0.png",
+      "piscada": false
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFB685",
+      "cabelo": "493A31",
+      "olhos": "DCC29A",
+      "detalhes": [
+        "867F5F"
+      ]
+    },
+    "original": {
+      "pele": "FFB282",
+      "cabelo": "4C3C33",
+      "olhos": "CDB99A",
+      "detalhes": [
+        "857F64"
+      ]
+    }
+  }
+}

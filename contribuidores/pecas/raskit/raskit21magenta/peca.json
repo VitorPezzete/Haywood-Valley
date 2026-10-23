@@ -1,0 +1,52 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "raskit21magenta",
+  "autor": "raskit",
+  "genero": "f",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": false
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    },
+    {
+      "tipo": "d0",
+      "arquivo": "d0.png",
+      "piscada": false
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFB68F",
+      "cabelo": "42283D",
+      "olhos": "E999BD",
+      "detalhes": [
+        "DE6D64"
+      ]
+    },
+    "original": {
+      "pele": "FFB993",
+      "cabelo": "43283E",
+      "olhos": "E49ABC",
+      "detalhes": [
+        "DE6D64"
+      ]
+    }
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "pooka6",
+  "autor": "pooka",
+  "genero": "f",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": false
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    },
+    {
+      "tipo": "d0",
+      "arquivo": "d0.png",
+      "piscada": false
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFC197",
+      "cabelo": "FDCAA2",
+      "olhos": "DA9FB7",
+      "detalhes": [
+        "D49A76"
+      ]
+    },
+    "original": {
+      "pele": "FFC198",
+      "cabelo": "FFCA9F",
+      "olhos": "DE9EB8",
+      "detalhes": [
+        "D49A76"
+      ]
+    }
+  }
+}

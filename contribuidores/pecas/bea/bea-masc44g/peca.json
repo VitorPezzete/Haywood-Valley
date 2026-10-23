@@ -1,0 +1,52 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "bea-masc44g",
+  "autor": "bea",
+  "genero": "m",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": false
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    },
+    {
+      "tipo": "d0",
+      "arquivo": "d0.png",
+      "piscada": false
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FDAC67",
+      "cabelo": "1A1A1A",
+      "olhos": "1A1AD9",
+      "detalhes": [
+        "510677"
+      ]
+    },
+    "original": {
+      "pele": "F8A766",
+      "cabelo": "161616",
+      "olhos": "0404DD",
+      "detalhes": [
+        "51007A"
+      ]
+    }
+  }
+}

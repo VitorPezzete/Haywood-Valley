@@ -1,0 +1,59 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "zar92blonde",
+  "autor": "zar",
+  "genero": "m",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": false
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    },
+    {
+      "tipo": "d0",
+      "arquivo": "d0.png",
+      "piscada": false
+    },
+    {
+      "tipo": "d1",
+      "arquivo": "d1.png",
+      "piscada": false
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FEA45C",
+      "cabelo": "FFC696",
+      "olhos": "1C2328",
+      "detalhes": [
+        "676E72",
+        "1E262B"
+      ]
+    },
+    "original": {
+      "pele": "FFAA62",
+      "cabelo": "FFC494",
+      "olhos": "1D2328",
+      "detalhes": [
+        "686F73",
+        "20262A"
+      ]
+    }
+  }
+}

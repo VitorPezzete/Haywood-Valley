@@ -1,0 +1,52 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "bear11hweenboy",
+  "autor": "bear",
+  "genero": "m",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": false
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    },
+    {
+      "tipo": "d0",
+      "arquivo": "d0.png",
+      "piscada": false
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "D6D6D6",
+      "cabelo": "242424",
+      "olhos": "EE8488",
+      "detalhes": [
+        "717172"
+      ]
+    },
+    "original": {
+      "pele": "E9E9E9",
+      "cabelo": "171717",
+      "olhos": "F68C8F",
+      "detalhes": [
+        "707070"
+      ]
+    }
+  }
+}

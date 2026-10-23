@@ -1,0 +1,62 @@
+{
+  "formato": 1,
+  "tipo": "corpo",
+  "id": "qwertzilla-masc23p",
+  "autor": "qwertzilla",
+  "genero": "m",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png"
+    },
+    {
+      "tipo": "c0",
+      "arquivo": "c0.png"
+    },
+    {
+      "tipo": "c1",
+      "arquivo": "c1.png"
+    },
+    {
+      "tipo": "c2",
+      "arquivo": "c2.png"
+    },
+    {
+      "tipo": "c3",
+      "arquivo": "c3.png"
+    },
+    {
+      "tipo": "c4",
+      "arquivo": "c4.png"
+    }
+  ],
+  "tipos_roupa": [
+    "t",
+    "p",
+    "t",
+    "s",
+    "d"
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "",
+      "roupa": [
+        "5C5E5A",
+        "3C9F9C",
+        "444444",
+        "CA1322",
+        "A91D4D"
+      ]
+    },
+    "original": {
+      "pele": "",
+      "roupa": [
+        "5C5E5A",
+        "3C9F9C",
+        "3F3F3F",
+        "CA1322",
+        "A91D4D"
+      ]
+    }
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "raskit8brown",
+  "autor": "raskit",
+  "genero": "f",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": false
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    },
+    {
+      "tipo": "d0",
+      "arquivo": "d0.png",
+      "piscada": false
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFBF90",
+      "cabelo": "542826",
+      "olhos": "8FE7E3",
+      "detalhes": [
+        "C95153"
+      ]
+    },
+    "original": {
+      "pele": "FFC396",
+      "cabelo": "572A28",
+      "olhos": "92E8E0",
+      "detalhes": [
+        "C95153"
+      ]
+    }
+  }
+}

@@ -1,0 +1,59 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "enigma-masc90p",
+  "autor": "enigma",
+  "genero": "m",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": false
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": false
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": false
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": false
+    },
+    {
+      "tipo": "d0",
+      "arquivo": "d0.png",
+      "piscada": false
+    },
+    {
+      "tipo": "d1",
+      "arquivo": "d1.png",
+      "piscada": false
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFAC65",
+      "cabelo": "2E2E2E",
+      "olhos": "218000",
+      "detalhes": [
+        "008F1A",
+        "DCFF00"
+      ]
+    },
+    "original": {
+      "pele": "FFAC64",
+      "cabelo": "303030",
+      "olhos": "218000",
+      "detalhes": [
+        "008F17",
+        "DCFF00"
+      ]
+    }
+  }
+}

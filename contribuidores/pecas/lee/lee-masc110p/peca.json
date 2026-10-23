@@ -1,0 +1,61 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "lee-masc110p",
+  "autor": "lee",
+  "genero": "m",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": false
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": false
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": false
+    },
+    {
+      "tipo": "d0",
+      "arquivo": "d0.png",
+      "piscada": false
+    },
+    {
+      "tipo": "d1",
+      "arquivo": "d1.png",
+      "piscada": false
+    },
+    {
+      "tipo": "d2",
+      "arquivo": "d2.png",
+      "piscada": false
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFA160",
+      "cabelo": "151515",
+      "olhos": "",
+      "detalhes": [
+        "880015",
+        "990B0E",
+        "E3985B"
+      ]
+    },
+    "original": {
+      "pele": "FFA567",
+      "cabelo": "101010",
+      "olhos": "",
+      "detalhes": [
+        "880015",
+        "990B0E",
+        "E3985B"
+      ]
+    }
+  }
+}

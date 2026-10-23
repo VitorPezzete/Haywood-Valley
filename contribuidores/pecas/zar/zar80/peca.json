@@ -1,0 +1,43 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "zar80",
+  "autor": "zar",
+  "genero": "f",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": true
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFCBAA",
+      "cabelo": "D6B4FE",
+      "olhos": "C4AAB3",
+      "detalhes": []
+    },
+    "original": {
+      "pele": "FFCBAA",
+      "cabelo": "D6B9FC",
+      "olhos": "C3AAB2",
+      "detalhes": []
+    }
+  }
+}

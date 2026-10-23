@@ -1,0 +1,52 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "gong3dirtywhite",
+  "autor": "gong",
+  "genero": "m",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": true
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    },
+    {
+      "tipo": "d0",
+      "arquivo": "d0.png",
+      "piscada": true
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FF9F5A",
+      "cabelo": "A9A9A9",
+      "olhos": "ABABAB",
+      "detalhes": [
+        "581B0B"
+      ]
+    },
+    "original": {
+      "pele": "FFA15D",
+      "cabelo": "A3A3A3",
+      "olhos": "ABABAB",
+      "detalhes": [
+        "581B0B"
+      ]
+    }
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "formato": 1,
+  "tipo": "corpo",
+  "id": "zar20body",
+  "autor": "zar",
+  "genero": "f",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png"
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png"
+    },
+    {
+      "tipo": "c0",
+      "arquivo": "c0.png"
+    },
+    {
+      "tipo": "c1",
+      "arquivo": "c1.png"
+    },
+    {
+      "tipo": "c2",
+      "arquivo": "c2.png"
+    },
+    {
+      "tipo": "c3",
+      "arquivo": "c3.png"
+    },
+    {
+      "tipo": "c4",
+      "arquivo": "c4.png"
+    },
+    {
+      "tipo": "c5",
+      "arquivo": "c5.png"
+    }
+  ],
+  "tipos_roupa": [
+    "t",
+    "s",
+    "m",
+    "t",
+    "k",
+    "k"
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "F9B680",
+      "roupa": [
+        "201D32",
+        "F4F4F4",
+        "C2814B",
+        "7A8CAE",
+        "58657C",
+        "955828"
+      ]
+    },
+    "original": {
+      "pele": "F9B680",
+      "roupa": [
+        "201D32",
+        "F4F4F4",
+        "C2814B",
+        "7B8CAD",
+        "57657F",
+        "91592C"
+      ]
+    }
+  }
+}

@@ -1,0 +1,52 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "zar170itachi-1",
+  "autor": "zar",
+  "genero": "m",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": false
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    },
+    {
+      "tipo": "d0",
+      "arquivo": "d0.png",
+      "piscada": false
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFB07F",
+      "cabelo": "61616D",
+      "olhos": "D04657",
+      "detalhes": [
+        "0C3465"
+      ]
+    },
+    "original": {
+      "pele": "FFB281",
+      "cabelo": "62626E",
+      "olhos": "C1394A",
+      "detalhes": [
+        "06346B"
+      ]
+    }
+  }
+}

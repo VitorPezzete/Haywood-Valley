@@ -1,0 +1,33 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "bea-masc73p",
+  "autor": "bea",
+  "genero": "m",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": false
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": false
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "",
+      "cabelo": "D7D8D9",
+      "olhos": "",
+      "detalhes": []
+    },
+    "original": {
+      "pele": "",
+      "cabelo": "DFE0E1",
+      "olhos": "",
+      "detalhes": []
+    }
+  }
+}

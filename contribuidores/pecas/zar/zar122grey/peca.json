@@ -1,0 +1,43 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "zar122grey",
+  "autor": "zar",
+  "genero": "f",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": false
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFC297",
+      "cabelo": "CACACA",
+      "olhos": "FF7874",
+      "detalhes": []
+    },
+    "original": {
+      "pele": "FFC199",
+      "cabelo": "F7F7F7",
+      "olhos": "FF7D7A",
+      "detalhes": []
+    }
+  }
+}

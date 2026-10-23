@@ -1,0 +1,52 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "roy-masc26p",
+  "autor": "roy",
+  "genero": "m",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": false
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": false
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": false
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": false
+    },
+    {
+      "tipo": "d0",
+      "arquivo": "d0.png",
+      "piscada": false
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "BD5E33",
+      "cabelo": "030101",
+      "olhos": "A0A0A0",
+      "detalhes": [
+        "8B8B8B"
+      ]
+    },
+    "original": {
+      "pele": "C16439",
+      "cabelo": "030101",
+      "olhos": "A0A0A0",
+      "detalhes": [
+        "8B8B8B"
+      ]
+    }
+  }
+}

@@ -1,0 +1,43 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "zar125kush",
+  "autor": "zar",
+  "genero": "m",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": false
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFA660",
+      "cabelo": "3B8D7C",
+      "olhos": "FF96C8",
+      "detalhes": []
+    },
+    "original": {
+      "pele": "FFA25C",
+      "cabelo": "3B8C7D",
+      "olhos": "FF9ED1",
+      "detalhes": []
+    }
+  }
+}

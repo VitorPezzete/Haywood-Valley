@@ -1,0 +1,59 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "zar13ginger",
+  "autor": "zar",
+  "genero": "f",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": true
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    },
+    {
+      "tipo": "d0",
+      "arquivo": "d0.png",
+      "piscada": true
+    },
+    {
+      "tipo": "d1",
+      "arquivo": "d1.png",
+      "piscada": true
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "E9E9E9",
+      "cabelo": "C27639",
+      "olhos": "74DE6A",
+      "detalhes": [
+        "707070",
+        "868686"
+      ]
+    },
+    "original": {
+      "pele": "F5F5F5",
+      "cabelo": "E58F47",
+      "olhos": "8CF87D",
+      "detalhes": [
+        "686868",
+        "868686"
+      ]
+    }
+  }
+}

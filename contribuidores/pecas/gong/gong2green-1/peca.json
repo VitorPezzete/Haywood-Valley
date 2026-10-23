@@ -1,0 +1,59 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "gong2green-1",
+  "autor": "gong",
+  "genero": "m",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": true
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    },
+    {
+      "tipo": "d0",
+      "arquivo": "d0.png",
+      "piscada": false
+    },
+    {
+      "tipo": "d1",
+      "arquivo": "d1.png",
+      "piscada": false
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFAB5F",
+      "cabelo": "82DB52",
+      "olhos": "A6EC96",
+      "detalhes": [
+        "B2B2B2",
+        "77441A"
+      ]
+    },
+    "original": {
+      "pele": "FFAC62",
+      "cabelo": "81DA53",
+      "olhos": "A6EC96",
+      "detalhes": [
+        "B2B2B2",
+        "77441A"
+      ]
+    }
+  }
+}

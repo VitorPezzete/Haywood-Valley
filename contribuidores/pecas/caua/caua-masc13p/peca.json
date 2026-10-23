@@ -1,0 +1,43 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "caua-masc13p",
+  "autor": "caua",
+  "genero": "m",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": false
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": false
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": false
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": false
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFA45E",
+      "cabelo": "4B2107",
+      "olhos": "0700FF",
+      "detalhes": []
+    },
+    "original": {
+      "pele": "FFA561",
+      "cabelo": "371500",
+      "olhos": "0700FF",
+      "detalhes": []
+    }
+  }
+}

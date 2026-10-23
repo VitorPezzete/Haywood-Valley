@@ -1,0 +1,52 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "bear1",
+  "autor": "bear",
+  "genero": "m",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": false
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    },
+    {
+      "tipo": "d0",
+      "arquivo": "d0.png",
+      "piscada": false
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFAA6B",
+      "cabelo": "2D2E2F",
+      "olhos": "7A7A79",
+      "detalhes": [
+        "54200A"
+      ]
+    },
+    "original": {
+      "pele": "FFAB6C",
+      "cabelo": "2A2A2B",
+      "olhos": "7A7A79",
+      "detalhes": [
+        "54200A"
+      ]
+    }
+  }
+}

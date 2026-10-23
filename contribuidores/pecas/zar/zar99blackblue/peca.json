@@ -1,0 +1,52 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "zar99blackblue",
+  "autor": "zar",
+  "genero": "m",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": true
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    },
+    {
+      "tipo": "d0",
+      "arquivo": "d0.png",
+      "piscada": false
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "944824",
+      "cabelo": "352B29",
+      "olhos": "CCA392",
+      "detalhes": [
+        "1F41AA"
+      ]
+    },
+    "original": {
+      "pele": "904926",
+      "cabelo": "241B18",
+      "olhos": "BFA194",
+      "detalhes": [
+        "1C41BB"
+      ]
+    }
+  }
+}

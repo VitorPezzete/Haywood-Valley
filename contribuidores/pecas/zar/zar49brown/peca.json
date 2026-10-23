@@ -1,0 +1,52 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "zar49brown",
+  "autor": "zar",
+  "genero": "f",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": true
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    },
+    {
+      "tipo": "d0",
+      "arquivo": "d0.png",
+      "piscada": false
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFBD93",
+      "cabelo": "3A2E1C",
+      "olhos": "989898",
+      "detalhes": [
+        "FF5F64"
+      ]
+    },
+    "original": {
+      "pele": "FFBE95",
+      "cabelo": "382B1C",
+      "olhos": "9A9A9A",
+      "detalhes": [
+        "FF5666"
+      ]
+    }
+  }
+}

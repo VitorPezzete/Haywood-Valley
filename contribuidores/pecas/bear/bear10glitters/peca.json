@@ -1,0 +1,43 @@
+{
+  "formato": 1,
+  "tipo": "cabeca",
+  "id": "bear10glitters",
+  "autor": "bear",
+  "genero": "f",
+  "camadas": [
+    {
+      "tipo": "f",
+      "arquivo": "f.png",
+      "piscada": true
+    },
+    {
+      "tipo": "h",
+      "arquivo": "h.png",
+      "piscada": true
+    },
+    {
+      "tipo": "s",
+      "arquivo": "s.png",
+      "piscada": true
+    },
+    {
+      "tipo": "e",
+      "arquivo": "e.png",
+      "piscada": true
+    }
+  ],
+  "estilos": {
+    "aeko": {
+      "pele": "FFAB75",
+      "cabelo": "1F1F1F",
+      "olhos": "BCA9B4",
+      "detalhes": []
+    },
+    "original": {
+      "pele": "FFAA75",
+      "cabelo": "1E1E1E",
+      "olhos": "BAA9B0",
+      "detalhes": []
+    }
+  }
+}
